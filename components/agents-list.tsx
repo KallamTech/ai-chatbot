@@ -86,7 +86,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
           <Card key={agent.id} className="p-4 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3 gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                   <BotIcon size={20} className="text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -98,7 +98,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex-shrink-0">
+                  <Button variant="ghost" size="sm" className="shrink-0">
                     <MoreVerticalIcon size={16} />
                   </Button>
                 </DropdownMenuTrigger>
@@ -138,7 +138,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Agent</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteAgent?.title}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{deleteAgent?.title}&quot;? This action cannot be undone.
               All associated documents and workflow data will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>

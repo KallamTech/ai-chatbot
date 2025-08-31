@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, } from 'react';
 import {
   BotIcon,
   MessageSquareIcon,
   FileTextIcon,
   UploadIcon,
   Trash2Icon,
-  PlusIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,7 +17,6 @@ import { toast } from '@/components/toast';
 import type { Agent, WorkflowNode, WorkflowEdge } from '@/lib/db/schema';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { getSupportedFileExtensions, isPdfProcessingAvailable } from '@/lib/utils/pdf-config';
 
 interface AgentDetailsProps {
   agent: Agent;
@@ -188,7 +186,7 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
           {workflowNodes.map((node, index) => (
             <Card key={node.id} className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-semibold">
+                <div className="size-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-semibold">
                   {index + 1}
                 </div>
                 <div>

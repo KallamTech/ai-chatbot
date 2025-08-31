@@ -6,7 +6,7 @@ import {
 } from 'ai';
 import { isTestEnvironment } from '../constants';
 import { gateway } from './gateway';
-import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 
 // Conditionally import test models only in test environment
 let testModels: any = null;

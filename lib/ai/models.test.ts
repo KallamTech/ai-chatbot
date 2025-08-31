@@ -1,7 +1,6 @@
 import { simulateReadableStream } from 'ai';
-import { MockLanguageModelV2 } from 'ai/test';
+import { MockLanguageModelV2, MockImageModelV2 } from 'ai/test';
 import { getResponseChunksByPrompt } from '@/tests/prompts/utils';
-import { MockImageModelV2 } from 'ai/test';
 
 export const imageModel = new MockImageModelV2({
   doGenerate: async () => ({

@@ -1,17 +1,14 @@
 import 'server-only';
 
-import { tool } from 'ai';
+import { tool, generateText } from 'ai';
 import { z } from 'zod';
-import { generateUUID } from '@/lib/utils';
 import {
   createAgent as createAgentInDB,
   createDataPool,
   createWorkflowNode,
   createWorkflowEdge,
 } from '@/lib/db/queries';
-import { myProvider } from '../providers';
-import { ModelId } from '../providers';
-import { generateText } from 'ai';
+import { myProvider, ModelId } from '../providers';
 import type { UIMessageStreamWriter } from 'ai';
 import type { ChatMessage } from '@/lib/types';
 import type { Session } from 'next-auth';
@@ -66,12 +63,14 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
         });
 
         dataStream.write({
-          type: 'data-agent-created',
-          data: {
-            id: agent.id,
-            title: agent.title,
-            description: agent.description,
-          },
+          type: 'data-id',
+          data: agent.id,
+          transient: true,
+        });
+
+        dataStream.write({
+          type: 'data-title',
+          data: agent.title,
           transient: true,
         });
 
@@ -83,11 +82,8 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
         });
 
         dataStream.write({
-          type: 'data-pool-created',
-          data: {
-            id: dataPoolResult.id,
-            name: dataPoolResult.name,
-          },
+          type: 'data-id',
+          data: dataPoolResult.id,
           transient: true,
         });
 
@@ -163,11 +159,8 @@ Return only the JSON array, no other text.`,
         }
 
         dataStream.write({
-          type: 'data-workflow-created',
-          data: {
-            nodes: createdNodes.length,
-            edges: Math.max(0, createdNodes.length - 1),
-          },
+          type: 'data-finish',
+          data: null,
           transient: true,
         });
 

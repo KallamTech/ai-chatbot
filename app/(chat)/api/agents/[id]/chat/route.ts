@@ -9,10 +9,9 @@ import {
 } from 'ai';
 import { z } from 'zod';
 import { auth, type UserType } from '@/app/(auth)/auth';
-import { ModelId } from '@/lib/ai/providers';
+import { myProvider } from '@/lib/ai/providers';
 import {
   createStreamId,
-  deleteChatById,
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
@@ -26,7 +25,6 @@ import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { isProductionEnvironment } from '@/lib/constants';
-import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import { postRequestBodySchema, type PostRequestBody } from '@/app/(chat)/api/chat/schema';
 import { geolocation } from '@vercel/functions';
@@ -44,7 +42,7 @@ export const maxDuration = 60;
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
-export function getStreamContext() {
+function getStreamContext() {
   if (!globalStreamContext) {
     try {
       globalStreamContext = createResumableStreamContext({
@@ -236,7 +234,11 @@ export async function POST(
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }
-    return new ChatSDKError('internal_server_error:chat').toResponse();
+    console.error('Unexpected error in agent chat:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 
@@ -295,7 +297,7 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
 
         // Use the ragSearch tool but bind it to this specific data pool
         const ragSearchTool = ragSearch();
-        const result = await ragSearchTool.execute({
+        const result = await (ragSearchTool as any).execute({
           dataPoolId: dataPool.id,
           query,
           limit,

@@ -34,7 +34,7 @@ export default async function AgentsPage() {
             To create an agent, simply start a new chat and say something like:
           </p>
           <div className="bg-background border rounded-md p-3 text-sm font-mono">
-            "Create an agent that extracts key information from contracts and summarizes them"
+            &quot;Create an agent that extracts key information from contracts and summarizes them&quot;
           </div>
         </div>
 
