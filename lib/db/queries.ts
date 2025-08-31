@@ -718,6 +718,7 @@ export async function createDataPoolDocument({
 
     return newDocument;
   } catch (error) {
+    console.error('Database error creating data pool document:', error);
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to create data pool document',

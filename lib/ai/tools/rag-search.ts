@@ -3,7 +3,7 @@ import 'server-only';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { getDataPoolDocuments } from '@/lib/db/queries';
-import { cosineSimilarity, generateEmbedding } from '@/lib/utils';
+import { generateEmbedding } from '@/lib/utils';
 
 // RAG search tool for workflow nodes
 export const ragSearch = () =>
@@ -13,14 +13,19 @@ export const ragSearch = () =>
       dataPoolId: z.string().describe('ID of the data pool to search'),
       query: z.string().describe('Search query'),
       limit: z.number().optional().default(5).describe('Maximum number of results to return'),
-      threshold: z.number().optional().default(0.7).describe('Minimum similarity threshold'),
+      threshold: z.number().optional().default(0.3).describe('Minimum similarity threshold (0.3 is more lenient)'),
     }),
     execute: async ({ dataPoolId, query, limit, threshold }) => {
       try {
+        console.log('RAG Search: Starting search for data pool:', dataPoolId);
+        console.log('RAG Search: Query:', query);
+
         // Get all documents from the data pool
         const documents = await getDataPoolDocuments({ dataPoolId });
+        console.log('RAG Search: Found documents in database:', documents.length);
 
         if (documents.length === 0) {
+          console.log('RAG Search: No documents found in data pool');
           return {
             results: [],
             message: 'No documents found in the data pool',
@@ -37,22 +42,30 @@ export const ragSearch = () =>
         }
 
         // Calculate similarity scores for each document
+        console.log('RAG Search: Processing documents for similarity...');
         const scoredDocuments = documents
           .map(doc => {
+            console.log('RAG Search: Document:', doc.title, 'has embedding:', !!doc.embedding);
+
             if (!doc.embedding) {
+              console.log('RAG Search: Document has no embedding, skipping:', doc.title);
               return { ...doc, similarity: 0 };
             }
-            
-            const similarity = cosineSimilarity(
+
+            const similarity = cosineSimilarityLocal(
               queryEmbedding,
               doc.embedding as number[]
             );
-            
+
+            console.log('RAG Search: Document similarity score:', doc.title, similarity);
+
             return { ...doc, similarity };
           })
           .filter(doc => doc.similarity >= threshold)
           .sort((a, b) => b.similarity - a.similarity)
           .slice(0, limit);
+
+        console.log('RAG Search: Documents above threshold:', scoredDocuments.length);
 
         const results = scoredDocuments.map(doc => ({
           id: doc.id,

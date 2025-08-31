@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
-import { 
-  getAgentById, 
-  getDataPoolByAgentId, 
+import {
+  getAgentById,
+  getDataPoolByAgentId,
   createDataPoolDocument,
-  getDataPoolDocuments 
+  getDataPoolDocuments
 } from '@/lib/db/queries';
 import { generateDocumentEmbedding } from '@/lib/utils';
 import { ChatSDKError } from '@/lib/errors';
@@ -33,10 +33,13 @@ export async function POST(
 
     // Get the data pool for this agent
     const dataPool = await getDataPoolByAgentId({ agentId });
-    
+
     if (!dataPool) {
-      return new ChatSDKError('not_found:agent').toResponse();
+      console.error('No data pool found for agent:', agentId);
+      return new ChatSDKError('not_found:datapool').toResponse();
     }
+
+    console.log('Data pool found:', dataPool.id, dataPool.name);
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -49,6 +52,15 @@ export async function POST(
       );
     }
 
+    // Check file size (limit to 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: 'File size too large. Maximum allowed size is 10MB.' },
+        { status: 400 }
+      );
+    }
+
     if (!title) {
       return NextResponse.json(
         { error: 'Document title is required' },
@@ -56,9 +68,46 @@ export async function POST(
       );
     }
 
+            // Validate file type - allow text files and PDFs
+    const allowedTypes = [
+      'text/plain',
+      'text/markdown',
+      'text/csv',
+      'application/json',
+      'text/html',
+      'text/css',
+      'text/javascript',
+      'application/javascript',
+      'text/xml',
+      'application/xml',
+      'application/pdf'
+    ];
+
+    const fileType = file.type || 'text/plain';
+    const fileName = file.name.toLowerCase();
+
+    // Check file extension as backup
+    const textExtensions = ['.txt', '.md', '.csv', '.json', '.html', '.css', '.js', '.xml', '.log', '.pdf'];
+    const hasTextExtension = textExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!allowedTypes.includes(fileType) && !hasTextExtension) {
+      return NextResponse.json(
+        { error: 'Only text files and PDFs are supported (txt, md, csv, json, html, css, js, xml, log, pdf)' },
+        { status: 400 }
+      );
+    }
+
     // Read file content
-    const content = await file.text();
-    
+    let content: string;
+    try {
+      content = await file.text();
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Failed to read file content. Make sure it\'s a valid text file.' },
+        { status: 400 }
+      );
+    }
+
     if (!content.trim()) {
       return NextResponse.json(
         { error: 'File content is empty' },
@@ -66,8 +115,25 @@ export async function POST(
       );
     }
 
+    // Remove null bytes and other problematic characters for PostgreSQL
+    content = content.replace(/\0/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+    if (!content.trim()) {
+      return NextResponse.json(
+        { error: 'File contains only invalid characters' },
+        { status: 400 }
+      );
+    }
+
     // Generate embedding for the document
-    const embedding = await generateDocumentEmbedding(content);
+    let embedding: number[] | undefined;
+    try {
+      embedding = await generateDocumentEmbedding(content);
+      console.log('Generated embedding:', embedding ? 'success' : 'failed');
+    } catch (error) {
+      console.error('Error generating embedding:', error);
+      embedding = undefined;
+    }
 
     // Create the document
     const document = await createDataPoolDocument({
@@ -128,14 +194,14 @@ export async function GET(
 
     // Get the data pool for this agent
     const dataPool = await getDataPoolByAgentId({ agentId });
-    
+
     if (!dataPool) {
       return new ChatSDKError('not_found:agent').toResponse();
     }
 
     // Get all documents in the data pool
-    const documents = await getDataPoolDocuments({ 
-      dataPoolId: dataPool.id 
+    const documents = await getDataPoolDocuments({
+      dataPoolId: dataPool.id
     });
 
     const documentsWithoutEmbeddings = documents.map(doc => ({
@@ -145,7 +211,7 @@ export async function GET(
       createdAt: doc.createdAt,
     }));
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       documents: documentsWithoutEmbeddings,
       dataPool: {
         id: dataPool.id,

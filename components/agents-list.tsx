@@ -36,7 +36,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
 
   const handleDeleteAgent = async (agent: Agent) => {
     setIsDeleting(true);
-    
+
     try {
       const response = await fetch(`/api/agents/${agent.id}`, {
         method: 'DELETE',
@@ -48,7 +48,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
 
       setAgents(agents.filter(a => a.id !== agent.id));
       setDeleteAgent(null);
-      
+
       toast({
         type: 'success',
         description: `Agent "${agent.title}" has been deleted`,
@@ -84,13 +84,13 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {agents.map((agent) => (
           <Card key={agent.id} className="p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
+            <div className="flex justify-between items-start mb-3 gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
                   <BotIcon size={20} className="text-primary" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{agent.title}</h3>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold break-words leading-tight">{agent.title}</h3>
                   <p className="text-xs text-muted-foreground">
                     Created {formatDistanceToNow(agent.createdAt)} ago
                   </p>
@@ -98,7 +98,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="flex-shrink-0">
                     <MoreVerticalIcon size={16} />
                   </Button>
                 </DropdownMenuTrigger>
@@ -109,7 +109,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
                       View Details
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => setDeleteAgent(agent)}
                     className="text-red-600"
                   >
@@ -119,11 +119,11 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            
-            <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+
+            <p className="text-sm text-muted-foreground mb-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }} title={agent.description}>
               {agent.description}
             </p>
-            
+
             <div className="flex justify-between items-center">
               <Link href={`/agents/${agent.id}/chat`}>
                 <Button size="sm">Chat with Agent</Button>

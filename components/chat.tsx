@@ -31,6 +31,7 @@ export function Chat({
   isReadonly,
   session,
   autoResume,
+  agentId,
 }: {
   id: string;
   initialMessages: ChatMessage[];
@@ -39,6 +40,7 @@ export function Chat({
   isReadonly: boolean;
   session: Session;
   autoResume: boolean;
+  agentId?: string;
 }) {
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -86,7 +88,7 @@ export function Chat({
     experimental_throttle: 100,
     generateId: generateUUID,
     transport: new DefaultChatTransport({
-      api: '/api/chat',
+      api: agentId ? `/api/agents/${agentId}/chat` : '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
         return {

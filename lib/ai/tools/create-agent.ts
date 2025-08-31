@@ -4,7 +4,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { generateUUID } from '@/lib/utils';
 import {
-  createAgent,
+  createAgent as createAgentInDB,
   createDataPool,
   createWorkflowNode,
   createWorkflowEdge,
@@ -41,11 +41,11 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
           model: myProvider.languageModel(ModelId.GPT_4_1),
           system: 'You are a helpful assistant that creates AI agent specifications. Generate a concise title and refined description for an agent based on user requirements.',
           prompt: `User wants to create an agent that: ${description}
-          
+
           Generate:
           1. A short, clear title (max 50 characters)
           2. A refined description (max 200 characters) explaining what the agent does
-          
+
           Format your response as:
           Title: [title]
           Description: [description]`,
@@ -54,12 +54,12 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
         // Parse the generated content
         const titleMatch = generatedContent.match(/Title:\s*(.+)/);
         const descriptionMatch = generatedContent.match(/Description:\s*(.+)/);
-        
+
         const agentTitle = titleMatch?.[1]?.trim() || 'AI Agent';
         const agentDescription = descriptionMatch?.[1]?.trim() || description;
 
         // Create the agent
-        const agent = await createAgent({
+        const agent = await createAgentInDB({
           title: agentTitle,
           description: agentDescription,
           userId: session.user.id,
@@ -111,7 +111,7 @@ Create a JSON array of nodes with connections. Each node should have:
 
 Return only the JSON array, no other text.`,
           prompt: `Requirements: ${workflowRequirements}
-          
+
           Agent purpose: ${agentDescription}`,
         });
 

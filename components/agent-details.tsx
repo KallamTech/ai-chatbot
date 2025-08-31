@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { 
-  BotIcon, 
-  MessageSquareIcon, 
-  FileTextIcon, 
+import {
+  BotIcon,
+  MessageSquareIcon,
+  FileTextIcon,
   UploadIcon,
   Trash2Icon,
-  PlusIcon 
+  PlusIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -40,9 +40,9 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const loadDocuments = async () => {
+    const loadDocuments = async () => {
     if (documentsLoaded) return;
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(`/api/agents/${agent.id}/documents`);
@@ -63,55 +63,89 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
     }
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      // For multiple files, we'll handle them in the upload function
+      // Just clear the title field since we'll use filenames
+      if (titleInputRef.current) {
+        titleInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleUpload = async () => {
     const fileInput = fileInputRef.current;
-    const titleInput = titleInputRef.current;
-    
-    if (!fileInput?.files?.[0] || !titleInput?.value?.trim()) {
+
+    if (!fileInput?.files || fileInput.files.length === 0) {
       toast({
         type: 'error',
-        description: 'Please select a file and enter a title',
+        description: 'Please select at least one file',
       });
       return;
     }
 
-    const file = fileInput.files[0];
-    const title = titleInput.value.trim();
-
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', title);
+      const files = Array.from(fileInput.files);
+      let successCount = 0;
+      let errorCount = 0;
 
-      const response = await fetch(`/api/agents/${agent.id}/documents`, {
-        method: 'POST',
-        body: formData,
-      });
+      for (const file of files) {
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+          // Use filename as title (without extension)
+          const fileName = file.name;
+          const titleWithoutExtension = fileName.replace(/\.[^/.]+$/, '');
+          formData.append('title', titleWithoutExtension);
+
+          const response = await fetch(`/api/agents/${agent.id}/documents`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
+          }
+
+          successCount++;
+        } catch (error) {
+          console.error(`Error uploading ${file.name}:`, error);
+          errorCount++;
+        }
       }
 
-      const data = await response.json();
-      
       // Refresh documents list
       await loadDocuments();
-      
+
       // Reset form
       fileInput.value = '';
-      titleInput.value = '';
-      
-      toast({
-        type: 'success',
-        description: 'Document uploaded successfully',
-      });
+
+      // Show results
+      if (errorCount === 0) {
+        toast({
+          type: 'success',
+          description: `Successfully uploaded ${successCount} document${successCount !== 1 ? 's' : ''}`,
+        });
+      } else if (successCount > 0) {
+        toast({
+          type: 'warning',
+          description: `Uploaded ${successCount} document${successCount !== 1 ? 's' : ''}, ${errorCount} failed`,
+        });
+      } else {
+        toast({
+          type: 'error',
+          description: `Failed to upload ${errorCount} document${errorCount !== 1 ? 's' : ''}`,
+        });
+      }
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error('Error in upload process:', error);
       toast({
         type: 'error',
-        description: error instanceof Error ? error.message : 'Upload failed',
+        description: 'Upload process failed',
       });
     } finally {
       setIsUploading(false);
@@ -180,31 +214,25 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
 
         {/* Upload Section */}
         <Card className="p-4 mb-4">
-          <h3 className="font-semibold mb-3">Upload New Document</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="document-title">Document Title</Label>
-              <Input
-                id="document-title"
-                ref={titleInputRef}
-                placeholder="Enter document title"
-                disabled={isUploading}
-              />
-            </div>
-            <div>
-              <Label htmlFor="document-file">Select File</Label>
-              <Input
-                id="document-file"
-                type="file"
-                ref={fileInputRef}
-                accept=".txt,.md,.pdf,.doc,.docx"
-                disabled={isUploading}
-              />
-            </div>
+          <h3 className="font-semibold mb-3">Upload New Documents</h3>
+          <div>
+            <Label htmlFor="document-file">Select Files</Label>
+            <Input
+              id="document-file"
+              type="file"
+              ref={fileInputRef}
+              accept=".txt,.md,.pdf,.doc,.docx"
+              disabled={isUploading}
+              onChange={handleFileChange}
+              multiple
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              You can select multiple files. Titles will be automatically generated from filenames.
+            </p>
           </div>
-          <Button 
-            onClick={handleUpload} 
-            className="mt-3" 
+          <Button
+            onClick={handleUpload}
+            className="mt-3"
             disabled={isUploading}
           >
             {isUploading ? (
@@ -212,7 +240,7 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
             ) : (
               <>
                 <UploadIcon size={16} className="mr-2" />
-                Upload Document
+                Upload Documents
               </>
             )}
           </Button>

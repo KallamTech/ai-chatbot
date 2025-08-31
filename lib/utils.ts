@@ -10,6 +10,8 @@ import type { DBMessage, Document } from '@/lib/db/schema';
 import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
 import { formatISO } from 'date-fns';
+import { embed } from 'ai';
+import { myProvider, ModelId } from './ai/providers';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -116,59 +118,41 @@ export function getTextFromMessage(message: ChatMessage): string {
 }
 
 // Embedding utilities
-export async function generateEmbedding(text: string): Promise<number[] | null> {
+export async function generateEmbedding(text: string): Promise<number[] | undefined> {
   try {
-    const response = await fetch('https://api.cohere.ai/v1/embed', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        texts: [text],
-        model: 'embed-english-v3.0',
-        input_type: 'search_query'
-      }),
+    const { embedding } = await embed({
+      model: myProvider.textEmbeddingModel(ModelId.COHERE_EMBED_V4),
+      value: text,
+      providerOptions: {
+        cohere: {
+          inputType: 'search_query'
+        }
+      }
     });
 
-    if (!response.ok) {
-      console.error('Cohere API error:', response.status, response.statusText);
-      return null;
-    }
-
-    const data = await response.json();
-    return data.embeddings[0] || null;
+    return embedding || undefined;
   } catch (error) {
     console.error('Error generating embedding:', error);
-    return null;
+    return undefined;
   }
 }
 
-export async function generateDocumentEmbedding(text: string): Promise<number[] | null> {
+export async function generateDocumentEmbedding(text: string): Promise<number[] | undefined> {
   try {
-    const response = await fetch('https://api.cohere.ai/v1/embed', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        texts: [text],
-        model: 'embed-english-v3.0',
-        input_type: 'search_document'
-      }),
+    const { embedding } = await embed({
+      model: myProvider.textEmbeddingModel(ModelId.COHERE_EMBED_V4),
+      value: text,
+      providerOptions: {
+        cohere: {
+          inputType: 'search_document'
+        }
+      }
     });
 
-    if (!response.ok) {
-      console.error('Cohere API error:', response.status, response.statusText);
-      return null;
-    }
-
-    const data = await response.json();
-    return data.embeddings[0] || null;
+    return embedding || undefined;
   } catch (error) {
     console.error('Error generating document embedding:', error);
-    return null;
+    return undefined;
   }
 }
 
