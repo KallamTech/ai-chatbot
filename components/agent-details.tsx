@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import {
   BotIcon,
   MessageSquareIcon,
@@ -18,6 +18,7 @@ import { toast } from '@/components/toast';
 import type { Agent, WorkflowNode, WorkflowEdge } from '@/lib/db/schema';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { getSupportedFileExtensions, isPdfProcessingAvailable } from '@/lib/utils/pdf-config';
 
 interface AgentDetailsProps {
   agent: Agent;
@@ -132,7 +133,7 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
         });
       } else if (successCount > 0) {
         toast({
-          type: 'warning',
+          type: 'error',
           description: `Uploaded ${successCount} document${successCount !== 1 ? 's' : ''}, ${errorCount} failed`,
         });
       } else {
@@ -221,14 +222,20 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
               id="document-file"
               type="file"
               ref={fileInputRef}
-              accept=".txt,.md,.pdf,.doc,.docx"
+              accept=".txt,.md,.csv,.json,.html,.css,.js,.xml,.log,.pdf"
               disabled={isUploading}
               onChange={handleFileChange}
               multiple
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              You can select multiple files. Titles will be automatically generated from filenames.
-            </p>
+            <div className="text-xs text-muted-foreground mt-1 space-y-1">
+              <p>You can select multiple files. Titles will be automatically generated from filenames.</p>
+              <p>
+                <strong>Supported formats:</strong> .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
+              </p>
+              <p className="text-green-600">
+                ✅ PDF OCR processing enabled (Mistral AI + Cohere embeddings)
+              </p>
+            </div>
           </div>
           <Button
             onClick={handleUpload}
@@ -265,10 +272,22 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                       <FileTextIcon size={20} className="text-muted-foreground" />
                       <div>
                         <h4 className="font-medium">{doc.title}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Uploaded {formatDistanceToNow(doc.createdAt)} ago
-                          {doc.metadata?.fileName && ` • ${doc.metadata.fileName}`}
-                        </p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>
+                            Uploaded {formatDistanceToNow(doc.createdAt)} ago
+                            {doc.metadata?.fileName && ` • ${doc.metadata.fileName}`}
+                          </span>
+                          {doc.metadata?.processedWithOCR && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                              📄 OCR Processed
+                            </span>
+                          )}
+                          {doc.metadata?.hasExtractedImages && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
+                              🖼️ {doc.metadata.extractedImagesCount} Images
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm">
