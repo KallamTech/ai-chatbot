@@ -49,6 +49,28 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
+  const [selectedModelId, setSelectedModelId] = useState<string>(initialChatModel);
+
+  // Update selected model when the cookie changes
+  useEffect(() => {
+    const checkModelCookie = () => {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('chat-model='))
+        ?.split('=')[1];
+
+      if (cookieValue && cookieValue !== selectedModelId) {
+        setSelectedModelId(cookieValue);
+      }
+    };
+
+    // Check immediately
+    checkModelCookie();
+
+    // Check periodically for cookie changes
+    const interval = setInterval(checkModelCookie, 100);
+    return () => clearInterval(interval);
+  }, [selectedModelId]);
 
   const {
     messages,
@@ -71,7 +93,7 @@ export function Chat({
           body: {
             id,
             message: messages.at(-1),
-            selectedChatModel: initialChatModel,
+            selectedChatModel: selectedModelId,
             selectedVisibilityType: visibilityType,
             ...body,
           },

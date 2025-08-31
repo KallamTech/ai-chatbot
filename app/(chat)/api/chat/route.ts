@@ -8,6 +8,7 @@ import {
 } from 'ai';
 import { auth, type UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
+import { ModelId } from '@/lib/ai/providers';
 import {
   createStreamId,
   deleteChatById,
@@ -157,7 +158,11 @@ export async function POST(request: Request) {
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
+            selectedChatModel === ModelId.O4_MINI_REASONING ||
+            selectedChatModel === ModelId.DEEPSEEK_V3_1_THINKING ||
+            selectedChatModel === ModelId.GROK_3_MINI ||
+            selectedChatModel === ModelId.CLAUDE_SONNET_4_REASONING ||
+            selectedChatModel === ModelId.GEMINI_2_5_PRO_REASONING
               ? []
               : [
                   'getWeather',

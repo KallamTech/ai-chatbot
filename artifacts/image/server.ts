@@ -1,44 +1,68 @@
-import { myProvider } from '@/lib/ai/providers';
+import { ModelId, myProvider } from '@/lib/ai/providers';
 import { createDocumentHandler } from '@/lib/artifacts/server';
-import { experimental_generateImage } from 'ai';
+import { generateText } from 'ai';
 
 export const imageDocumentHandler = createDocumentHandler<'image'>({
   kind: 'image',
   onCreateDocument: async ({ title, dataStream }) => {
     let draftContent = '';
 
-    const { image } = await experimental_generateImage({
-      model: myProvider.imageModel('small-model'),
+    const result = await generateText({
+      model: myProvider.languageModel(ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW),
+      providerOptions: {
+        google: { responseModalities: ['TEXT', 'IMAGE'] },
+      },
       prompt: title,
-      n: 1,
     });
 
-    draftContent = image.base64;
+    // Get the first image file from the result
+    const imageFiles = result.files?.filter((f) =>
+      f.mediaType?.startsWith('image/'),
+    ) || [];
 
-    dataStream.write({
-      type: 'data-imageDelta',
-      data: image.base64,
-      transient: true,
-    });
+    if (imageFiles.length > 0) {
+      const imageFile = imageFiles[0];
+      // Convert uint8Array to base64
+      const base64 = Buffer.from(imageFile.uint8Array).toString('base64');
+      draftContent = base64;
+
+      dataStream.write({
+        type: 'data-imageDelta',
+        data: base64,
+        transient: true,
+      });
+    }
 
     return draftContent;
   },
   onUpdateDocument: async ({ description, dataStream }) => {
     let draftContent = '';
 
-    const { image } = await experimental_generateImage({
-      model: myProvider.imageModel('small-model'),
+    const result = await generateText({
+      model: myProvider.languageModel(ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW),
+      providerOptions: {
+        google: { responseModalities: ['TEXT', 'IMAGE'] },
+      },
       prompt: description,
-      n: 1,
     });
 
-    draftContent = image.base64;
+    // Get the first image file from the result
+    const imageFiles = result.files?.filter((f) =>
+      f.mediaType?.startsWith('image/'),
+    ) || [];
 
-    dataStream.write({
-      type: 'data-imageDelta',
-      data: image.base64,
-      transient: true,
-    });
+    if (imageFiles.length > 0) {
+      const imageFile = imageFiles[0];
+      // Convert uint8Array to base64
+      const base64 = Buffer.from(imageFile.uint8Array).toString('base64');
+      draftContent = base64;
+
+      dataStream.write({
+        type: 'data-imageDelta',
+        data: base64,
+        transient: true,
+      });
+    }
 
     return draftContent;
   },
