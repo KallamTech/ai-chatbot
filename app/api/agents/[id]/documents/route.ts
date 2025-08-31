@@ -160,31 +160,114 @@ export async function POST(
       }
     }
 
-    // Create the document
+    // Extract additional metadata for better searchability
+    const contentLength = content.length;
+    const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+    const estimatedPages = Math.ceil(contentLength / 2000); // Rough estimate: 2000 chars per page
+
+    // Create the main document
     const document = await createDataPoolDocument({
       dataPoolId: dataPool.id,
       title,
       content,
       embedding,
       metadata: {
+        // File information
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type || 'text/plain',
         uploadedAt: new Date().toISOString(),
+
+        // Content analysis
+        contentLength,
+        wordCount,
+        estimatedPages,
+
+        // Document type and processing info
+        documentType: 'main_document',
+        processingStatus: 'completed',
+
+        // OCR processing info (for PDFs)
         ...(isPdfFile(file) && {
           processedWithOCR: true,
           ocrProvider: 'mistral',
           hasExtractedImages: extractedImages && extractedImages.length > 0,
           extractedImagesCount: extractedImages?.length || 0,
         }),
+
+        // Extracted images info
         ...(extractedImages && extractedImages.length > 0 && {
           extractedImages: extractedImages.map(img => ({
             description: img.description,
             hasEmbedding: !!img.embedding
           }))
-        })
+        }),
+
+        // Searchable tags for better retrieval
+        searchTags: [
+          title.toLowerCase(),
+          file.name.toLowerCase().replace(/\.[^/.]+$/, ''), // filename without extension
+          file.type || 'text',
+          ...(isPdfFile(file) ? ['pdf', 'ocr-processed'] : []),
+          ...(extractedImages && extractedImages.length > 0 ? ['contains-images'] : []),
+          `~${wordCount} words`,
+          `~${estimatedPages} pages`
+        ]
       },
     });
+
+    // Create separate documents for each extracted image so they can be individually searched
+    const imageDocuments = [];
+    if (extractedImages && extractedImages.length > 0) {
+      for (let i = 0; i < extractedImages.length; i++) {
+        const image = extractedImages[i];
+        if (image.embedding) {
+          try {
+            const imageTitle = `${title} - Image ${i + 1}${image.description ? `: ${image.description}` : ''}`;
+            const imageContent = image.description || `Image extracted from ${title}`;
+
+            const imageDocument = await createDataPoolDocument({
+              dataPoolId: dataPool.id,
+              title: imageTitle,
+              content: imageContent,
+              embedding: image.embedding,
+              metadata: {
+                // Image identification
+                type: 'extracted_image',
+                documentType: 'extracted_image',
+                processingStatus: 'completed',
+
+                // Source document reference
+                sourceDocument: document.id,
+                sourceDocumentTitle: title,
+                imageIndex: i,
+
+                // Image content
+                description: image.description,
+                hasEmbedding: true,
+                extractedAt: new Date().toISOString(),
+
+                // Searchable tags
+                searchTags: [
+                  'image',
+                  'extracted',
+                  'from-pdf',
+                  image.description?.toLowerCase() || 'no-description',
+                  title.toLowerCase(),
+                  `image-${i + 1}`,
+                  'visual-content'
+                ]
+              },
+            });
+
+            imageDocuments.push(imageDocument);
+            console.log(`Created image document ${i + 1}:`, imageDocument.id);
+          } catch (error) {
+            console.error(`Failed to create image document ${i + 1}:`, error);
+          }
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -197,7 +280,8 @@ export async function POST(
         ocrProcessing: {
           provider: 'mistral',
           extractedImagesCount: extractedImages?.length || 0,
-          hasEmbedding: !!embedding
+          hasEmbedding: !!embedding,
+          imageDocumentsCreated: imageDocuments.length
         }
       })
     });

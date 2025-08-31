@@ -269,6 +269,9 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
               <p className="text-green-600">
                 ✅ PDF OCR processing enabled (Mistral AI + Cohere embeddings)
               </p>
+              <p className="text-blue-600">
+                📸 Extracted images are automatically embedded and searchable
+              </p>
             </div>
           </div>
           <Button
@@ -311,6 +314,25 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                             Uploaded {formatDistanceToNow(doc.createdAt)} ago
                             {doc.metadata?.fileName && ` • ${doc.metadata.fileName}`}
                           </span>
+                          {doc.metadata?.wordCount && (
+                            <span className="text-xs text-muted-foreground">
+                              • {doc.metadata.wordCount} words
+                            </span>
+                          )}
+                          {doc.metadata?.estimatedPages && (
+                            <span className="text-xs text-muted-foreground">
+                              • ~{doc.metadata.estimatedPages} pages
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Document type and processing badges */}
+                        <div className="flex items-center gap-2 mt-2">
+                          {doc.metadata?.documentType === 'extracted_image' && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                              🖼️ Extracted Image
+                            </span>
+                          )}
                           {doc.metadata?.processedWithOCR && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
                               📄 OCR Processed
@@ -321,14 +343,19 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                               🖼️ {doc.metadata.extractedImagesCount} Images
                             </span>
                           )}
+                          {doc.metadata?.sourceDocument && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
+                              📎 From: {doc.metadata.sourceDocumentTitle}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteDocument(doc.id)}
                             disabled={deletingDocumentId === doc.id}

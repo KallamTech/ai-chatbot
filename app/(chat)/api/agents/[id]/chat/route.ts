@@ -20,6 +20,7 @@ import {
   getAgentById,
   getWorkflowNodesByAgentId,
   getDataPoolByAgentId,
+  getDataPoolDocuments,
 } from '@/lib/db/queries';
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
@@ -261,6 +262,10 @@ ${nodePrompts}
 
 IMPORTANT CAPABILITIES:
 - You can search through documents in your data pool using the searchDocuments tool
+- You can search specifically for images using the searchImages tool (recommended threshold: 0.1)
+- You can find specific documents by title/filename using the findDocumentByTitle tool
+- You can get detailed metadata about documents using the getDocumentMetadata tool
+- You can search within specific documents using the searchSpecificDocument tool
 - You can access and analyze any documents that have been uploaded to your data pool
 - You can summarize, extract information, and answer questions about your documents
 
@@ -270,7 +275,20 @@ IMPORTANT CONSTRAINTS:
 - You cannot perform general tasks outside your scope
 - Always explain your capabilities and limitations when asked about tasks outside your scope
 
-CRITICAL INSTRUCTION: When a user asks about documents or content, you MUST use the searchDocuments tool to find relevant information in your data pool. Do not say you cannot access documents - use the search tool first.
+DOCUMENT SEARCH STRATEGY:
+1. If the user mentions a specific document name (e.g., "Summarize doc1", "Analyze report.pdf"), use findDocumentByTitle first to locate it
+2. If you find the document, use searchSpecificDocument to search within it for the requested content
+3. If the user asks for images or visual content, use searchImages with threshold 0.1 for best results
+4. If no specific document is mentioned, use searchDocuments for general semantic search
+5. Use getDocumentMetadata to understand document structure and properties
+
+IMAGE SEARCH GUIDELINES:
+- Use searchImages tool for visual content queries
+- Recommended threshold: 0.1 for comprehensive image results
+- Images are more abstract, so lower thresholds work better than text
+- Always specify searchImages: true when looking for charts, graphs, diagrams, or visual content
+
+CRITICAL INSTRUCTION: When a user asks about documents or content, you MUST use the appropriate search tools to find relevant information in your data pool. Do not say you cannot access documents - use the search tools first.
 
 Available tools: ${Object.keys(agentTools).join(', ')}`;
 }
@@ -288,12 +306,21 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
       description: 'Search through documents in your data pool using semantic similarity',
       inputSchema: z.object({
         query: z.string().describe('Search query'),
-        limit: z.number().optional().default(5).describe('Maximum number of results to return'),
-        threshold: z.number().optional().default(0.3).describe('Minimum similarity threshold (0.3 is more lenient)'),
+        limit: z.number().optional().default(10).describe('Maximum number of results to return'),
+        threshold: z.number().optional().default(0.3).describe('Minimum similarity threshold (0.5 for balanced results)'),
+        searchImages: z.boolean().optional().default(false).describe('Whether to prioritize image content in search'),
       }),
-      execute: async ({ query, limit, threshold }) => {
+      execute: async ({ query, limit, threshold, searchImages }) => {
         console.log('Agent chat: Searching documents with query:', query);
         console.log('Agent chat: Data pool ID:', dataPool.id);
+
+        // Adjust threshold based on search type
+        let adjustedThreshold = threshold;
+        if (searchImages) {
+          // Lower threshold for images since they're more abstract
+          adjustedThreshold = Math.min(threshold, 0.1);
+          console.log('Agent chat: Image search detected, adjusted threshold to:', adjustedThreshold);
+        }
 
         // Use the ragSearch tool but bind it to this specific data pool
         const ragSearchTool = ragSearch();
@@ -301,7 +328,9 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
           dataPoolId: dataPool.id,
           query,
           limit,
-          threshold: 0.3, // Lower threshold to be more lenient
+          threshold: adjustedThreshold,
+          // Add image-specific filtering if requested
+          ...(searchImages && { documentType: 'extracted_image' })
         });
 
         console.log('Agent chat: Search result:', result);
@@ -309,9 +338,196 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
       },
     });
 
-    console.log('createAgentTools: Created searchDocuments tool');
+        // Add tool for finding documents by title/filename
+    tools.findDocumentByTitle = tool({
+      description: 'Find a specific document by its title, filename, or partial name match',
+      inputSchema: z.object({
+        title: z.string().describe('Document title, filename, or partial name to search for'),
+        exactMatch: z.boolean().optional().default(false).describe('Whether to require an exact match or allow partial matches'),
+      }),
+      execute: async ({ title, exactMatch }) => {
+        console.log('Agent chat: Finding document by title:', title);
+
+        try {
+          // Get documents directly from database
+          const documents = await getDataPoolDocuments({ dataPoolId: dataPool.id });
+
+          // Search through documents
+          const matches = documents.filter((doc: any) => {
+            const searchTitle = title.toLowerCase();
+            const docTitle = doc.title.toLowerCase();
+            const fileName = doc.metadata?.fileName?.toLowerCase() || '';
+            const searchTags = doc.metadata?.searchTags || [];
+
+            if (exactMatch) {
+              return docTitle === searchTitle || fileName === searchTitle;
+            } else {
+              return docTitle.includes(searchTitle) ||
+                     fileName.includes(searchTitle) ||
+                     searchTags.some((tag: string) => tag.includes(searchTitle));
+            }
+          });
+
+          if (matches.length === 0) {
+            return {
+              found: false,
+              message: `No documents found matching "${title}"`,
+              suggestions: documents.map((doc: any) => doc.title).slice(0, 5)
+            };
+          }
+
+          return {
+            found: true,
+            count: matches.length,
+            documents: matches.map((doc: any) => ({
+              id: doc.id,
+              title: doc.title,
+              metadata: doc.metadata,
+              createdAt: doc.createdAt
+            }))
+          };
+        } catch (error) {
+          console.error('Error finding document by title:', error);
+          return {
+            found: false,
+            error: 'Failed to search documents'
+          };
+        }
+      },
+    });
+
+        // Add tool for getting document metadata
+    tools.getDocumentMetadata = tool({
+      description: 'Get detailed metadata and information about a specific document',
+      inputSchema: z.object({
+        documentId: z.string().describe('ID of the document to get metadata for'),
+      }),
+      execute: async ({ documentId }) => {
+        console.log('Agent chat: Getting metadata for document:', documentId);
+
+        try {
+          // Get documents directly from database
+          const documents = await getDataPoolDocuments({ dataPoolId: dataPool.id });
+          const document = documents.find((doc: any) => doc.id === documentId);
+
+          if (!document) {
+            return {
+              found: false,
+              message: `Document with ID ${documentId} not found`
+            };
+          }
+
+          return {
+            found: true,
+            document: {
+              id: document.id,
+              title: document.title,
+              metadata: document.metadata,
+              createdAt: document.createdAt
+            }
+          };
+        } catch (error) {
+          console.error('Error getting document metadata:', error);
+          return {
+            found: false,
+            error: 'Failed to get document metadata'
+          };
+        }
+      },
+    });
+
+        // Add tool for targeted document search
+    tools.searchSpecificDocument = tool({
+      description: 'Search within a specific document by ID, useful when you know which document to analyze',
+      inputSchema: z.object({
+        documentId: z.string().describe('ID of the specific document to search within'),
+        query: z.string().describe('Search query to find specific content within the document'),
+      }),
+      execute: async ({ documentId, query }) => {
+        console.log('Agent chat: Searching within specific document:', documentId, 'query:', query);
+
+        try {
+          // First get the document metadata directly from database
+          const documents = await getDataPoolDocuments({ dataPoolId: dataPool.id });
+          const document = documents.find((doc: any) => doc.id === documentId);
+
+          if (!document) {
+            return {
+              found: false,
+              message: `Document with ID ${documentId} not found`
+            };
+          }
+
+          // Now search within this specific document using RAG with metadata filtering
+          const ragSearchTool = ragSearch();
+          const result = await (ragSearchTool as any).execute({
+            dataPoolId: dataPool.id,
+            query: `${query} [document: ${document.title}]`,
+            limit: 3,
+            threshold: 0.2, // Lower threshold for specific document search
+            documentType: (document.metadata as any)?.documentType, // Filter by document type
+            fileName: (document.metadata as any)?.fileName, // Filter by filename
+            tags: (document.metadata as any)?.searchTags // Filter by search tags
+          });
+
+          return {
+            found: true,
+            document: {
+              id: document.id,
+              title: document.title,
+              metadata: document.metadata
+            },
+            searchResults: result
+          };
+        } catch (error) {
+          console.error('Error searching specific document:', error);
+          return {
+            found: false,
+            error: 'Failed to search within document'
+          };
+        }
+      },
+    });
+
+    // Add dedicated image search tool with appropriate thresholds
+    tools.searchImages = tool({
+      description: 'Search specifically for images and visual content in your data pool',
+      inputSchema: z.object({
+        query: z.string().describe('Search query for images (e.g., "charts", "graphs", "diagrams")'),
+        limit: z.number().optional().default(5).describe('Maximum number of image results to return'),
+        threshold: z.number().optional().default(0.1).describe('Similarity threshold (0.1 recommended for images)'),
+      }),
+      execute: async ({ query, limit, threshold }) => {
+        console.log('Agent chat: Searching for images with query:', query);
+
+        try {
+          const ragSearchTool = ragSearch();
+          const result = await (ragSearchTool as any).execute({
+            dataPoolId: dataPool.id,
+            query,
+            limit,
+            threshold: Math.max(threshold, 0.1), // Ensure minimum threshold for images
+            documentType: 'extracted_image', // Only search image documents
+          });
+
+          return {
+            ...result,
+            searchType: 'image_search',
+            recommendedThreshold: '0.1 for comprehensive image results'
+          };
+        } catch (error) {
+          console.error('Error searching images:', error);
+          return {
+            error: 'Failed to search images',
+            searchType: 'image_search'
+          };
+        }
+      },
+    });
+
+    console.log('createAgentTools: Created searchDocuments and searchImages tools');
   } else {
-    console.log('createAgentTools: No data pool found, cannot create search tool');
+    console.log('createAgentTools: No data pool found, cannot create search tools');
   }
 
   // TODO: Add more tools based on other node types:

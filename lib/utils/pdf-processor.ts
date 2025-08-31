@@ -71,6 +71,25 @@ export async function processPdfWithMistralOCR(file: File): Promise<ProcessPdfRe
     });
 
     console.log('Mistral OCR response received');
+    console.log('OCR Response structure:', JSON.stringify(ocrResponse, null, 2));
+
+    // Save response to file for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const debugDir = path.join(process.cwd(), 'debug');
+        if (!fs.existsSync(debugDir)) {
+          fs.mkdirSync(debugDir, { recursive: true });
+        }
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const debugFile = path.join(debugDir, `ocr-response-${timestamp}.json`);
+        fs.writeFileSync(debugFile, JSON.stringify(ocrResponse, null, 2));
+        console.log('OCR response saved to:', debugFile);
+      } catch (error) {
+        console.log('Could not save debug file:', error instanceof Error ? error.message : 'Unknown error');
+      }
+    }
 
     // Extract text content from OCR response
     let textContent = '';
@@ -85,43 +104,56 @@ export async function processPdfWithMistralOCR(file: File): Promise<ProcessPdfRe
         // Check for common OCR response patterns
         const response = ocrResponse as any;
 
-        // Pattern 1: Direct text property
-        if (response.text && typeof response.text === 'string') {
-          textContent = response.text;
-        }
-        // Pattern 2: Content property
-        else if (response.content && typeof response.content === 'string') {
-          textContent = response.content;
-        }
-        // Pattern 3: Result property
-        else if (response.result && typeof response.result === 'string') {
-          textContent = response.result;
-        }
-        // Pattern 4: Data with text
-        else if (response.data && response.data.text) {
-          textContent = response.data.text;
-        }
-        // Pattern 5: OCR result in nested structure
-        else if (response.ocr && response.ocr.text) {
-          textContent = response.ocr.text;
-        }
-        // Pattern 6: Document text
-        else if (response.document_text) {
-          textContent = response.document_text;
-        }
-        // Pattern 7: Pages array (including Mistral OCR structure)
-        else if (response.pages && Array.isArray(response.pages)) {
+        // According to Mistral AI documentation, the response should have this structure:
+        // { pages: [{ text: "...", images: [{ base64: "...", description: "..." }] }] }
+
+        // Pattern 1: Mistral OCR standard structure (pages array)
+        if (response.pages && Array.isArray(response.pages)) {
+          console.log(`Found ${response.pages.length} pages in Mistral OCR response`);
           textContent = response.pages
-            .map((page: any) => {
-              if (typeof page === 'string') return page;
-              if (page.markdown) return page.markdown; // Mistral OCR returns markdown content
-              if (page.text) return page.text;
-              if (page.content) return page.content;
-              if (page.extracted_text) return page.extracted_text;
-              return '';
+            .map((page: any, pageIndex: number) => {
+              console.log(`Page ${pageIndex} keys:`, Object.keys(page));
+
+              let pageText = '';
+              if (page.text && typeof page.text === 'string') {
+                pageText = page.text;
+              } else if (page.markdown && typeof page.markdown === 'string') {
+                pageText = page.markdown;
+              } else if (page.content && typeof page.content === 'string') {
+                pageText = page.content;
+              } else if (page.extracted_text && typeof page.extracted_text === 'string') {
+                pageText = page.extracted_text;
+              }
+
+              console.log(`Page ${pageIndex} text length:`, pageText.length);
+              return pageText;
             })
             .filter(Boolean)
             .join('\n\n');
+        }
+        // Pattern 2: Direct text property
+        else if (response.text && typeof response.text === 'string') {
+          textContent = response.text;
+        }
+        // Pattern 3: Content property
+        else if (response.content && typeof response.content === 'string') {
+          textContent = response.content;
+        }
+        // Pattern 4: Result property
+        else if (response.result && typeof response.result === 'string') {
+          textContent = response.result;
+        }
+        // Pattern 5: Data with text
+        else if (response.data && response.data.text) {
+          textContent = response.data.text;
+        }
+        // Pattern 6: OCR result in nested structure
+        else if (response.ocr && response.ocr.text) {
+          textContent = response.ocr.text;
+        }
+        // Pattern 7: Document text
+        else if (response.document_text) {
+          textContent = response.document_text;
         }
         // Pattern 8: Try to find any string value in the response
         else {
@@ -156,36 +188,118 @@ export async function processPdfWithMistralOCR(file: File): Promise<ProcessPdfRe
           textContent = findTextInObject(response);
         }
 
-        // Extract images if available (including from pages)
-        const imageKeys = ['images', 'extracted_images', 'document_images', 'image_data'];
+                // Extract images if available (including from pages)
+        console.log('Looking for images in response...');
+
+        // Check for images in various possible locations
+        const imageKeys = ['images', 'extracted_images', 'document_images', 'image_data', 'image_base64'];
         for (const key of imageKeys) {
           if (response[key] && Array.isArray(response[key])) {
-            response[key].forEach((img: any) => {
-              if (img && (img.base64 || img.data)) {
+            console.log(`Found images in '${key}':`, response[key].length);
+            response[key].forEach((img: any, index: number) => {
+              console.log(`Processing image ${index}:`, Object.keys(img));
+              if (img && (img.base64 || img.data || img.image_base64 || img.imageBase64)) {
+                const base64Data = img.base64 || img.data || img.image_base64 || img.imageBase64;
+                const description = img.description || img.caption || img.text || img.alt_text || img.ocr_text || img.id || `Image ${index + 1}`;
+
                 images.push({
-                  base64: img.base64 || img.data,
-                  description: img.description || img.caption || img.text || img.alt_text
+                  base64: base64Data,
+                  description: description
                 });
+                console.log(`Added image ${index} with description: ${description}`);
               }
             });
             break;
           }
         }
 
-        // Also check for images within pages
+        // Also check for images within pages (Mistral OCR standard structure)
         if (response.pages && Array.isArray(response.pages)) {
-          response.pages.forEach((page: any) => {
+          console.log('Checking pages for images...');
+          response.pages.forEach((page: any, pageIndex: number) => {
+            console.log(`Page ${pageIndex} keys:`, Object.keys(page));
             if (page.images && Array.isArray(page.images)) {
-              page.images.forEach((img: any) => {
-                if (img && (img.base64 || img.data)) {
+              console.log(`Page ${pageIndex} has ${page.images.length} images`);
+              page.images.forEach((img: any, imgIndex: number) => {
+                console.log(`Page ${pageIndex} Image ${imgIndex} keys:`, Object.keys(img));
+                if (img && (img.base64 || img.data || img.image_base64 || img.imageBase64)) {
+                  const base64Data = img.base64 || img.data || img.image_base64 || img.imageBase64;
+                  const description = img.description || img.caption || img.text || img.alt_text || img.ocr_text || img.id || `Page ${pageIndex + 1} Image ${imgIndex + 1}`;
+
                   images.push({
-                    base64: img.base64 || img.data,
-                    description: img.description || img.caption || img.text || img.alt_text
+                    base64: base64Data,
+                    description: description
                   });
+                  console.log(`Added page ${pageIndex} image ${imgIndex} with description: ${description}`);
+                } else {
+                  console.log(`Page ${pageIndex} Image ${imgIndex} missing base64 data. Available fields:`, Object.keys(img));
                 }
               });
             }
           });
+        }
+
+                // Check for any base64 data in the response that might be images
+        if (images.length === 0) {
+          console.log('No images found in standard locations, searching for base64 data...');
+          const findBase64InObject = (obj: any, depth = 0): Array<{ base64: string; description?: string }> => {
+            if (depth > 3) return []; // Prevent infinite recursion
+
+            const found: Array<{ base64: string; description?: string }> = [];
+
+            if (obj && typeof obj === 'object') {
+              for (const [key, value] of Object.entries(obj)) {
+                if (typeof value === 'string' && value.length > 100 && value.startsWith('data:image/')) {
+                  // This looks like a base64 image
+                  found.push({
+                    base64: value,
+                    description: `Extracted image from ${key}`
+                  });
+                  console.log(`Found base64 image in '${key}'`);
+                } else if (typeof value === 'object' && value !== null) {
+                  found.push(...findBase64InObject(value, depth + 1));
+                }
+              }
+            }
+            return found;
+          };
+
+          const foundImages = findBase64InObject(response);
+          images.push(...foundImages);
+        }
+
+        // Final check - look specifically for Mistral's imageBase64 field
+        if (images.length === 0) {
+          console.log('Performing final check for Mistral imageBase64 fields...');
+          const findMistralImages = (obj: any, path = 'root'): Array<{ base64: string; description?: string }> => {
+            if (path.includes('imageBase64')) return []; // Skip if we're already in an imageBase64 field
+
+            const found: Array<{ base64: string; description?: string }> = [];
+
+            if (obj && typeof obj === 'object') {
+              for (const [key, value] of Object.entries(obj)) {
+                const currentPath = `${path}.${key}`;
+
+                if (key === 'imageBase64' && typeof value === 'string' && value.startsWith('data:image/')) {
+                  // Found a Mistral imageBase64 field
+                  const parentObj = obj;
+                  const description = parentObj.id || parentObj.description || `Image from ${path}`;
+
+                  found.push({
+                    base64: value,
+                    description: description
+                  });
+                  console.log(`Found Mistral imageBase64 in '${currentPath}' with description: ${description}`);
+                } else if (typeof value === 'object' && value !== null) {
+                  found.push(...findMistralImages(value, currentPath));
+                }
+              }
+            }
+            return found;
+          };
+
+          const mistralImages = findMistralImages(response);
+          images.push(...mistralImages);
         }
       }
     }
@@ -235,6 +349,12 @@ export async function processPdfWithMistralOCR(file: File): Promise<ProcessPdfRe
     }
 
     console.log(`Successfully processed PDF: ${finalContent.length} characters, ${images.length} images`);
+    if (images.length > 0) {
+      console.log('Extracted images:');
+      images.forEach((img, index) => {
+        console.log(`  Image ${index + 1}: ${img.description} (base64 length: ${img.base64.length})`);
+      });
+    }
 
     return {
       success: true,

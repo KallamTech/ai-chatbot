@@ -14,8 +14,11 @@ export const ragSearch = () =>
       query: z.string().describe('Search query'),
       limit: z.number().optional().default(5).describe('Maximum number of results to return'),
       threshold: z.number().optional().default(0.3).describe('Minimum similarity threshold (0.3 is more lenient)'),
+      documentType: z.string().optional().describe('Filter by document type (e.g., "main_document", "extracted_image")'),
+      fileName: z.string().optional().describe('Filter by filename or partial filename'),
+      tags: z.array(z.string()).optional().describe('Filter by search tags'),
     }),
-    execute: async ({ dataPoolId, query, limit, threshold }) => {
+          execute: async ({ dataPoolId, query, limit, threshold, documentType, fileName, tags }) => {
       try {
         console.log('RAG Search: Starting search for data pool:', dataPoolId);
         console.log('RAG Search: Query:', query);
@@ -32,6 +35,41 @@ export const ragSearch = () =>
           };
         }
 
+        // Apply metadata filters if provided
+        let filteredDocuments = documents;
+        if (documentType || fileName || tags) {
+          console.log('RAG Search: Applying metadata filters...');
+
+          filteredDocuments = documents.filter(doc => {
+            let matches = true;
+
+            // Filter by document type
+            if (documentType && (doc.metadata as any)?.documentType !== documentType) {
+              matches = false;
+            }
+
+            // Filter by filename
+            if (fileName && (doc.metadata as any)?.fileName && !(doc.metadata as any).fileName.toLowerCase().includes(fileName.toLowerCase())) {
+              matches = false;
+            }
+
+            // Filter by tags
+            if (tags && tags.length > 0 && (doc.metadata as any)?.searchTags) {
+              const docTags = (doc.metadata as any).searchTags;
+              const hasMatchingTag = tags.some(tag =>
+                docTags.some((docTag: string) => docTag.toLowerCase().includes(tag.toLowerCase()))
+              );
+              if (!hasMatchingTag) {
+                matches = false;
+              }
+            }
+
+            return matches;
+          });
+
+          console.log(`RAG Search: After filtering: ${filteredDocuments.length} documents`);
+        }
+
         // Generate embedding for the query
         const queryEmbedding = await generateEmbedding(query);
 
@@ -43,7 +81,7 @@ export const ragSearch = () =>
 
         // Calculate similarity scores for each document
         console.log('RAG Search: Processing documents for similarity...');
-        const scoredDocuments = documents
+        const scoredDocuments = filteredDocuments
           .map(doc => {
             console.log('RAG Search: Document:', doc.title, 'has embedding:', !!doc.embedding);
 
@@ -78,7 +116,13 @@ export const ragSearch = () =>
         return {
           results,
           totalDocuments: documents.length,
+          filteredDocuments: filteredDocuments.length,
           filteredCount: scoredDocuments.length,
+          appliedFilters: {
+            documentType,
+            fileName,
+            tags
+          }
         };
 
       } catch (error) {
