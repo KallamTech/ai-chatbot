@@ -114,3 +114,78 @@ export function getTextFromMessage(message: ChatMessage): string {
     .map((part) => part.text)
     .join('');
 }
+
+// Embedding utilities
+export async function generateEmbedding(text: string): Promise<number[] | null> {
+  try {
+    const response = await fetch('https://api.cohere.ai/v1/embed', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        texts: [text],
+        model: 'embed-english-v3.0',
+        input_type: 'search_query'
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Cohere API error:', response.status, response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.embeddings[0] || null;
+  } catch (error) {
+    console.error('Error generating embedding:', error);
+    return null;
+  }
+}
+
+export async function generateDocumentEmbedding(text: string): Promise<number[] | null> {
+  try {
+    const response = await fetch('https://api.cohere.ai/v1/embed', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        texts: [text],
+        model: 'embed-english-v3.0',
+        input_type: 'search_document'
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Cohere API error:', response.status, response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.embeddings[0] || null;
+  } catch (error) {
+    console.error('Error generating document embedding:', error);
+    return null;
+  }
+}
+
+export function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  if (vecA.length !== vecB.length) {
+    throw new Error('Vector dimensions must match');
+  }
+
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}

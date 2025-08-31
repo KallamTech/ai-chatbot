@@ -168,3 +168,76 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+// Agent-related tables
+export const agent = pgTable('Agent', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+});
+
+export type Agent = InferSelectModel<typeof agent>;
+
+export const dataPool = pgTable('DataPool', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  agentId: uuid('agentId')
+    .notNull()
+    .references(() => agent.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  createdAt: timestamp('createdAt').notNull(),
+});
+
+export type DataPool = InferSelectModel<typeof dataPool>;
+
+export const dataPoolDocument = pgTable('DataPoolDocument', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  dataPoolId: uuid('dataPoolId')
+    .notNull()
+    .references(() => dataPool.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  embedding: json('embedding'), // Store the vector embedding
+  metadata: json('metadata'), // Store additional metadata like file type, size, etc.
+  createdAt: timestamp('createdAt').notNull(),
+});
+
+export type DataPoolDocument = InferSelectModel<typeof dataPoolDocument>;
+
+export const workflowNode = pgTable('WorkflowNode', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  agentId: uuid('agentId')
+    .notNull()
+    .references(() => agent.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description').notNull(),
+  systemPrompt: text('systemPrompt').notNull(),
+  position: json('position').notNull(), // Store x, y coordinates for visual representation
+  nodeType: varchar('nodeType', { enum: ['rag', 'transform', 'filter', 'aggregate'] })
+    .notNull()
+    .default('transform'),
+  config: json('config'), // Store node-specific configuration
+  createdAt: timestamp('createdAt').notNull(),
+});
+
+export type WorkflowNode = InferSelectModel<typeof workflowNode>;
+
+export const workflowEdge = pgTable('WorkflowEdge', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  agentId: uuid('agentId')
+    .notNull()
+    .references(() => agent.id, { onDelete: 'cascade' }),
+  sourceNodeId: uuid('sourceNodeId')
+    .notNull()
+    .references(() => workflowNode.id, { onDelete: 'cascade' }),
+  targetNodeId: uuid('targetNodeId')
+    .notNull()
+    .references(() => workflowNode.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('createdAt').notNull(),
+});
+
+export type WorkflowEdge = InferSelectModel<typeof workflowEdge>;

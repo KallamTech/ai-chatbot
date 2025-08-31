@@ -15,7 +15,8 @@ export type Surface =
   | 'history'
   | 'vote'
   | 'document'
-  | 'suggestions';
+  | 'suggestions'
+  | 'agent';
 
 export type ErrorCode = `${ErrorType}:${Surface}`;
 
@@ -31,6 +32,7 @@ export const visibilityBySurface: Record<Surface, ErrorVisibility> = {
   vote: 'response',
   document: 'response',
   suggestions: 'response',
+  agent: 'response',
 };
 
 export class ChatSDKError extends Error {
@@ -106,6 +108,15 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return 'You need to sign in to view this document. Please sign in and try again.';
     case 'bad_request:document':
       return 'The request to create or update the document was invalid. Please check your input and try again.';
+
+    case 'not_found:agent':
+      return 'The requested agent was not found. Please check the agent ID and try again.';
+    case 'forbidden:agent':
+      return 'This agent belongs to another user. Please check the agent ID and try again.';
+    case 'unauthorized:agent':
+      return 'You need to sign in to view this agent. Please sign in and try again.';
+    case 'bad_request:agent':
+      return 'The request to create or update the agent was invalid. Please check your input and try again.';
 
     default:
       return 'Something went wrong. Please try again later.';
