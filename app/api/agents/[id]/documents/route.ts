@@ -4,7 +4,8 @@ import {
   getAgentById,
   getDataPoolByAgentId,
   createDataPoolDocument,
-  getDataPoolDocuments
+  getDataPoolDocuments,
+  deleteDataPoolDocument
 } from '@/lib/db/queries';
 import { generateDocumentEmbedding } from '@/lib/utils';
 import { ChatSDKError } from '@/lib/errors';
@@ -264,6 +265,68 @@ export async function GET(
 
   } catch (error) {
     console.error('Error getting documents:', error);
+    if (error instanceof ChatSDKError) {
+      return error.toResponse();
+    }
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: agentId } = await params;
+    const { searchParams } = new URL(request.url);
+    const documentId = searchParams.get('documentId');
+
+    if (!documentId) {
+      return NextResponse.json(
+        { error: 'Document ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return new ChatSDKError('unauthorized:agent').toResponse();
+    }
+
+    // Verify agent exists and belongs to user
+    const agent = await getAgentById({
+      id: agentId,
+      userId: session.user.id,
+    });
+
+    if (!agent) {
+      return new ChatSDKError('not_found:agent').toResponse();
+    }
+
+    // Get the data pool for this agent
+    const dataPool = await getDataPoolByAgentId({ agentId });
+
+    if (!dataPool) {
+      return new ChatSDKError('not_found:agent').toResponse();
+    }
+
+    // Delete the document (this will also delete the embeddings since they're stored in the same table)
+    await deleteDataPoolDocument({
+      id: documentId,
+      dataPoolId: dataPool.id,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Document deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting document:', error);
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }

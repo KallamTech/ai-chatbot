@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Agent, WorkflowNode, WorkflowEdge } from '@/lib/db/schema';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -35,6 +36,7 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
   const [documents, setDocuments] = useState<DataPoolDocument[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [documentsLoaded, setDocumentsLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -148,6 +150,40 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm('Are you sure you want to delete this document? This action cannot be undone and will also remove the document\'s embeddings.')) {
+      return;
+    }
+
+    setDeletingDocumentId(documentId);
+    try {
+      const response = await fetch(`/api/agents/${agent.id}/documents?documentId=${documentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Delete failed');
+      }
+
+      // Refresh documents list
+      await loadDocuments();
+
+      toast({
+        type: 'success',
+        description: 'Document deleted successfully',
+      });
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast({
+        type: 'error',
+        description: 'Failed to delete document',
+      });
+    } finally {
+      setDeletingDocumentId(null);
     }
   };
 
@@ -288,9 +324,28 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <Trash2Icon size={16} />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            disabled={deletingDocumentId === doc.id}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deletingDocumentId === doc.id ? (
+                              <div className="size-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2Icon size={16} />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete document and remove embeddings</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </Card>
               ))
