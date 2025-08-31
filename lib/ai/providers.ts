@@ -4,16 +4,19 @@ import {
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from 'ai';
-import {
-  artifactModel,
-  chatModel,
-  reasoningModel,
-  titleModel,
-  imageModel,
-} from './models.test';
 import { isTestEnvironment } from '../constants';
 import { gateway } from './gateway';
 import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+
+// Conditionally import test models only in test environment
+let testModels: any = null;
+if (isTestEnvironment) {
+  try {
+    testModels = require('./models.test');
+  } catch (e) {
+    // Test models not available, fallback to production models
+  }
+}
 
 export enum ModelId {
   GPT_4_1 = 'openai/gpt-4.1',
@@ -38,29 +41,29 @@ export enum ModelId {
   CODE_MODEL = 'code-model',
 }
 
-export const myProvider = isTestEnvironment
+export const myProvider = isTestEnvironment && testModels
   ? customProvider({
       languageModels: {
-        [ModelId.GPT_4_1]: chatModel,
-        [ModelId.GPT_4_1_MINI]: chatModel,
-        [ModelId.GPT_5]: chatModel,
-        [ModelId.O4_MINI]: chatModel,
-        [ModelId.O4_MINI_REASONING]: reasoningModel,
-        [ModelId.GEMINI_2_5_FLASH_LITE]: chatModel,
-        [ModelId.GEMINI_2_5_FLASH]: chatModel,
-        [ModelId.DEEPSEEK_V3_1]: chatModel,
-        [ModelId.DEEPSEEK_V3_1_THINKING]: reasoningModel,
-        [ModelId.GROK_CODE_FAST_1]: chatModel,
-        [ModelId.GROK_4]: chatModel,
-        [ModelId.GROK_3_MINI]: reasoningModel,
-        [ModelId.CLAUDE_SONNET_3_7]: chatModel,
-        [ModelId.CLAUDE_SONNET_4]: chatModel,
-        [ModelId.CLAUDE_SONNET_4_REASONING]: reasoningModel,
-        [ModelId.GEMINI_2_5_PRO_REASONING]: reasoningModel,
-        [ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW]: chatModel,
-        [ModelId.TITLE_MODEL]: titleModel,
-        [ModelId.ARTIFACT_MODEL]: artifactModel,
-        [ModelId.CODE_MODEL]: artifactModel,
+        [ModelId.GPT_4_1]: testModels.chatModel,
+        [ModelId.GPT_4_1_MINI]: testModels.chatModel,
+        [ModelId.GPT_5]: testModels.chatModel,
+        [ModelId.O4_MINI]: testModels.chatModel,
+        [ModelId.O4_MINI_REASONING]: testModels.reasoningModel,
+        [ModelId.GEMINI_2_5_FLASH_LITE]: testModels.chatModel,
+        [ModelId.GEMINI_2_5_FLASH]: testModels.chatModel,
+        [ModelId.DEEPSEEK_V3_1]: testModels.chatModel,
+        [ModelId.DEEPSEEK_V3_1_THINKING]: testModels.reasoningModel,
+        [ModelId.GROK_CODE_FAST_1]: testModels.chatModel,
+        [ModelId.GROK_4]: testModels.chatModel,
+        [ModelId.GROK_3_MINI]: testModels.reasoningModel,
+        [ModelId.CLAUDE_SONNET_3_7]: testModels.chatModel,
+        [ModelId.CLAUDE_SONNET_4]: testModels.chatModel,
+        [ModelId.CLAUDE_SONNET_4_REASONING]: testModels.reasoningModel,
+        [ModelId.GEMINI_2_5_PRO_REASONING]: testModels.reasoningModel,
+        [ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW]: testModels.chatModel,
+        [ModelId.TITLE_MODEL]: testModels.titleModel,
+        [ModelId.ARTIFACT_MODEL]: testModels.artifactModel,
+        [ModelId.CODE_MODEL]: testModels.artifactModel,
       },
       imageModels: {
         // No dedicated image models currently
