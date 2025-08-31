@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ModelId } from '@/lib/ai/providers';
 
 const textPartSchema = z.object({
   type: z.enum(['text']),
@@ -21,7 +22,28 @@ export const postRequestBodySchema = z.object({
     role: z.enum(['user']),
     parts: z.array(partSchema),
   }),
-  selectedChatModel: z.enum(['chat-model', 'chat-model-reasoning']),
+  selectedChatModel: z.enum([
+    ModelId.GPT_4_1,
+    ModelId.GPT_4_1_MINI,
+    ModelId.GPT_5,
+    ModelId.O4_MINI,
+    ModelId.O4_MINI_REASONING,
+    ModelId.GEMINI_2_5_FLASH_LITE,
+    ModelId.GEMINI_2_5_FLASH,
+    ModelId.DEEPSEEK_V3_1,
+    ModelId.DEEPSEEK_V3_1_THINKING,
+    ModelId.GROK_CODE_FAST_1,
+    ModelId.GROK_3_MINI,
+    ModelId.GROK_4,
+    ModelId.CLAUDE_SONNET_3_7,
+    ModelId.CLAUDE_SONNET_4,
+    ModelId.CLAUDE_SONNET_4_REASONING,
+    ModelId.GEMINI_2_5_PRO_REASONING,
+    ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
+    ModelId.TITLE_MODEL,
+    ModelId.ARTIFACT_MODEL,
+    ModelId.CODE_MODEL,
+  ]),
   selectedVisibilityType: z.enum(['public', 'private']),
 });
 
