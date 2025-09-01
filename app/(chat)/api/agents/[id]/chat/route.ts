@@ -26,13 +26,15 @@ import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
+import { createDocument } from '@/lib/ai/tools/create-document';
+import { updateDocument } from '@/lib/ai/tools/update-document';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
   postRequestBodySchema,
   type PostRequestBody,
 } from '@/app/(chat)/api/chat/schema';
-import { geolocation } from '@vercel/functions';
+//import { geolocation } from '@vercel/functions';
 import {
   createResumableStreamContext,
   type ResumableStreamContext,
@@ -156,7 +158,7 @@ export async function POST(
     const messagesFromDb = await getMessagesByChatId({ id });
     const uiMessages = [...convertToUIMessages(messagesFromDb), message];
 
-    const { longitude, latitude, city, country } = geolocation(request);
+    //const { longitude, latitude, city, country } = geolocation(request);
 
     await saveMessages({
       messages: [
@@ -174,20 +176,20 @@ export async function POST(
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
-    // AGENT-SPECIFIC: Create agent system prompt and tools
-    const agentTools = createAgentTools(workflowNodes, dataPool);
-    const agentSystemPrompt = createAgentSystemPrompt(
-      agent,
-      workflowNodes,
-      agentTools,
-    );
-
-    console.log('Agent chat: Created tools:', Object.keys(agentTools));
-    console.log('Agent chat: Data pool exists:', !!dataPool);
-    console.log('Agent chat: Data pool ID:', dataPool?.id);
-
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
+        // AGENT-SPECIFIC: Create agent system prompt and tools
+        const agentTools = createAgentTools(workflowNodes, dataPool, session, dataStream);
+        const agentSystemPrompt = createAgentSystemPrompt(
+          agent,
+          workflowNodes,
+          agentTools,
+        );
+
+        console.log('Agent chat: Created tools:', Object.keys(agentTools));
+        console.log('Agent chat: Data pool exists:', !!dataPool);
+        console.log('Agent chat: Data pool ID:', dataPool?.id);
+
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: agentSystemPrompt, // AGENT-SPECIFIC: Use agent system prompt
@@ -261,6 +263,21 @@ function createAgentSystemPrompt(
     .map((node) => `- ${node.name}: ${node.systemPrompt}`)
     .join('\n');
 
+  // Check which tools are available
+  const hasWebSearch = 'webSearch' in agentTools;
+  const hasNewsSearch = 'newsSearch' in agentTools;
+  const hasDocumentTools = 'createDocument' in agentTools;
+
+  const webSearchCapabilities = hasWebSearch || hasNewsSearch
+    ? `- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
+- You can search for the latest news using the newsSearch tool (for current events and breaking news)`
+    : '';
+
+  const documentCapabilities = hasDocumentTools
+    ? `- You can create new documents using the createDocument tool
+- You can update existing documents using the updateDocument tool`
+    : '';
+
   return `You are "${agent.title}", an AI agent with specific capabilities.
 
 Agent Description: ${agent.description}
@@ -275,9 +292,7 @@ IMPORTANT CAPABILITIES:
 - You can get detailed metadata about documents using the getDocumentMetadata tool
 - You can search within specific documents using the searchSpecificDocument tool
 - You can access and analyze any documents that have been uploaded to your data pool
-- You can summarize, extract information, and answer questions about your documents
-- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
-- You can search for the latest news using the newsSearch tool (for current events and breaking news)
+- You can summarize, extract information, and answer questions about your documents${webSearchCapabilities ? '\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n' + documentCapabilities : ''}
 
 IMPORTANT CONSTRAINTS:
 - You can ONLY perform tasks related to your defined workflow nodes
@@ -298,18 +313,19 @@ IMAGE SEARCH GUIDELINES:
 - Images are more abstract, so lower thresholds work better than text
 - Always specify searchImages: true when looking for charts, graphs, diagrams, or visual content
 
-WEB SEARCH GUIDELINES:
+WEB SEARCH GUIDELINES:${hasWebSearch || hasNewsSearch ? `
 - Use webSearch tool when users ask for current events, recent developments, or real-time information
 - Use newsSearch tool specifically for breaking news and current affairs
 - Choose search type: 'general' for broad topics, 'news' for current events, 'academic' for research, 'recent' for latest updates
-- Always use websearch when the information needed is not in your data pool or requires up-to-date information
+- Always use websearch when the information needed is not in your data pool or requires up-to-date information` : `
+- Web search tools are not available for this agent`}
 
 CRITICAL INSTRUCTION: When a user asks about documents or content, you MUST use the appropriate search tools to find relevant information in your data pool. Do not say you cannot access documents - use the search tools first.
 
 Available tools: ${Object.keys(agentTools).join(', ')}`;
 }
 
-function createAgentTools(workflowNodes: any[], dataPool: any) {
+function createAgentTools(workflowNodes: any[], dataPool: any, session: any, dataStream: any) {
   const tools: any = {};
 
   console.log('createAgentTools: Creating tools for data pool:', !!dataPool);
@@ -616,13 +632,21 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
   // - filter: data filtering tools
   // - aggregate: data aggregation tools
 
-  // Add websearch tools that are always available
-  tools.webSearch = webSearch();
-  tools.newsSearch = newsSearch();
+  // Add tools based on workflow node types
+  const nodeTypes = workflowNodes.map(node => node.nodeType?.toLowerCase()).filter(Boolean);
 
-  console.log(
-    'createAgentTools: Added websearch tools (webSearch, newsSearch)',
-  );
+  // Add websearch tools if there are any search or web-related nodes
+  if (nodeTypes.some(type => ['search', 'web', 'news', 'research'].includes(type))) {
+    tools.webSearch = webSearch();
+    tools.newsSearch = newsSearch();
+    console.log('createAgentTools: Added websearch tools based on workflow nodes');
+  }
+
+  // Add document management tools (always available for agents like main chat)
+  tools.createDocument = createDocument({ session, dataStream });
+  tools.updateDocument = updateDocument({ session, dataStream });
+
+  console.log('createAgentTools: Added document management tools (createDocument, updateDocument)');
 
   return tools;
 }
