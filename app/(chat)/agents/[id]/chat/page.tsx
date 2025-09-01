@@ -71,7 +71,7 @@ export default async function AgentChatPage(props: {
           autoResume={false}
           agentId={id}
         />
-        <DataStreamHandler />
+        <DataStreamHandler chatId={chatId} />
       </>
     );
   }
@@ -89,7 +89,7 @@ export default async function AgentChatPage(props: {
         autoResume={false}
         agentId={id}
       />
-      <DataStreamHandler />
+      <DataStreamHandler chatId={chatId} />
     </>
   );
 }

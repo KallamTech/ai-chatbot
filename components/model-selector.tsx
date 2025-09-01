@@ -75,7 +75,14 @@ export function ModelSelector({
   }, [availableChatModels]);
 
   // Order providers for consistent display
-  const providerOrder = ['OpenAI', 'Anthropic', 'Google', 'DeepSeek', 'xAI', 'Perplexity'];
+  const providerOrder = [
+    'OpenAI',
+    'Anthropic',
+    'Google',
+    'DeepSeek',
+    'xAI',
+    'Perplexity',
+  ];
   const orderedProviders = providerOrder.filter(
     (provider) => modelsByProvider[provider],
   );
@@ -131,7 +138,10 @@ export function ModelSelector({
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px] max-h-[60vh] overflow-y-auto">
+      <DropdownMenuContent
+        align="start"
+        className="min-w-[300px] max-h-[60vh] overflow-y-auto"
+      >
         {orderedProviders.map((provider, providerIndex) => {
           const models = modelsByProvider[provider];
           return (

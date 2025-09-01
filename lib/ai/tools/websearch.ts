@@ -10,12 +10,16 @@ export const webSearch = () =>
     description:
       'Search the web for current information, news, facts, or any real-time data. Use this when you need up-to-date information that may not be in your training data.',
     inputSchema: z.object({
-      query: z.string().describe('The search query to find information on the web'),
+      query: z
+        .string()
+        .describe('The search query to find information on the web'),
       type: z
         .enum(['general', 'news', 'academic', 'recent'])
         .optional()
         .default('general')
-        .describe('Type of search - general for broad topics, news for current events, academic for research, recent for latest updates'),
+        .describe(
+          'Type of search - general for broad topics, news for current events, academic for research, recent for latest updates',
+        ),
     }),
     execute: async ({ query, type }) => {
       try {
@@ -51,9 +55,8 @@ export const webSearch = () =>
           type,
           results: result.text,
           timestamp: new Date().toISOString(),
-          source: 'perplexity-sonar'
+          source: 'perplexity-sonar',
         };
-
       } catch (error) {
         console.error('WebSearch: Error during web search:', error);
 
@@ -63,7 +66,7 @@ export const webSearch = () =>
           error: 'Failed to perform web search',
           details: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
-          source: 'perplexity-sonar'
+          source: 'perplexity-sonar',
         };
       }
     },
@@ -90,7 +93,7 @@ export const newsSearch = () =>
         const timePrompt = {
           today: 'from today',
           week: 'from the past week',
-          month: 'from the past month'
+          month: 'from the past month',
         }[timeframe];
 
         const searchPrompt = `Find the latest news and breaking stories about: ${query}. Focus on news ${timePrompt}. Provide current, factual news reporting with sources when possible.`;
@@ -108,9 +111,8 @@ export const newsSearch = () =>
           results: result.text,
           timestamp: new Date().toISOString(),
           source: 'perplexity-sonar',
-          type: 'news'
+          type: 'news',
         };
-
       } catch (error) {
         console.error('NewsSearch: Error during news search:', error);
 
@@ -121,7 +123,7 @@ export const newsSearch = () =>
           details: error instanceof Error ? error.message : 'Unknown error',
           timestamp: new Date().toISOString(),
           source: 'perplexity-sonar',
-          type: 'news'
+          type: 'news',
         };
       }
     },

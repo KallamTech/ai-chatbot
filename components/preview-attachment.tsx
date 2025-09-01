@@ -1,4 +1,5 @@
 import type { Attachment } from '@/lib/types';
+import NextImage from 'next/image';
 import { Loader } from './elements/loader';
 import { CrossSmallIcon } from './icons';
 import { Button } from './ui/button';
@@ -19,16 +20,18 @@ export const PreviewAttachment = ({
   return (
     <div
       data-testid="input-attachment-preview"
-      className="group relative w-16 h-16 rounded-lg overflow-hidden bg-muted border"
+      className="group relative size-16 rounded-lg overflow-hidden bg-muted border"
     >
       {contentType?.startsWith('image') ? (
-        <img
+        <NextImage
           src={url}
           alt={name ?? 'An image attachment'}
-          className="w-full h-full object-cover"
+          className="size-full object-cover"
+          width={64}
+          height={64}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+        <div className="size-full flex items-center justify-center text-xs text-muted-foreground">
           File
         </div>
       )}
@@ -50,7 +53,7 @@ export const PreviewAttachment = ({
         </Button>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] px-1 py-0.5 truncate">
+      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent text-white text-[10px] px-1 py-0.5 truncate">
         {name}
       </div>
     </div>

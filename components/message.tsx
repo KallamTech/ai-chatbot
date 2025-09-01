@@ -216,6 +216,7 @@ const PurePreviewMessage = ({
                               <DocumentPreview
                                 isReadonly={isReadonly}
                                 result={part.output}
+                                chatId={chatId}
                               />
                             )
                           }
@@ -249,6 +250,7 @@ const PurePreviewMessage = ({
                                 type="update"
                                 result={part.output}
                                 isReadonly={isReadonly}
+                                chatId={chatId}
                               />
                             )
                           }
@@ -282,6 +284,7 @@ const PurePreviewMessage = ({
                                 type="request-suggestions"
                                 result={part.output}
                                 isReadonly={isReadonly}
+                                chatId={chatId}
                               />
                             )
                           }

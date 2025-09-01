@@ -39,7 +39,7 @@ export default async function DataPoolPage(props: {
   });
 
   // Cast metadata to the expected type
-  const documents = documentsRaw.map(doc => ({
+  const documents = documentsRaw.map((doc) => ({
     ...doc,
     metadata: doc.metadata as any, // Type assertion since we know the shape
   }));

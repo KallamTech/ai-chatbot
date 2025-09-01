@@ -183,7 +183,9 @@ export const myProvider =
           [ModelId.TITLE_MODEL]: gateway.languageModel(ModelId.GPT_4_1_MINI),
           [ModelId.ARTIFACT_MODEL]: gateway.languageModel(ModelId.GPT_4_1),
           [ModelId.CODE_MODEL]: gateway.languageModel(ModelId.GROK_CODE_FAST_1),
-          [ModelId.WEBSEARCH_MODEL]: gateway.languageModel(ModelId.PERPLEXITY_SONAR),
+          [ModelId.WEBSEARCH_MODEL]: gateway.languageModel(
+            ModelId.PERPLEXITY_SONAR,
+          ),
         },
         imageModels: {
           // No dedicated image models currently

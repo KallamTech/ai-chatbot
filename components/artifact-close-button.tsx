@@ -1,11 +1,14 @@
 import { memo } from 'react';
 import { CrossIcon } from './icons';
 import { Button } from './ui/button';
-import { initialArtifactData, useArtifact } from '@/hooks/use-artifact';
+import { initialArtifactData } from '@/hooks/use-artifact';
+import type { UIArtifact } from './artifact';
 
-function PureArtifactCloseButton() {
-  const { setArtifact } = useArtifact();
-
+function PureArtifactCloseButton({
+  setArtifact,
+}: {
+  setArtifact: (updater: (current: UIArtifact) => UIArtifact) => void;
+}) {
   return (
     <Button
       data-testid="artifact-close-button"
@@ -27,4 +30,4 @@ function PureArtifactCloseButton() {
   );
 }
 
-export const ArtifactCloseButton = memo(PureArtifactCloseButton, () => true);
+export const ArtifactCloseButton = memo(PureArtifactCloseButton);

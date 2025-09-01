@@ -83,7 +83,7 @@ function PureArtifact({
   isReadonly: boolean;
   selectedVisibilityType: VisibilityType;
 }) {
-  const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
+  const { artifact, setArtifact, metadata, setMetadata } = useArtifact(chatId);
 
   const {
     data: documents,
@@ -411,7 +411,7 @@ function PureArtifact({
           >
             <div className="p-2 flex flex-row justify-between items-start">
               <div className="flex flex-row gap-4 items-start">
-                <ArtifactCloseButton />
+                <ArtifactCloseButton setArtifact={setArtifact} />
 
                 <div className="flex flex-col">
                   <div className="font-medium">{artifact.title}</div>
@@ -489,6 +489,7 @@ function PureArtifact({
                   currentVersionIndex={currentVersionIndex}
                   documents={documents}
                   handleVersionChange={handleVersionChange}
+                  artifact={artifact}
                 />
               )}
             </AnimatePresence>

@@ -79,6 +79,7 @@ export async function processPdfWithMistralOCR(
     );
 
     // Save response to file for debugging (only in development)
+    /*
     if (process.env.NODE_ENV === 'development') {
       try {
         const fs = require('node:fs');
@@ -98,6 +99,7 @@ export async function processPdfWithMistralOCR(
         );
       }
     }
+    */
 
     // Extract text content from OCR response
     let textContent = '';

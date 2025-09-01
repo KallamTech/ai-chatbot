@@ -179,7 +179,12 @@ export async function POST(
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         // AGENT-SPECIFIC: Create agent system prompt and tools
-        const agentTools = createAgentTools(workflowNodes, dataPool, session, dataStream);
+        const agentTools = createAgentTools(
+          workflowNodes,
+          dataPool,
+          session,
+          dataStream,
+        );
         const agentSystemPrompt = createAgentSystemPrompt(
           agent,
           workflowNodes,
@@ -268,10 +273,11 @@ function createAgentSystemPrompt(
   const hasNewsSearch = 'newsSearch' in agentTools;
   const hasDocumentTools = 'createDocument' in agentTools;
 
-  const webSearchCapabilities = hasWebSearch || hasNewsSearch
-    ? `- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
+  const webSearchCapabilities =
+    hasWebSearch || hasNewsSearch
+      ? `- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
 - You can search for the latest news using the newsSearch tool (for current events and breaking news)`
-    : '';
+      : '';
 
   const documentCapabilities = hasDocumentTools
     ? `- You can create new documents using the createDocument tool
@@ -313,19 +319,28 @@ IMAGE SEARCH GUIDELINES:
 - Images are more abstract, so lower thresholds work better than text
 - Always specify searchImages: true when looking for charts, graphs, diagrams, or visual content
 
-WEB SEARCH GUIDELINES:${hasWebSearch || hasNewsSearch ? `
+WEB SEARCH GUIDELINES:${
+    hasWebSearch || hasNewsSearch
+      ? `
 - Use webSearch tool when users ask for current events, recent developments, or real-time information
 - Use newsSearch tool specifically for breaking news and current affairs
 - Choose search type: 'general' for broad topics, 'news' for current events, 'academic' for research, 'recent' for latest updates
-- Always use websearch when the information needed is not in your data pool or requires up-to-date information` : `
-- Web search tools are not available for this agent`}
+- Always use websearch when the information needed is not in your data pool or requires up-to-date information`
+      : `
+- Web search tools are not available for this agent`
+  }
 
 CRITICAL INSTRUCTION: When a user asks about documents or content, you MUST use the appropriate search tools to find relevant information in your data pool. Do not say you cannot access documents - use the search tools first.
 
 Available tools: ${Object.keys(agentTools).join(', ')}`;
 }
 
-function createAgentTools(workflowNodes: any[], dataPool: any, session: any, dataStream: any) {
+function createAgentTools(
+  workflowNodes: any[],
+  dataPool: any,
+  session: any,
+  dataStream: any,
+) {
   const tools: any = {};
 
   console.log('createAgentTools: Creating tools for data pool:', !!dataPool);
@@ -633,20 +648,30 @@ function createAgentTools(workflowNodes: any[], dataPool: any, session: any, dat
   // - aggregate: data aggregation tools
 
   // Add tools based on workflow node types
-  const nodeTypes = workflowNodes.map(node => node.nodeType?.toLowerCase()).filter(Boolean);
+  const nodeTypes = workflowNodes
+    .map((node) => node.nodeType?.toLowerCase())
+    .filter(Boolean);
 
   // Add websearch tools if there are any search or web-related nodes
-  if (nodeTypes.some(type => ['search', 'web', 'news', 'research'].includes(type))) {
+  if (
+    nodeTypes.some((type) =>
+      ['search', 'web', 'news', 'research'].includes(type),
+    )
+  ) {
     tools.webSearch = webSearch();
     tools.newsSearch = newsSearch();
-    console.log('createAgentTools: Added websearch tools based on workflow nodes');
+    console.log(
+      'createAgentTools: Added websearch tools based on workflow nodes',
+    );
   }
 
   // Add document management tools (always available for agents like main chat)
   tools.createDocument = createDocument({ session, dataStream });
   tools.updateDocument = updateDocument({ session, dataStream });
 
-  console.log('createAgentTools: Added document management tools (createDocument, updateDocument)');
+  console.log(
+    'createAgentTools: Added document management tools (createDocument, updateDocument)',
+  );
 
   return tools;
 }
