@@ -18,7 +18,8 @@ export const chatModel = new MockLanguageModelV2({
   doGenerate: async ({ providerOptions }) => {
     // Check if this is an image generation request
     const responseModalities = providerOptions?.google?.responseModalities;
-    const isImageRequest = Array.isArray(responseModalities) && responseModalities.includes('IMAGE');
+    const isImageRequest =
+      Array.isArray(responseModalities) && responseModalities.includes('IMAGE');
 
     if (isImageRequest) {
       // Create a mock image file for image generation
@@ -29,10 +30,12 @@ export const chatModel = new MockLanguageModelV2({
         finishReason: 'stop',
         usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
         content: [{ type: 'text', text: 'Generated an image' }],
-        files: [{
-          mediaType: 'image/png',
-          uint8Array: mockImageData,
-        }],
+        files: [
+          {
+            mediaType: 'image/png',
+            uint8Array: mockImageData,
+          },
+        ],
         warnings: [],
       };
     }

@@ -20,10 +20,17 @@ interface CreateAgentProps {
 
 export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
   tool({
-    description: 'Create an AI agent with a workflow based on the user requirements. This tool analyzes the user request and creates an agent with appropriate workflow nodes.',
+    description:
+      'Create an AI agent with a workflow based on the user requirements. This tool analyzes the user request and creates an agent with appropriate workflow nodes.',
     inputSchema: z.object({
-      description: z.string().describe('Description of what the agent should do'),
-      workflowRequirements: z.string().describe('Detailed requirements for the workflow nodes and connections'),
+      description: z
+        .string()
+        .describe('Description of what the agent should do'),
+      workflowRequirements: z
+        .string()
+        .describe(
+          'Detailed requirements for the workflow nodes and connections',
+        ),
     }),
     execute: async ({ description, workflowRequirements }) => {
       if (!session?.user?.id) {
@@ -36,7 +43,8 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
         // Generate agent title and refined description using AI
         const { text: generatedContent } = await generateText({
           model: myProvider.languageModel(ModelId.GPT_4_1),
-          system: 'You are a helpful assistant that creates AI agent specifications. Generate a concise title and refined description for an agent based on user requirements.',
+          system:
+            'You are a helpful assistant that creates AI agent specifications. Generate a concise title and refined description for an agent based on user requirements.',
           prompt: `User wants to create an agent that: ${description}
 
           Generate:
@@ -121,7 +129,8 @@ Return only the JSON array, no other text.`,
               name: 'Document Search',
               description: 'Searches relevant documents from the data pool',
               nodeType: 'rag',
-              systemPrompt: 'You are a document search assistant. Find the most relevant information from the available documents to answer user queries.',
+              systemPrompt:
+                'You are a document search assistant. Find the most relevant information from the available documents to answer user queries.',
               position: { x: 100, y: 100 },
             },
             {
@@ -130,7 +139,7 @@ Return only the JSON array, no other text.`,
               nodeType: 'transform',
               systemPrompt: `You are a data processor for the "${agentTitle}" agent. Process and format information to provide clear, helpful responses.`,
               position: { x: 300, y: 100 },
-            }
+            },
           ];
         }
 
@@ -180,7 +189,6 @@ Return only the JSON array, no other text.`,
             edges: Math.max(0, createdNodes.length - 1),
           },
         };
-
       } catch (error) {
         console.error('Error creating agent:', error);
         return {

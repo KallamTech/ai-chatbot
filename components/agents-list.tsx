@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { BotIcon, Trash2Icon, MoreVerticalIcon, FileTextIcon } from 'lucide-react';
+import {
+  BotIcon,
+  Trash2Icon,
+  MoreVerticalIcon,
+  FileTextIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -46,7 +51,7 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
         throw new Error('Failed to delete agent');
       }
 
-      setAgents(agents.filter(a => a.id !== agent.id));
+      setAgents(agents.filter((a) => a.id !== agent.id));
       setDeleteAgent(null);
 
       toast({
@@ -70,7 +75,8 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
         <BotIcon size={48} className="text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No agents yet</h3>
         <p className="text-muted-foreground mb-4 max-w-md">
-          Create your first agent by starting a chat and describing what you want it to do.
+          Create your first agent by starting a chat and describing what you
+          want it to do.
         </p>
         <Link href="/">
           <Button>Start New Chat</Button>
@@ -83,14 +89,19 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {agents.map((agent) => (
-          <Card key={agent.id} className="p-4 hover:shadow-md transition-shadow">
+          <Card
+            key={agent.id}
+            className="p-4 hover:shadow-md transition-shadow"
+          >
             <div className="flex justify-between items-start mb-3 gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                   <BotIcon size={20} className="text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold break-words leading-tight">{agent.title}</h3>
+                  <h3 className="font-semibold break-words leading-tight">
+                    {agent.title}
+                  </h3>
                   <p className="text-xs text-muted-foreground">
                     Created {formatDistanceToNow(agent.createdAt)} ago
                   </p>
@@ -120,7 +131,15 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
               </DropdownMenu>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }} title={agent.description}>
+            <p
+              className="text-sm text-muted-foreground mb-4 overflow-hidden"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+              }}
+              title={agent.description}
+            >
               {agent.description}
             </p>
 
@@ -133,13 +152,17 @@ export function AgentsList({ agents: initialAgents }: AgentsListProps) {
         ))}
       </div>
 
-      <AlertDialog open={!!deleteAgent} onOpenChange={() => setDeleteAgent(null)}>
+      <AlertDialog
+        open={!!deleteAgent}
+        onOpenChange={() => setDeleteAgent(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Agent</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &quot;{deleteAgent?.title}&quot;? This action cannot be undone.
-              All associated documents and workflow data will be permanently deleted.
+              Are you sure you want to delete &quot;{deleteAgent?.title}&quot;?
+              This action cannot be undone. All associated documents and
+              workflow data will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

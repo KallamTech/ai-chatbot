@@ -13,8 +13,18 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Agent, WorkflowNode, WorkflowEdge, DataPool } from '@/lib/db/schema';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import type {
+  Agent,
+  WorkflowNode,
+  WorkflowEdge,
+  DataPool,
+} from '@/lib/db/schema';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 
@@ -24,12 +34,18 @@ interface AgentDetailsProps {
   workflowEdges: WorkflowEdge[];
 }
 
-export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetailsProps) {
+export function AgentDetails({
+  agent,
+  workflowNodes,
+  workflowEdges,
+}: AgentDetailsProps) {
   const [connectedDataPools, setConnectedDataPools] = useState<DataPool[]>([]);
   const [availableDataPools, setAvailableDataPools] = useState<DataPool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [connectingPoolId, setConnectingPoolId] = useState<string | null>(null);
-  const [disconnectingPoolId, setDisconnectingPoolId] = useState<string | null>(null);
+  const [disconnectingPoolId, setDisconnectingPoolId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     loadDataPools();
@@ -39,7 +55,9 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
     setIsLoading(true);
     try {
       // Load connected data pools
-      const connectedResponse = await fetch(`/api/agents/${agent.id}/datapools`);
+      const connectedResponse = await fetch(
+        `/api/agents/${agent.id}/datapools`,
+      );
       let connectedData = { dataPools: [] };
       if (connectedResponse.ok) {
         connectedData = await connectedResponse.json();
@@ -50,8 +68,12 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
       const allResponse = await fetch('/api/datapools');
       if (allResponse.ok) {
         const allData = await allResponse.json();
-        const connectedIds = new Set(connectedData?.dataPools?.map((dp: DataPool) => dp.id) || []);
-        const available = allData.dataPools.filter((dp: DataPool) => !connectedIds.has(dp.id));
+        const connectedIds = new Set(
+          connectedData?.dataPools?.map((dp: DataPool) => dp.id) || [],
+        );
+        const available = allData.dataPools.filter(
+          (dp: DataPool) => !connectedIds.has(dp.id),
+        );
         setAvailableDataPools(available);
       }
     } catch (error) {
@@ -91,7 +113,10 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
       console.error('Error connecting data pool:', error);
       toast({
         type: 'error',
-        description: error instanceof Error ? error.message : 'Failed to connect data pool',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to connect data pool',
       });
     } finally {
       setConnectingPoolId(null);
@@ -99,7 +124,11 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
   };
 
   const handleDisconnectDataPool = async (dataPoolId: string) => {
-    if (!confirm('Are you sure you want to disconnect this data pool from the agent?')) {
+    if (
+      !confirm(
+        'Are you sure you want to disconnect this data pool from the agent?',
+      )
+    ) {
       return;
     }
 
@@ -128,7 +157,10 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
       console.error('Error disconnecting data pool:', error);
       toast({
         type: 'error',
-        description: error instanceof Error ? error.message : 'Failed to disconnect data pool',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to disconnect data pool',
       });
     } finally {
       setDisconnectingPoolId(null);
@@ -175,10 +207,14 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">{node.name}</h3>
-                  <p className="text-xs text-muted-foreground capitalize">{node.nodeType}</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {node.nodeType}
+                  </p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">{node.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {node.description}
+              </p>
             </Card>
           ))}
         </div>
@@ -192,7 +228,8 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
           <h2 className="text-xl font-semibold">Connected Data Pools</h2>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
-              {connectedDataPools.length} pool{connectedDataPools.length !== 1 ? 's' : ''} connected
+              {connectedDataPools.length} pool
+              {connectedDataPools.length !== 1 ? 's' : ''} connected
             </span>
             <Link href="/datapools">
               <Button variant="outline" size="sm">
@@ -213,7 +250,9 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                       <DatabaseIcon size={20} className="text-blue-600" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-sm truncate">{dataPool.name}</h3>
+                      <h3 className="font-semibold text-sm truncate">
+                        {dataPool.name}
+                      </h3>
                       {dataPool.description && (
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {dataPool.description}
@@ -245,7 +284,9 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDisconnectDataPool(dataPool.id)}
+                            onClick={() =>
+                              handleDisconnectDataPool(dataPool.id)
+                            }
                             disabled={disconnectingPoolId === dataPool.id}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
@@ -268,7 +309,10 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
           </div>
         ) : (
           <Card className="p-8 text-center mb-6">
-            <DatabaseIcon size={48} className="mx-auto text-muted-foreground mb-4" />
+            <DatabaseIcon
+              size={48}
+              className="mx-auto text-muted-foreground mb-4"
+            />
             <h3 className="font-semibold mb-2">No data pools connected</h3>
             <p className="text-muted-foreground mb-4">
               Connect data pools to provide knowledge for your agent
@@ -292,10 +336,15 @@ export function AgentDetails({ agent, workflowNodes, workflowEdges }: AgentDetai
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div className="p-2 bg-muted rounded-lg">
-                        <DatabaseIcon size={20} className="text-muted-foreground" />
+                        <DatabaseIcon
+                          size={20}
+                          className="text-muted-foreground"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-sm truncate">{dataPool.name}</h3>
+                        <h3 className="font-semibold text-sm truncate">
+                          {dataPool.name}
+                        </h3>
                         {dataPool.description && (
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {dataPool.description}

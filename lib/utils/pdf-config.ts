@@ -18,21 +18,27 @@ export function getPdfProcessingConfig() {
     cohereEmbedding: true, // Always available via gateway
     isAvailable: isPdfProcessingAvailable(),
     requiredEnvVars: ['MISTRAL_API_KEY'],
-    missingEnvVars: [
-      !process.env.MISTRAL_API_KEY && 'MISTRAL_API_KEY'
-    ].filter(Boolean)
+    missingEnvVars: [!process.env.MISTRAL_API_KEY && 'MISTRAL_API_KEY'].filter(
+      Boolean,
+    ),
   };
 }
 
 /**
  * Validates file for PDF processing
  */
-export function validatePdfFile(file: File): { valid: boolean; error?: string } {
+export function validatePdfFile(file: File): {
+  valid: boolean;
+  error?: string;
+} {
   if (!file) {
     return { valid: false, error: 'No file provided' };
   }
 
-  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+  if (
+    file.type !== 'application/pdf' &&
+    !file.name.toLowerCase().endsWith('.pdf')
+  ) {
     return { valid: false, error: 'File must be a PDF' };
   }
 
@@ -62,7 +68,7 @@ export function getSupportedFileTypes(): string[] {
     'text/javascript',
     'application/javascript',
     'text/xml',
-    'application/xml'
+    'application/xml',
   ];
 
   if (isPdfProcessingAvailable()) {
@@ -76,7 +82,17 @@ export function getSupportedFileTypes(): string[] {
  * Gets supported file extensions including PDF if processing is available
  */
 export function getSupportedFileExtensions(): string[] {
-  const baseExtensions = ['.txt', '.md', '.csv', '.json', '.html', '.css', '.js', '.xml', '.log'];
+  const baseExtensions = [
+    '.txt',
+    '.md',
+    '.csv',
+    '.json',
+    '.html',
+    '.css',
+    '.js',
+    '.xml',
+    '.log',
+  ];
 
   if (isPdfProcessingAvailable()) {
     baseExtensions.push('.pdf');

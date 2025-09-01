@@ -17,7 +17,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { DataPool, DataPoolDocument, Agent } from '@/lib/db/schema';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -48,13 +53,24 @@ interface DataPoolManagerProps {
   allAgents: Agent[];
 }
 
-export function DataPoolManager({ dataPool, documents: initialDocuments, allAgents }: DataPoolManagerProps) {
-  const [documents, setDocuments] = useState<ExtendedDataPoolDocument[]>(initialDocuments);
+export function DataPoolManager({
+  dataPool,
+  documents: initialDocuments,
+  allAgents,
+}: DataPoolManagerProps) {
+  const [documents, setDocuments] =
+    useState<ExtendedDataPoolDocument[]>(initialDocuments);
   const [connectedAgents, setConnectedAgents] = useState<Agent[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
-  const [connectingAgentId, setConnectingAgentId] = useState<string | null>(null);
-  const [disconnectingAgentId, setDisconnectingAgentId] = useState<string | null>(null);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(
+    null,
+  );
+  const [connectingAgentId, setConnectingAgentId] = useState<string | null>(
+    null,
+  );
+  const [disconnectingAgentId, setDisconnectingAgentId] = useState<
+    string | null
+  >(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load connected agents on mount
@@ -127,10 +143,13 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
           const titleWithoutExtension = fileName.replace(/\.[^/.]+$/, '');
           formData.append('title', titleWithoutExtension);
 
-          const response = await fetch(`/api/datapools/${dataPool.id}/documents`, {
-            method: 'POST',
-            body: formData,
-          });
+          const response = await fetch(
+            `/api/datapools/${dataPool.id}/documents`,
+            {
+              method: 'POST',
+              body: formData,
+            },
+          );
 
           if (!response.ok) {
             const errorData = await response.json();
@@ -179,15 +198,22 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
   };
 
   const handleDeleteDocument = async (documentId: string) => {
-    if (!confirm('Are you sure you want to delete this document? This action cannot be undone and will also remove the document\'s embeddings.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this document? This action cannot be undone and will also remove the document's embeddings.",
+      )
+    ) {
       return;
     }
 
     setDeletingDocumentId(documentId);
     try {
-      const response = await fetch(`/api/datapools/${dataPool.id}/documents?documentId=${documentId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/datapools/${dataPool.id}/documents?documentId=${documentId}`,
+        {
+          method: 'DELETE',
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -246,7 +272,11 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
   };
 
   const handleDisconnectAgent = async (agentId: string) => {
-    if (!confirm('Are you sure you want to disconnect this agent from the data pool?')) {
+    if (
+      !confirm(
+        'Are you sure you want to disconnect this agent from the data pool?',
+      )
+    ) {
       return;
     }
 
@@ -283,8 +313,10 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
     }
   };
 
-  const connectedAgentIds = new Set(connectedAgents.map(agent => agent.id));
-  const availableAgents = allAgents.filter(agent => !connectedAgentIds.has(agent.id));
+  const connectedAgentIds = new Set(connectedAgents.map((agent) => agent.id));
+  const availableAgents = allAgents.filter(
+    (agent) => !connectedAgentIds.has(agent.id),
+  );
 
   return (
     <div className="space-y-6">
@@ -303,7 +335,9 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
           <div>
             <h1 className="text-3xl font-bold">{dataPool.name}</h1>
             {dataPool.description && (
-              <p className="text-muted-foreground mt-1">{dataPool.description}</p>
+              <p className="text-muted-foreground mt-1">
+                {dataPool.description}
+              </p>
             )}
             <p className="text-sm text-muted-foreground mt-2">
               Created {formatDistanceToNow(dataPool.createdAt)} ago
@@ -319,7 +353,8 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Connected Agents</h2>
           <span className="text-sm text-muted-foreground">
-            {connectedAgents.length} agent{connectedAgents.length !== 1 ? 's' : ''} connected
+            {connectedAgents.length} agent
+            {connectedAgents.length !== 1 ? 's' : ''} connected
           </span>
         </div>
 
@@ -333,7 +368,9 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
                       <BotIcon size={20} className="text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-sm truncate">{agent.title}</h3>
+                      <h3 className="font-semibold text-sm truncate">
+                        {agent.title}
+                      </h3>
                       <p className="text-xs text-muted-foreground line-clamp-2">
                         {agent.description}
                       </p>
@@ -388,7 +425,9 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
                         <BotIcon size={20} className="text-muted-foreground" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-sm truncate">{agent.title}</h3>
+                        <h3 className="font-semibold text-sm truncate">
+                          {agent.title}
+                        </h3>
                         <p className="text-xs text-muted-foreground line-clamp-2">
                           {agent.description}
                         </p>
@@ -449,9 +488,13 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
               multiple
             />
             <div className="text-xs text-muted-foreground mt-1 space-y-1">
-              <p>You can select multiple files. Titles will be automatically generated from filenames.</p>
               <p>
-                <strong>Supported formats:</strong> .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
+                You can select multiple files. Titles will be automatically
+                generated from filenames.
+              </p>
+              <p>
+                <strong>Supported formats:</strong> .txt, .md, .csv, .json,
+                .html, .css, .js, .xml, .log, .pdf
               </p>
               <p className="text-green-600">
                 ✅ Text files are processed immediately
@@ -484,7 +527,10 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
         <div className="space-y-2">
           {documents.length === 0 ? (
             <Card className="p-8 text-center">
-              <FileTextIcon size={48} className="mx-auto text-muted-foreground mb-4" />
+              <FileTextIcon
+                size={48}
+                className="mx-auto text-muted-foreground mb-4"
+              />
               <h3 className="font-semibold mb-2">No documents yet</h3>
               <p className="text-muted-foreground">
                 Upload documents to this data pool
@@ -501,7 +547,8 @@ export function DataPoolManager({ dataPool, documents: initialDocuments, allAgen
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>
                           Uploaded {formatDistanceToNow(doc.createdAt)} ago
-                          {doc.metadata?.fileName && ` • ${doc.metadata.fileName}`}
+                          {doc.metadata?.fileName &&
+                            ` • ${doc.metadata.fileName}`}
                         </span>
                         {doc.metadata?.wordCount && (
                           <span className="text-xs text-muted-foreground">

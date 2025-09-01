@@ -32,7 +32,6 @@ import {
   dataPool,
   type DataPool,
   agentDataPool,
-  type AgentDataPool,
   dataPoolDocument,
   type DataPoolDocument,
   workflowNode,
@@ -575,10 +574,7 @@ export async function createAgent({
 
     return newAgent;
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to create agent',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to create agent');
   }
 }
 
@@ -616,10 +612,7 @@ export async function getAgentById({
 
     return result || null;
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get agent by ID',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to get agent by ID');
   }
 }
 
@@ -635,10 +628,7 @@ export async function deleteAgent({
       .delete(agent)
       .where(and(eq(agent.id, id), eq(agent.userId, userId)));
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to delete agent',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to delete agent');
   }
 }
 
@@ -808,10 +798,12 @@ export async function disconnectAgentFromDataPool({
   try {
     await db
       .delete(agentDataPool)
-      .where(and(
-        eq(agentDataPool.agentId, agentId),
-        eq(agentDataPool.dataPoolId, dataPoolId)
-      ));
+      .where(
+        and(
+          eq(agentDataPool.agentId, agentId),
+          eq(agentDataPool.dataPoolId, dataPoolId),
+        ),
+      );
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -933,10 +925,12 @@ export async function deleteDataPoolDocument({
   try {
     await db
       .delete(dataPoolDocument)
-      .where(and(
-        eq(dataPoolDocument.id, id),
-        eq(dataPoolDocument.dataPoolId, dataPoolId)
-      ));
+      .where(
+        and(
+          eq(dataPoolDocument.id, id),
+          eq(dataPoolDocument.dataPoolId, dataPoolId),
+        ),
+      );
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',

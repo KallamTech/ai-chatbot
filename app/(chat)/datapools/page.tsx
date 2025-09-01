@@ -23,7 +23,8 @@ export default async function DataPoolsPage() {
           <div>
             <h1 className="text-2xl font-bold">Data Pools</h1>
             <p className="text-muted-foreground">
-              Create and manage data pools that can be shared across multiple agents
+              Create and manage data pools that can be shared across multiple
+              agents
             </p>
           </div>
         </div>
@@ -31,7 +32,8 @@ export default async function DataPoolsPage() {
         <div className="border rounded-lg p-4 bg-muted/50">
           <h3 className="font-semibold mb-2">About Data Pools</h3>
           <p className="text-sm text-muted-foreground mb-2">
-            Data pools are collections of documents that can be connected to multiple agents. This allows you to:
+            Data pools are collections of documents that can be connected to
+            multiple agents. This allows you to:
           </p>
           <ul className="text-sm text-muted-foreground list-disc ml-6 space-y-1">
             <li>Share knowledge across multiple agents</li>

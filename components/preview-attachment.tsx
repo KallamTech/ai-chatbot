@@ -1,6 +1,6 @@
 import type { Attachment } from '@/lib/types';
 import { Loader } from './elements/loader';
-import { CrossSmallIcon, } from './icons';
+import { CrossSmallIcon } from './icons';
 import { Button } from './ui/button';
 
 export const PreviewAttachment = ({
@@ -17,7 +17,10 @@ export const PreviewAttachment = ({
   const { name, url, contentType } = attachment;
 
   return (
-    <div data-testid="input-attachment-preview" className="group relative w-16 h-16 rounded-lg overflow-hidden bg-muted border">
+    <div
+      data-testid="input-attachment-preview"
+      className="group relative w-16 h-16 rounded-lg overflow-hidden bg-muted border"
+    >
       {contentType?.startsWith('image') ? (
         <img
           src={url}

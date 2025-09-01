@@ -1,17 +1,16 @@
 import { auth } from '@/app/(auth)/auth';
 import {
-  getDataPoolsByAgentId,
   connectAgentToDataPool,
   disconnectAgentFromDataPool,
   getDataPoolById,
-  getAgentsByDataPoolId
+  getAgentsByDataPoolId,
 } from '@/lib/db/queries';
 import { ChatSDKError } from '@/lib/errors';
 import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: dataPoolId } = await params;
@@ -51,7 +50,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: dataPoolId } = await params;
@@ -92,7 +91,7 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: dataPoolId } = await params;

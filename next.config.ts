@@ -18,9 +18,9 @@ const nextConfig: NextConfig = {
         ...config.resolve.alias,
         // Prevent test utilities from being bundled in client-side code
         'ai/test': false,
-        'async_hooks': false,
-        'net': false,
-        '_http_common': false,
+        async_hooks: false,
+        net: false,
+        _http_common: false,
       };
     }
     return config;

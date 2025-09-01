@@ -198,18 +198,22 @@ export const dataPool = pgTable('DataPool', {
 export type DataPool = InferSelectModel<typeof dataPool>;
 
 // Junction table for many-to-many relationship between agents and data pools
-export const agentDataPool = pgTable('AgentDataPool', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  agentId: uuid('agentId')
-    .notNull()
-    .references(() => agent.id, { onDelete: 'cascade' }),
-  dataPoolId: uuid('dataPoolId')
-    .notNull()
-    .references(() => dataPool.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('createdAt').notNull(),
-}, (table) => ({
-  agentDataPoolUnique: unique().on(table.agentId, table.dataPoolId),
-}));
+export const agentDataPool = pgTable(
+  'AgentDataPool',
+  {
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
+    agentId: uuid('agentId')
+      .notNull()
+      .references(() => agent.id, { onDelete: 'cascade' }),
+    dataPoolId: uuid('dataPoolId')
+      .notNull()
+      .references(() => dataPool.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('createdAt').notNull(),
+  },
+  (table) => ({
+    agentDataPoolUnique: unique().on(table.agentId, table.dataPoolId),
+  }),
+);
 
 export type AgentDataPool = InferSelectModel<typeof agentDataPool>;
 
@@ -236,7 +240,9 @@ export const workflowNode = pgTable('WorkflowNode', {
   description: text('description').notNull(),
   systemPrompt: text('systemPrompt').notNull(),
   position: json('position').notNull(), // Store x, y coordinates for visual representation
-  nodeType: varchar('nodeType', { enum: ['rag', 'transform', 'filter', 'aggregate'] })
+  nodeType: varchar('nodeType', {
+    enum: ['rag', 'transform', 'filter', 'aggregate'],
+  })
     .notNull()
     .default('transform'),
   config: json('config'), // Store node-specific configuration

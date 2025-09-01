@@ -5,7 +5,10 @@
  * to enhance conversations with document content.
  */
 
-import { processPdfWithMistralOCR, processExtractedImages } from '@/lib/utils/pdf-processor';
+import {
+  processPdfWithMistralOCR,
+  processExtractedImages,
+} from '@/lib/utils/pdf-processor';
 import { isPdfProcessingAvailable } from '@/lib/utils/pdf-config';
 import { generateDocumentEmbedding } from '@/lib/utils';
 
@@ -21,11 +24,14 @@ interface ChatWithPdfResult {
  * Processes a PDF for chat integration, combining text and image descriptions
  * into a single searchable document with embeddings
  */
-export async function processPdfForChat(file: File): Promise<ChatWithPdfResult> {
+export async function processPdfForChat(
+  file: File,
+): Promise<ChatWithPdfResult> {
   if (!isPdfProcessingAvailable()) {
     return {
       success: false,
-      error: 'PDF processing is not available. Please configure MISTRAL_API_KEY.'
+      error:
+        'PDF processing is not available. Please configure MISTRAL_API_KEY.',
     };
   }
 
@@ -36,7 +42,7 @@ export async function processPdfForChat(file: File): Promise<ChatWithPdfResult> 
     if (!ocrResult.success) {
       return {
         success: false,
-        error: ocrResult.error
+        error: ocrResult.error,
       };
     }
 
@@ -66,13 +72,12 @@ export async function processPdfForChat(file: File): Promise<ChatWithPdfResult> 
       success: true,
       textContent: ocrResult.content,
       imageDescriptions,
-      combinedEmbedding
+      combinedEmbedding,
     };
-
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
   }
 }
@@ -105,10 +110,14 @@ export async function handlePdfUploadInChat(file: File, chatId: string) {
 📄 **Text Content:**
 ${result.textContent ? result.textContent.substring(0, 500) + (result.textContent.length > 500 ? '...' : '') : 'No text found'}
 
-${result.imageDescriptions && result.imageDescriptions.length > 0 ? `
+${
+  result.imageDescriptions && result.imageDescriptions.length > 0
+    ? `
 🖼️ **Images Found (${result.imageDescriptions.length}):**
 ${result.imageDescriptions.map((desc, i) => `${i + 1}. ${desc}`).join('\n')}
-` : ''}
+`
+    : ''
+}
 
 Please help me understand and work with this document.`,
       },
@@ -119,7 +128,7 @@ Please help me understand and work with this document.`,
     message,
     hasEmbedding: !!result.combinedEmbedding,
     extractedContent: result.textContent,
-    imageCount: result.imageDescriptions?.length || 0
+    imageCount: result.imageDescriptions?.length || 0,
   };
 }
 
@@ -127,7 +136,8 @@ Please help me understand and work with this document.`,
  * Enhanced multimodal input handler that includes PDF processing
  */
 export async function enhancedFileHandler(file: File) {
-  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  const isPdf =
+    file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
   if (isPdf && isPdfProcessingAvailable()) {
     // Process PDF with OCR
@@ -138,7 +148,7 @@ export async function enhancedFileHandler(file: File) {
       name: file.name,
       contentType: file.type,
       processingResult: result,
-      enhanced: true
+      enhanced: true,
     };
   } else {
     // Standard file handling for non-PDFs or when PDF processing is unavailable
@@ -146,7 +156,7 @@ export async function enhancedFileHandler(file: File) {
       url: URL.createObjectURL(file),
       name: file.name,
       contentType: file.type,
-      enhanced: false
+      enhanced: false,
     };
   }
 }

@@ -16,9 +16,8 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     });
 
     // Get the first image file from the result
-    const imageFiles = result.files?.filter((f) =>
-      f.mediaType?.startsWith('image/'),
-    ) || [];
+    const imageFiles =
+      result.files?.filter((f) => f.mediaType?.startsWith('image/')) || [];
 
     if (imageFiles.length > 0) {
       const imageFile = imageFiles[0];
@@ -47,9 +46,8 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     });
 
     // Get the first image file from the result
-    const imageFiles = result.files?.filter((f) =>
-      f.mediaType?.startsWith('image/'),
-    ) || [];
+    const imageFiles =
+      result.files?.filter((f) => f.mediaType?.startsWith('image/')) || [];
 
     if (imageFiles.length > 0) {
       const imageFile = imageFiles[0];

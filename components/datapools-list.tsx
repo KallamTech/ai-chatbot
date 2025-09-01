@@ -24,7 +24,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { DataPool } from '@/lib/db/schema';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -88,7 +93,8 @@ function CreateDataPoolDialog({ onCreated }: CreateDataPoolDialogProps) {
       console.error('Error creating data pool:', error);
       toast({
         type: 'error',
-        description: error instanceof Error ? error.message : 'Failed to create data pool',
+        description:
+          error instanceof Error ? error.message : 'Failed to create data pool',
       });
     } finally {
       setIsCreating(false);
@@ -107,7 +113,8 @@ function CreateDataPoolDialog({ onCreated }: CreateDataPoolDialogProps) {
         <SheetHeader>
           <SheetTitle>Create New Data Pool</SheetTitle>
           <SheetDescription>
-            Create a new data pool to organize and share documents across multiple agents.
+            Create a new data pool to organize and share documents across
+            multiple agents.
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-4 mt-4">
@@ -132,7 +139,11 @@ function CreateDataPoolDialog({ onCreated }: CreateDataPoolDialogProps) {
           </div>
         </div>
         <SheetFooter className="mt-6">
-          <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isCreating}>
+          <Button
+            variant="outline"
+            onClick={() => setIsOpen(false)}
+            disabled={isCreating}
+          >
             Cancel
           </Button>
           <Button onClick={handleCreate} disabled={isCreating}>
@@ -144,7 +155,9 @@ function CreateDataPoolDialog({ onCreated }: CreateDataPoolDialogProps) {
   );
 }
 
-export function DataPoolsList({ dataPools: initialDataPools }: DataPoolsListProps) {
+export function DataPoolsList({
+  dataPools: initialDataPools,
+}: DataPoolsListProps) {
   const [dataPools, setDataPools] = useState(initialDataPools);
   const [deletingPoolId, setDeletingPoolId] = useState<string | null>(null);
 
@@ -166,7 +179,11 @@ export function DataPoolsList({ dataPools: initialDataPools }: DataPoolsListProp
   };
 
   const handleDelete = async (poolId: string) => {
-    if (!confirm('Are you sure you want to delete this data pool? This will also delete all documents in the pool and disconnect it from all agents. This action cannot be undone.')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete this data pool? This will also delete all documents in the pool and disconnect it from all agents. This action cannot be undone.',
+      )
+    ) {
       return;
     }
 
@@ -191,7 +208,8 @@ export function DataPoolsList({ dataPools: initialDataPools }: DataPoolsListProp
       console.error('Error deleting data pool:', error);
       toast({
         type: 'error',
-        description: error instanceof Error ? error.message : 'Failed to delete data pool',
+        description:
+          error instanceof Error ? error.message : 'Failed to delete data pool',
       });
     } finally {
       setDeletingPoolId(null);
@@ -204,7 +222,8 @@ export function DataPoolsList({ dataPools: initialDataPools }: DataPoolsListProp
         <DatabaseIcon size={48} className="text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No data pools yet</h3>
         <p className="text-muted-foreground mb-4 max-w-md">
-          Create your first data pool to organize documents that can be shared across multiple agents.
+          Create your first data pool to organize documents that can be shared
+          across multiple agents.
         </p>
         <CreateDataPoolDialog onCreated={refreshDataPools} />
       </div>
@@ -229,7 +248,9 @@ export function DataPoolsList({ dataPools: initialDataPools }: DataPoolsListProp
                   <DatabaseIcon size={20} className="text-blue-600" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-sm truncate">{pool.name}</h3>
+                  <h3 className="font-semibold text-sm truncate">
+                    {pool.name}
+                  </h3>
                   <p className="text-xs text-muted-foreground">
                     Created {formatDistanceToNow(pool.createdAt)} ago
                   </p>

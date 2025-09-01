@@ -8,7 +8,9 @@ import { DataStreamHandler } from '@/components/data-stream-handler';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { generateUUID } from '@/lib/utils';
 
-export default async function AgentChatPage(props: { params: Promise<{ id: string }> }) {
+export default async function AgentChatPage(props: {
+  params: Promise<{ id: string }>;
+}) {
   const params = await props.params;
   const { id } = params;
 
@@ -43,13 +45,13 @@ export default async function AgentChatPage(props: { params: Promise<{ id: strin
       parts: [
         {
           type: 'text' as const,
-          text: `Hello! I'm ${agent.title}, your specialized AI agent. ${agent.description}\n\nI can help you with tasks related to my specific capabilities. What would you like to work on today?`
-        }
+          text: `Hello! I'm ${agent.title}, your specialized AI agent. ${agent.description}\n\nI can help you with tasks related to my specific capabilities. What would you like to work on today?`,
+        },
       ],
       metadata: {
         createdAt: new Date().toISOString(),
       },
-    }
+    },
   ];
 
   const cookieStore = await cookies();

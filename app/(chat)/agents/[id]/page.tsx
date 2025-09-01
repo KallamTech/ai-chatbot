@@ -1,9 +1,9 @@
 import { redirect, notFound } from 'next/navigation';
 import { auth } from '@/app/(auth)/auth';
-import { 
-  getAgentById, 
+import {
+  getAgentById,
   getWorkflowNodesByAgentId,
-  getWorkflowEdgesByAgentId 
+  getWorkflowEdgesByAgentId,
 } from '@/lib/db/queries';
 import { AgentDetails } from '@/components/agent-details';
 
@@ -39,8 +39,8 @@ export default async function AgentPage({ params }: AgentPageProps) {
 
   return (
     <div className="flex flex-col h-full max-w-6xl mx-auto p-4">
-      <AgentDetails 
-        agent={agent} 
+      <AgentDetails
+        agent={agent}
         workflowNodes={workflowNodes}
         workflowEdges={workflowEdges}
       />

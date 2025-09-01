@@ -32,7 +32,9 @@ export function ModelSelector({
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
   // Use localStorage to persist selection between refreshes
-  const [localSelectedModelId, setLocalSelectedModelId] = useState<string | null>(null);
+  const [localSelectedModelId, setLocalSelectedModelId] = useState<
+    string | null
+  >(null);
 
   // Initialize state from localStorage on mount
   useEffect(() => {
@@ -74,13 +76,17 @@ export function ModelSelector({
 
   // Order providers for consistent display
   const providerOrder = ['OpenAI', 'Anthropic', 'Google', 'DeepSeek', 'xAI'];
-  const orderedProviders = providerOrder.filter(provider => modelsByProvider[provider]);
+  const orderedProviders = providerOrder.filter(
+    (provider) => modelsByProvider[provider],
+  );
 
   // Prioritize the local selection first, then fallback to props or first available
-  const effectiveModelId = localSelectedModelId || selectedModelId || availableChatModelIds[0];
+  const effectiveModelId =
+    localSelectedModelId || selectedModelId || availableChatModelIds[0];
 
   const selectedChatModel = useMemo(
-    () => availableChatModels.find(
+    () =>
+      availableChatModels.find(
         (chatModel) => chatModel.id === effectiveModelId,
       ) || availableChatModels[0],
     [effectiveModelId, availableChatModels],
@@ -116,7 +122,10 @@ export function ModelSelector({
           <div className="flex items-center gap-2">
             <span>{selectedChatModel?.name}</span>
             {selectedChatModel?.hasReasoning && (
-              <BrainIcon size={12} className="text-purple-500 dark:text-purple-400" />
+              <BrainIcon
+                size={12}
+                className="text-purple-500 dark:text-purple-400"
+              />
             )}
           </div>
           <ChevronDownIcon />
@@ -126,47 +135,50 @@ export function ModelSelector({
         {orderedProviders.map((provider, providerIndex) => {
           const models = modelsByProvider[provider];
           return (
-          <div key={provider}>
-            {providerIndex > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              {provider}
-            </DropdownMenuLabel>
-            {models.map((chatModel) => {
-              const { id } = chatModel;
+            <div key={provider}>
+              {providerIndex > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {provider}
+              </DropdownMenuLabel>
+              {models.map((chatModel) => {
+                const { id } = chatModel;
 
-              return (
-                <DropdownMenuItem
-                  data-testid={`model-selector-item-${id}`}
-                  key={id}
-                  onSelect={() => handleModelSelect(id)}
-                  data-active={id === effectiveModelId}
-                  asChild
-                >
-                  <button
-                    type="button"
-                    className="gap-4 group/item flex flex-row justify-between items-center w-full"
+                return (
+                  <DropdownMenuItem
+                    data-testid={`model-selector-item-${id}`}
+                    key={id}
+                    onSelect={() => handleModelSelect(id)}
+                    data-active={id === effectiveModelId}
+                    asChild
                   >
-                    <div className="flex flex-col gap-1 items-start">
-                      <div className="flex items-center gap-2">
-                        <span>{chatModel.name}</span>
-                        {chatModel.hasReasoning && (
-                          <BrainIcon size={12} className="text-purple-500 dark:text-purple-400" />
-                        )}
+                    <button
+                      type="button"
+                      className="gap-4 group/item flex flex-row justify-between items-center w-full"
+                    >
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="flex items-center gap-2">
+                          <span>{chatModel.name}</span>
+                          {chatModel.hasReasoning && (
+                            <BrainIcon
+                              size={12}
+                              className="text-purple-500 dark:text-purple-400"
+                            />
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {chatModel.description}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {chatModel.description}
-                      </div>
-                    </div>
 
-                    <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
-                      <CheckCircleFillIcon />
-                    </div>
-                  </button>
-                </DropdownMenuItem>
-              );
-            })}
-          </div>
-        );
+                      <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
+                        <CheckCircleFillIcon />
+                      </div>
+                    </button>
+                  </DropdownMenuItem>
+                );
+              })}
+            </div>
+          );
         })}
       </DropdownMenuContent>
     </DropdownMenu>

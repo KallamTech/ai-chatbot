@@ -51,14 +51,15 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
-  const [selectedModelId, setSelectedModelId] = useState<string>(initialChatModel);
+  const [selectedModelId, setSelectedModelId] =
+    useState<string>(initialChatModel);
 
   // Update selected model when the cookie changes
   useEffect(() => {
     const checkModelCookie = () => {
       const cookieValue = document.cookie
         .split('; ')
-        .find(row => row.startsWith('chat-model='))
+        .find((row) => row.startsWith('chat-model='))
         ?.split('=')[1];
 
       if (cookieValue && cookieValue !== selectedModelId) {

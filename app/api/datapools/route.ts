@@ -1,7 +1,7 @@
 import { auth } from '@/app/(auth)/auth';
 import {
   getDataPoolsByUserId,
-  createDataPool as createDataPoolInDB
+  createDataPool as createDataPoolInDB,
 } from '@/lib/db/queries';
 import { ChatSDKError } from '@/lib/errors';
 import { NextResponse } from 'next/server';
@@ -42,7 +42,10 @@ export async function POST(request: Request) {
     const { name, description } = await request.json();
 
     if (!name?.trim()) {
-      return new ChatSDKError('bad_request:database', 'Name is required').toResponse();
+      return new ChatSDKError(
+        'bad_request:database',
+        'Name is required',
+      ).toResponse();
     }
 
     const dataPool = await createDataPoolInDB({
