@@ -115,6 +115,8 @@ export function Chat({
           description: error.message,
         });
       }
+      // Force stop the generation to reset status to 'ready'
+      stop();
     },
   });
 
