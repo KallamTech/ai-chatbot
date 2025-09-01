@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   createAgent as createAgentInDB,
   createDataPool,
+  connectAgentToDataPool,
   createWorkflowNode,
   createWorkflowEdge,
 } from '@/lib/db/queries';
@@ -85,8 +86,14 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
         // Create data pool for the agent
         const dataPoolName = `${agentTitle} Data Pool`;
         const dataPoolResult = await createDataPool({
-          agentId: agent.id,
+          userId: session.user.id,
           name: dataPoolName,
+        });
+
+        // Connect the agent to the data pool
+        await connectAgentToDataPool({
+          agentId: agent.id,
+          dataPoolId: dataPoolResult.id,
         });
 
         dataStream.write({

@@ -34,9 +34,15 @@ export default async function DataPoolPage(props: {
   }
 
   // Get documents in this data pool
-  const documents = await getDataPoolDocuments({
+  const documentsRaw = await getDataPoolDocuments({
     dataPoolId: dataPool.id,
   });
+
+  // Cast metadata to the expected type
+  const documents = documentsRaw.map(doc => ({
+    ...doc,
+    metadata: doc.metadata as any, // Type assertion since we know the shape
+  }));
 
   // Get all user's agents for connection management
   const allAgents = await getAgentsByUserId({
