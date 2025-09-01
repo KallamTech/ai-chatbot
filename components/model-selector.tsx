@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useMemo, useOptimistic, useState } from 'react';
+import { startTransition, useEffect, useMemo, useState } from 'react';
 
 import { saveChatModelAsCookie } from '@/app/(chat)/actions';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,9 @@ import { CheckCircleFillIcon, ChevronDownIcon, BrainIcon } from './icons';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import type { Session } from 'next-auth';
 
+// Key for storing the selection in localStorage
+const MODEL_SELECTION_KEY = 'ai-chatbot-selected-model';
+
 export function ModelSelector({
   session,
   selectedModelId,
@@ -28,8 +31,21 @@ export function ModelSelector({
   selectedModelId: string;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
-  const [optimisticModelId, setOptimisticModelId] =
-    useOptimistic(selectedModelId);
+  // Use localStorage to persist selection between refreshes
+  const [localSelectedModelId, setLocalSelectedModelId] = useState<string | null>(null);
+
+  // Initialize state from localStorage on mount
+  useEffect(() => {
+    // First try to get from localStorage
+    const storedModel = localStorage.getItem(MODEL_SELECTION_KEY);
+    if (storedModel) {
+      setLocalSelectedModelId(storedModel);
+    } else if (selectedModelId) {
+      // If no localStorage value, use the prop and save to localStorage
+      setLocalSelectedModelId(selectedModelId);
+      localStorage.setItem(MODEL_SELECTION_KEY, selectedModelId);
+    }
+  }, [selectedModelId]);
 
   const userType = session.user.type;
   const { availableChatModelIds } = entitlementsByUserType[userType];
@@ -60,13 +76,28 @@ export function ModelSelector({
   const providerOrder = ['OpenAI', 'Anthropic', 'Google', 'DeepSeek', 'xAI'];
   const orderedProviders = providerOrder.filter(provider => modelsByProvider[provider]);
 
+  // Prioritize the local selection first, then fallback to props or first available
+  const effectiveModelId = localSelectedModelId || selectedModelId || availableChatModelIds[0];
+
   const selectedChatModel = useMemo(
-    () =>
-      availableChatModels.find(
-        (chatModel) => chatModel.id === optimisticModelId,
-      ),
-    [optimisticModelId, availableChatModels],
+    () => availableChatModels.find(
+        (chatModel) => chatModel.id === effectiveModelId,
+      ) || availableChatModels[0],
+    [effectiveModelId, availableChatModels],
   );
+
+  const handleModelSelect = (id: string) => {
+    setOpen(false);
+    // Update local state immediately
+    setLocalSelectedModelId(id);
+    // Persist to localStorage
+    localStorage.setItem(MODEL_SELECTION_KEY, id);
+
+    // Also update the server cookie (this might cause refresh)
+    startTransition(() => {
+      saveChatModelAsCookie(id);
+    });
+  };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -107,15 +138,8 @@ export function ModelSelector({
                 <DropdownMenuItem
                   data-testid={`model-selector-item-${id}`}
                   key={id}
-                  onSelect={() => {
-                    setOpen(false);
-
-                    startTransition(() => {
-                      setOptimisticModelId(id);
-                      saveChatModelAsCookie(id);
-                    });
-                  }}
-                  data-active={id === optimisticModelId}
+                  onSelect={() => handleModelSelect(id)}
+                  data-active={id === effectiveModelId}
                   asChild
                 >
                   <button
