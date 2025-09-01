@@ -75,7 +75,7 @@ export function ModelSelector({
   }, [availableChatModels]);
 
   // Order providers for consistent display
-  const providerOrder = ['OpenAI', 'Anthropic', 'Google', 'DeepSeek', 'xAI'];
+  const providerOrder = ['OpenAI', 'Anthropic', 'Google', 'DeepSeek', 'xAI', 'Perplexity'];
   const orderedProviders = providerOrder.filter(
     (provider) => modelsByProvider[provider],
   );
