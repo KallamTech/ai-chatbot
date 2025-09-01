@@ -56,25 +56,7 @@ export default async function AgentChatPage(props: {
 
   const cookieStore = await cookies();
   const chatModelFromCookie = cookieStore.get('chat-model');
-
-  if (!chatModelFromCookie) {
-    return (
-      <>
-        <Chat
-          key={chatId}
-          id={chatId}
-          initialMessages={initialMessages}
-          initialChatModel={DEFAULT_CHAT_MODEL}
-          initialVisibilityType="private"
-          isReadonly={false}
-          session={session}
-          autoResume={false}
-          agentId={id}
-        />
-        <DataStreamHandler chatId={chatId} />
-      </>
-    );
-  }
+  const selectedModel = chatModelFromCookie?.value || DEFAULT_CHAT_MODEL;
 
   return (
     <>
@@ -82,7 +64,7 @@ export default async function AgentChatPage(props: {
         key={chatId}
         id={chatId}
         initialMessages={initialMessages}
-        initialChatModel={chatModelFromCookie.value}
+        initialChatModel={selectedModel}
         initialVisibilityType="private"
         isReadonly={false}
         session={session}

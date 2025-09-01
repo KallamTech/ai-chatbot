@@ -18,12 +18,14 @@ function PureChatHeader({
   selectedVisibilityType,
   isReadonly,
   session,
+  onModelChange,
 }: {
   chatId: string;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   session: Session;
+  onModelChange: (modelId: string) => void;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -57,6 +59,7 @@ function PureChatHeader({
         <ModelSelector
           session={session}
           selectedModelId={selectedModelId}
+          onModelChange={onModelChange}
           className="order-1 md:order-2"
         />
       )}
@@ -77,6 +80,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
     prevProps.selectedModelId === nextProps.selectedModelId &&
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
     prevProps.isReadonly === nextProps.isReadonly &&
-    prevProps.chatId === nextProps.chatId
+    prevProps.chatId === nextProps.chatId &&
+    prevProps.onModelChange === nextProps.onModelChange
   );
 });

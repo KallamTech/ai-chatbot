@@ -2,7 +2,7 @@
 
 import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -54,26 +54,20 @@ export function Chat({
   const [selectedModelId, setSelectedModelId] =
     useState<string>(initialChatModel);
 
-  // Update selected model when the cookie changes
+  // Use a ref to track the current selectedModelId for API calls
+  const selectedModelIdRef = useRef(selectedModelId);
+
+  // Update the ref whenever selectedModelId changes
   useEffect(() => {
-    const checkModelCookie = () => {
-      const cookieValue = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('chat-model='))
-        ?.split('=')[1];
-
-      if (cookieValue && cookieValue !== selectedModelId) {
-        setSelectedModelId(cookieValue);
-      }
-    };
-
-    // Check immediately
-    checkModelCookie();
-
-    // Check periodically for cookie changes
-    const interval = setInterval(checkModelCookie, 100);
-    return () => clearInterval(interval);
+    selectedModelIdRef.current = selectedModelId;
+    console.log('Chat: selectedModelId changed to:', selectedModelId);
   }, [selectedModelId]);
+
+  // Simple handler for model changes
+  const handleModelChange = (modelId: string) => {
+    console.log('🔥 Chat: handleModelChange called with:', modelId);
+    setSelectedModelId(modelId);
+  };
 
   const {
     messages,
@@ -92,11 +86,12 @@ export function Chat({
       api: agentId ? `/api/agents/${agentId}/chat` : '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
+        console.log('🚀 API: prepareSendMessagesRequest called with selectedModelId:', selectedModelIdRef.current);
         return {
           body: {
             id,
             message: messages.at(-1),
-            selectedChatModel: selectedModelId,
+            selectedChatModel: selectedModelIdRef.current,
             selectedVisibilityType: visibilityType,
             ...body,
           },
@@ -177,6 +172,7 @@ export function Chat({
           selectedVisibilityType={initialVisibilityType}
           isReadonly={isReadonly}
           session={session}
+          onModelChange={handleModelChange}
         />
 
         <Messages
