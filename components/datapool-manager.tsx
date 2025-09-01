@@ -500,7 +500,7 @@ export function DataPoolManager({
                 ✅ Text files are processed immediately
               </p>
               <p className="text-orange-600">
-                📄 PDFs are stored for future OCR processing
+                📄 PDFs are OCR processed and parsed using multimodal embeddings for text and images
               </p>
               <p className="text-blue-600">
                 ⚠️ Binary files are stored as metadata only
