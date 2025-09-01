@@ -6,7 +6,7 @@ import {
 } from 'ai';
 import { isTestEnvironment } from '../constants';
 import { gateway } from './gateway';
-import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 
 // Conditionally import test models only in test environment
 let testModels: any = null;
@@ -39,6 +39,7 @@ export enum ModelId {
   TITLE_MODEL = 'title-model',
   ARTIFACT_MODEL = 'artifact-model',
   CODE_MODEL = 'code-model',
+  COHERE_EMBED_V4 = 'cohere/embed-v4.0',
 }
 
 export const myProvider = isTestEnvironment && testModels
@@ -67,6 +68,9 @@ export const myProvider = isTestEnvironment && testModels
       },
       imageModels: {
         // No dedicated image models currently
+      },
+      textEmbeddingModels: {
+        [ModelId.COHERE_EMBED_V4]: testModels?.textEmbeddingModel || null,
       },
     })
   : customProvider({
@@ -148,5 +152,8 @@ export const myProvider = isTestEnvironment && testModels
       },
       imageModels: {
         // No dedicated image models currently
+      },
+      textEmbeddingModels: {
+        [ModelId.COHERE_EMBED_V4]: gateway.textEmbeddingModel(ModelId.COHERE_EMBED_V4),
       },
     });

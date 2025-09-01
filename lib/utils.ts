@@ -10,6 +10,8 @@ import type { DBMessage, Document } from '@/lib/db/schema';
 import { ChatSDKError, type ErrorCode } from './errors';
 import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
 import { formatISO } from 'date-fns';
+import { embed } from 'ai';
+import { myProvider, ModelId } from './ai/providers';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -113,4 +115,61 @@ export function getTextFromMessage(message: ChatMessage): string {
     .filter((part) => part.type === 'text')
     .map((part) => part.text)
     .join('');
+}
+
+// Embedding utilities
+export async function generateEmbedding(text: string): Promise<number[] | undefined> {
+  try {
+    const { embedding } = await embed({
+      model: myProvider.textEmbeddingModel(ModelId.COHERE_EMBED_V4),
+      value: text,
+      providerOptions: {
+        cohere: {
+          inputType: 'search_query'
+        }
+      }
+    });
+
+    return embedding || undefined;
+  } catch (error) {
+    console.error('Error generating embedding:', error);
+    return undefined;
+  }
+}
+
+export async function generateDocumentEmbedding(text: string): Promise<number[] | undefined> {
+  try {
+    const { embedding } = await embed({
+      model: myProvider.textEmbeddingModel(ModelId.COHERE_EMBED_V4),
+      value: text,
+      providerOptions: {
+        cohere: {
+          inputType: 'search_document'
+        }
+      }
+    });
+
+    return embedding || undefined;
+  } catch (error) {
+    console.error('Error generating document embedding:', error);
+    return undefined;
+  }
+}
+
+export function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  if (vecA.length !== vecB.length) {
+    throw new Error('Vector dimensions must match');
+  }
+
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }

@@ -27,6 +27,16 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  agent,
+  type Agent,
+  dataPool,
+  type DataPool,
+  dataPoolDocument,
+  type DataPoolDocument,
+  workflowNode,
+  type WorkflowNode,
+  workflowEdge,
+  type WorkflowEdge,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -533,6 +543,338 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get stream ids by chat id',
+    );
+  }
+}
+
+// Agent queries
+export async function createAgent({
+  title,
+  description,
+  userId,
+}: {
+  title: string;
+  description: string;
+  userId: string;
+}): Promise<Agent> {
+  try {
+    const now = new Date();
+    const [newAgent] = await db
+      .insert(agent)
+      .values({
+        id: generateUUID(),
+        title,
+        description,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    return newAgent;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create agent',
+    );
+  }
+}
+
+export async function getAgentsByUserId({
+  userId,
+}: {
+  userId: string;
+}): Promise<Array<Agent>> {
+  try {
+    return await db
+      .select()
+      .from(agent)
+      .where(eq(agent.userId, userId))
+      .orderBy(desc(agent.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get agents by user ID',
+    );
+  }
+}
+
+export async function getAgentById({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}): Promise<Agent | null> {
+  try {
+    const [result] = await db
+      .select()
+      .from(agent)
+      .where(and(eq(agent.id, id), eq(agent.userId, userId)));
+
+    return result || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get agent by ID',
+    );
+  }
+}
+
+export async function deleteAgent({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}): Promise<void> {
+  try {
+    await db
+      .delete(agent)
+      .where(and(eq(agent.id, id), eq(agent.userId, userId)));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete agent',
+    );
+  }
+}
+
+// Data pool queries
+export async function createDataPool({
+  agentId,
+  name,
+}: {
+  agentId: string;
+  name: string;
+}): Promise<DataPool> {
+  try {
+    const [newDataPool] = await db
+      .insert(dataPool)
+      .values({
+        id: generateUUID(),
+        agentId,
+        name,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return newDataPool;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create data pool',
+    );
+  }
+}
+
+export async function getDataPoolByAgentId({
+  agentId,
+}: {
+  agentId: string;
+}): Promise<DataPool | null> {
+  try {
+    const [result] = await db
+      .select()
+      .from(dataPool)
+      .where(eq(dataPool.agentId, agentId));
+
+    return result || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get data pool by agent ID',
+    );
+  }
+}
+
+// Data pool document queries
+export async function createDataPoolDocument({
+  dataPoolId,
+  title,
+  content,
+  embedding,
+  metadata,
+}: {
+  dataPoolId: string;
+  title: string;
+  content: string;
+  embedding?: number[];
+  metadata?: Record<string, any>;
+}): Promise<DataPoolDocument> {
+  try {
+    const [newDocument] = await db
+      .insert(dataPoolDocument)
+      .values({
+        id: generateUUID(),
+        dataPoolId,
+        title,
+        content,
+        embedding: embedding || null,
+        metadata: metadata || null,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return newDocument;
+  } catch (error) {
+    console.error('Database error creating data pool document:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create data pool document',
+    );
+  }
+}
+
+export async function getDataPoolDocuments({
+  dataPoolId,
+}: {
+  dataPoolId: string;
+}): Promise<Array<DataPoolDocument>> {
+  try {
+    return await db
+      .select()
+      .from(dataPoolDocument)
+      .where(eq(dataPoolDocument.dataPoolId, dataPoolId))
+      .orderBy(desc(dataPoolDocument.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get data pool documents',
+    );
+  }
+}
+
+export async function deleteDataPoolDocument({
+  id,
+  dataPoolId,
+}: {
+  id: string;
+  dataPoolId: string;
+}): Promise<void> {
+  try {
+    await db
+      .delete(dataPoolDocument)
+      .where(and(
+        eq(dataPoolDocument.id, id),
+        eq(dataPoolDocument.dataPoolId, dataPoolId)
+      ));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete data pool document',
+    );
+  }
+}
+
+// Workflow node queries
+export async function createWorkflowNode({
+  agentId,
+  name,
+  description,
+  systemPrompt,
+  position,
+  nodeType,
+  config,
+}: {
+  agentId: string;
+  name: string;
+  description: string;
+  systemPrompt: string;
+  position: { x: number; y: number };
+  nodeType: 'rag' | 'transform' | 'filter' | 'aggregate';
+  config?: Record<string, any>;
+}): Promise<WorkflowNode> {
+  try {
+    const [newNode] = await db
+      .insert(workflowNode)
+      .values({
+        id: generateUUID(),
+        agentId,
+        name,
+        description,
+        systemPrompt,
+        position,
+        nodeType,
+        config: config || null,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return newNode;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create workflow node',
+    );
+  }
+}
+
+export async function getWorkflowNodesByAgentId({
+  agentId,
+}: {
+  agentId: string;
+}): Promise<Array<WorkflowNode>> {
+  try {
+    return await db
+      .select()
+      .from(workflowNode)
+      .where(eq(workflowNode.agentId, agentId))
+      .orderBy(asc(workflowNode.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get workflow nodes by agent ID',
+    );
+  }
+}
+
+// Workflow edge queries
+export async function createWorkflowEdge({
+  agentId,
+  sourceNodeId,
+  targetNodeId,
+}: {
+  agentId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+}): Promise<WorkflowEdge> {
+  try {
+    const [newEdge] = await db
+      .insert(workflowEdge)
+      .values({
+        id: generateUUID(),
+        agentId,
+        sourceNodeId,
+        targetNodeId,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return newEdge;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create workflow edge',
+    );
+  }
+}
+
+export async function getWorkflowEdgesByAgentId({
+  agentId,
+}: {
+  agentId: string;
+}): Promise<Array<WorkflowEdge>> {
+  try {
+    return await db
+      .select()
+      .from(workflowEdge)
+      .where(eq(workflowEdge.agentId, agentId))
+      .orderBy(asc(workflowEdge.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get workflow edges by agent ID',
     );
   }
 }

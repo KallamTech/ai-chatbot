@@ -260,8 +260,11 @@ function PureMultimodalInput({
         className="border border-transparent shadow-lg transition-all duration-200 shadow-black/10 hover:border-primary/20 focus-within:border-primary/30 focus-within:shadow-xl focus-within:shadow-primary/20"
         onSubmit={(event) => {
           event.preventDefault();
-          if (status !== 'ready') {
+          if (status === 'submitted' || status === 'streaming') {
             toast.error('Please wait for the model to finish its response!');
+          } else if (status === 'error') {
+            toast.error('There was an error with the previous request. Please try again.');
+            submitForm();
           } else {
             submitForm();
           }
@@ -319,7 +322,7 @@ function PureMultimodalInput({
           <PromptInputTools className="gap-2">
             <AttachmentsButton fileInputRef={fileInputRef} status={status} />
           </PromptInputTools>
-          {status === 'submitted' ? (
+          {status === 'submitted' || status === 'streaming' ? (
             <StopButton stop={stop} setMessages={setMessages} />
           ) : (
             <PromptInputSubmit
