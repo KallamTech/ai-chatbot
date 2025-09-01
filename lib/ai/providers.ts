@@ -36,9 +36,13 @@ export enum ModelId {
   CLAUDE_SONNET_4_REASONING = 'anthropic/claude-sonnet-4-reasoning',
   GEMINI_2_5_PRO_REASONING = 'google/gemini-2.5-pro-reasoning',
   GEMINI_2_5_FLASH_IMAGE_PREVIEW = 'google/gemini-2.5-flash-image-preview',
+  PERPLEXITY_SONAR_PRO = 'perplexity/sonar-pro',
+  PERPLEXITY_SONAR = 'perplexity/sonar',
+  PERPLEXITY_SONAR_REASONING = 'perplexity/sonar-reasoning',
   TITLE_MODEL = 'title-model',
   ARTIFACT_MODEL = 'artifact-model',
   CODE_MODEL = 'code-model',
+  WEBSEARCH_MODEL = 'websearch-model',
   COHERE_EMBED_V4 = 'cohere/embed-v4.0',
 }
 
@@ -63,9 +67,13 @@ export const myProvider =
           [ModelId.CLAUDE_SONNET_4_REASONING]: testModels.reasoningModel,
           [ModelId.GEMINI_2_5_PRO_REASONING]: testModels.reasoningModel,
           [ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW]: testModels.chatModel,
+          [ModelId.PERPLEXITY_SONAR_PRO]: testModels.chatModel,
+          [ModelId.PERPLEXITY_SONAR]: testModels.chatModel,
+          [ModelId.PERPLEXITY_SONAR_REASONING]: testModels.reasoningModel,
           [ModelId.TITLE_MODEL]: testModels.titleModel,
           [ModelId.ARTIFACT_MODEL]: testModels.artifactModel,
           [ModelId.CODE_MODEL]: testModels.artifactModel,
+          [ModelId.WEBSEARCH_MODEL]: testModels.chatModel,
         },
         imageModels: {
           // No dedicated image models currently
@@ -162,9 +170,20 @@ export const myProvider =
           [ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW]: gateway.languageModel(
             ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
           ),
+          [ModelId.PERPLEXITY_SONAR_PRO]: gateway.languageModel(
+            ModelId.PERPLEXITY_SONAR_PRO,
+          ),
+          [ModelId.PERPLEXITY_SONAR]: gateway.languageModel(
+            ModelId.PERPLEXITY_SONAR,
+          ),
+          [ModelId.PERPLEXITY_SONAR_REASONING]: wrapLanguageModel({
+            model: gateway.languageModel(ModelId.PERPLEXITY_SONAR_REASONING),
+            middleware: [extractReasoningMiddleware({ tagName: 'think' })],
+          }),
           [ModelId.TITLE_MODEL]: gateway.languageModel(ModelId.GPT_4_1_MINI),
           [ModelId.ARTIFACT_MODEL]: gateway.languageModel(ModelId.GPT_4_1),
           [ModelId.CODE_MODEL]: gateway.languageModel(ModelId.GROK_CODE_FAST_1),
+          [ModelId.WEBSEARCH_MODEL]: gateway.languageModel(ModelId.PERPLEXITY_SONAR),
         },
         imageModels: {
           // No dedicated image models currently

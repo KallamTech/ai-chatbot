@@ -131,7 +131,7 @@ export function ModelSelector({
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px]">
+      <DropdownMenuContent align="start" className="min-w-[300px] max-h-[60vh] overflow-y-auto">
         {orderedProviders.map((provider, providerIndex) => {
           const models = modelsByProvider[provider];
           return (

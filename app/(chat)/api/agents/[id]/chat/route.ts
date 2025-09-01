@@ -25,6 +25,7 @@ import {
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
+import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
@@ -275,6 +276,8 @@ IMPORTANT CAPABILITIES:
 - You can search within specific documents using the searchSpecificDocument tool
 - You can access and analyze any documents that have been uploaded to your data pool
 - You can summarize, extract information, and answer questions about your documents
+- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
+- You can search for the latest news using the newsSearch tool (for current events and breaking news)
 
 IMPORTANT CONSTRAINTS:
 - You can ONLY perform tasks related to your defined workflow nodes
@@ -294,6 +297,12 @@ IMAGE SEARCH GUIDELINES:
 - Recommended threshold: 0.1 for comprehensive image results
 - Images are more abstract, so lower thresholds work better than text
 - Always specify searchImages: true when looking for charts, graphs, diagrams, or visual content
+
+WEB SEARCH GUIDELINES:
+- Use webSearch tool when users ask for current events, recent developments, or real-time information
+- Use newsSearch tool specifically for breaking news and current affairs
+- Choose search type: 'general' for broad topics, 'news' for current events, 'academic' for research, 'recent' for latest updates
+- Always use websearch when the information needed is not in your data pool or requires up-to-date information
 
 CRITICAL INSTRUCTION: When a user asks about documents or content, you MUST use the appropriate search tools to find relevant information in your data pool. Do not say you cannot access documents - use the search tools first.
 
@@ -606,6 +615,14 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
   // - transform: text processing tools
   // - filter: data filtering tools
   // - aggregate: data aggregation tools
+
+  // Add websearch tools that are always available
+  tools.webSearch = webSearch();
+  tools.newsSearch = newsSearch();
+
+  console.log(
+    'createAgentTools: Added websearch tools (webSearch, newsSearch)',
+  );
 
   return tools;
 }
