@@ -53,6 +53,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         isReadonly={session?.user?.id !== chat.userId}
         session={session}
         autoResume={true}
+        chatData={{ agentId: chat.agentId }}
       />
       <DataStreamHandler chatId={chat.id} />
     </>

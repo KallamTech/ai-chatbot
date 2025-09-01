@@ -8,11 +8,11 @@ import {
 import { AgentDetails } from '@/components/agent-details';
 
 interface AgentPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ agentId: string }>;
 }
 
 export default async function AgentPage({ params }: AgentPageProps) {
-  const { id } = await params;
+  const { agentId } = await params;
   const session = await auth();
 
   if (!session) {
@@ -24,7 +24,7 @@ export default async function AgentPage({ params }: AgentPageProps) {
   }
 
   const agent = await getAgentById({
-    id,
+    id: agentId,
     userId: session.user.id,
   });
 
@@ -33,8 +33,8 @@ export default async function AgentPage({ params }: AgentPageProps) {
   }
 
   const [workflowNodes, workflowEdges] = await Promise.all([
-    getWorkflowNodesByAgentId({ agentId: id }),
-    getWorkflowEdgesByAgentId({ agentId: id }),
+    getWorkflowNodesByAgentId({ agentId }),
+    getWorkflowEdgesByAgentId({ agentId }),
   ]);
 
   return (

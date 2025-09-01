@@ -148,6 +148,7 @@ export async function POST(
         userId: session.user.id,
         title: `${agent.title}: ${title}`, // AGENT-SPECIFIC: Add agent name to title
         visibility: selectedVisibilityType,
+        agentId: agent.id, // AGENT-SPECIFIC: Associate chat with agent
       });
     } else {
       if (chat.userId !== session.user.id) {

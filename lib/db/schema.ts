@@ -20,6 +20,20 @@ export const user = pgTable('User', {
 
 export type User = InferSelectModel<typeof user>;
 
+// Agent table - defined before chat to allow foreign key reference
+export const agent = pgTable('Agent', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+});
+
+export type Agent = InferSelectModel<typeof agent>;
+
 export const chat = pgTable('Chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   createdAt: timestamp('createdAt').notNull(),
@@ -30,6 +44,7 @@ export const chat = pgTable('Chat', {
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
+  agentId: uuid('agentId').references(() => agent.id, { onDelete: 'set null' }),
 });
 
 export type Chat = InferSelectModel<typeof chat>;
@@ -169,20 +184,6 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
-
-// Agent-related tables
-export const agent = pgTable('Agent', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  title: text('title').notNull(),
-  description: text('description').notNull(),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-  createdAt: timestamp('createdAt').notNull(),
-  updatedAt: timestamp('updatedAt').notNull(),
-});
-
-export type Agent = InferSelectModel<typeof agent>;
 
 export const dataPool = pgTable('DataPool', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),

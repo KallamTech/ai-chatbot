@@ -31,7 +31,8 @@ export function Chat({
   isReadonly,
   session,
   autoResume,
-  agentId,
+  agentId: propAgentId,
+  chatData,
 }: {
   id: string;
   initialMessages: ChatMessage[];
@@ -41,6 +42,7 @@ export function Chat({
   session: Session;
   autoResume: boolean;
   agentId?: string;
+  chatData?: { agentId?: string | null };
 }) {
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -53,6 +55,21 @@ export function Chat({
   const [input, setInput] = useState<string>('');
   const [selectedModelId, setSelectedModelId] =
     useState<string>(initialChatModel);
+
+  // Determine the effective agentId from multiple sources
+  // Priority: prop from route > database
+  const effectiveAgentId = propAgentId || chatData?.agentId || undefined;
+
+  // Preserve agentId with a ref to prevent it from becoming undefined
+  const agentIdRef = useRef(effectiveAgentId);
+
+  // Update agentIdRef when effectiveAgentId changes
+  useEffect(() => {
+    agentIdRef.current = effectiveAgentId;
+    if (effectiveAgentId) {
+      console.log('🔧 Chat: Using agentId:', effectiveAgentId);
+    }
+  }, [effectiveAgentId]);
 
   // Use a ref to track the current selectedModelId for API calls
   const selectedModelIdRef = useRef(selectedModelId);
@@ -83,10 +100,19 @@ export function Chat({
     experimental_throttle: 100,
     generateId: generateUUID,
     transport: new DefaultChatTransport({
-      api: agentId ? `/api/agents/${agentId}/chat` : '/api/chat',
+      api: agentIdRef.current
+        ? `/api/agents/${agentIdRef.current}/chat`
+        : '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
-        console.log('🚀 API: prepareSendMessagesRequest called with selectedModelId:', selectedModelIdRef.current);
+        const currentAgentId = agentIdRef.current;
+        const apiRoute = currentAgentId
+          ? `/api/agents/${currentAgentId}/chat`
+          : '/api/chat';
+        console.log('🚀 API: prepareSendMessagesRequest called');
+        console.log('🚀 API: Using route:', apiRoute);
+        console.log('🚀 API: currentAgentId:', currentAgentId);
+        console.log('🚀 API: selectedModelId:', selectedModelIdRef.current);
         return {
           body: {
             id,

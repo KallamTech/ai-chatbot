@@ -69,15 +69,13 @@ export function ModelSelector({
     (provider) => modelsByProvider[provider],
   );
 
-  const selectedChatModel = useMemo(
-    () => {
-      const found = availableChatModels.find(
+  const selectedChatModel = useMemo(() => {
+    const found =
+      availableChatModels.find(
         (chatModel) => chatModel.id === selectedModelId,
       ) || availableChatModels[0];
-      return found;
-    },
-    [selectedModelId, availableChatModels],
-  );
+    return found;
+  }, [selectedModelId, availableChatModels]);
 
   const handleModelSelect = async (id: string) => {
     console.log('🚀 ModelSelector: Selecting model:', id);
@@ -146,24 +144,24 @@ export function ModelSelector({
                     data-active={id === selectedModelId}
                     className="gap-4 group/item flex flex-row justify-between items-center w-full"
                   >
-                      <div className="flex flex-col gap-1 items-start">
-                        <div className="flex items-center gap-2">
-                          <span>{chatModel.name}</span>
-                          {chatModel.hasReasoning && (
-                            <BrainIcon
-                              size={12}
-                              className="text-purple-500 dark:text-purple-400"
-                            />
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {chatModel.description}
-                        </div>
+                    <div className="flex flex-col gap-1 items-start">
+                      <div className="flex items-center gap-2">
+                        <span>{chatModel.name}</span>
+                        {chatModel.hasReasoning && (
+                          <BrainIcon
+                            size={12}
+                            className="text-purple-500 dark:text-purple-400"
+                          />
+                        )}
                       </div>
+                      <div className="text-xs text-muted-foreground">
+                        {chatModel.description}
+                      </div>
+                    </div>
 
-                      <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
-                        <CheckCircleFillIcon />
-                      </div>
+                    <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
+                      <CheckCircleFillIcon />
+                    </div>
                   </DropdownMenuItem>
                 );
               })}
