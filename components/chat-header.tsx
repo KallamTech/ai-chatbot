@@ -73,5 +73,10 @@ function PureChatHeader({
 }
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
-  return prevProps.selectedModelId === nextProps.selectedModelId;
+  return (
+    prevProps.selectedModelId === nextProps.selectedModelId &&
+    prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
+    prevProps.isReadonly === nextProps.isReadonly &&
+    prevProps.chatId === nextProps.chatId
+  );
 });
