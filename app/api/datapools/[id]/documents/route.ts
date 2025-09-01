@@ -1,45 +1,78 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
 import {
-  getAgentById,
-  getDataPoolByAgentId,
-  createDataPoolDocument,
   getDataPoolDocuments,
-  deleteDataPoolDocument
+  createDataPoolDocument,
+  deleteDataPoolDocument,
+  getDataPoolById
 } from '@/lib/db/queries';
 import { generateDocumentEmbedding } from '@/lib/utils';
 import { ChatSDKError } from '@/lib/errors';
+import { NextResponse } from 'next/server';
 import { processPdfWithMistralOCR, isPdfFile, processExtractedImages } from '@/lib/utils/pdf-processor';
-import { getSupportedFileTypes, getSupportedFileExtensions, isPdfProcessingAvailable } from '@/lib/utils/pdf-config';
+import { getSupportedFileTypes, getSupportedFileExtensions, isPdfProcessingAvailable } from '@/lib/utils/pdf-config';export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: dataPoolId } = await params;
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return new ChatSDKError('unauthorized:auth').toResponse();
+    }
+
+    // Verify the data pool exists and belongs to the user
+    const dataPool = await getDataPoolById({
+      id: dataPoolId,
+      userId: session.user.id,
+    });
+
+    if (!dataPool) {
+      return new ChatSDKError('not_found:database').toResponse();
+    }
+
+    const documents = await getDataPoolDocuments({
+      dataPoolId,
+    });
+
+    const documentsWithoutEmbeddings = documents.map(doc => ({
+      ...doc,
+      embedding: undefined, // Don't send embeddings to client
+    }));
+
+    return NextResponse.json({
+      documents: documentsWithoutEmbeddings,
+    });
+  } catch (error) {
+    if (error instanceof ChatSDKError) {
+      return error.toResponse();
+    }
+
+    console.error('Error fetching documents:', error);
+    return new ChatSDKError('bad_request:database').toResponse();
+  }
+}
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: agentId } = await params;
+    const { id: dataPoolId } = await params;
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new ChatSDKError('unauthorized:agent').toResponse();
+      return new ChatSDKError('unauthorized:auth').toResponse();
     }
 
-    // Verify agent exists and belongs to user
-    const agent = await getAgentById({
-      id: agentId,
+    // Verify the data pool exists and belongs to the user
+    const dataPool = await getDataPoolById({
+      id: dataPoolId,
       userId: session.user.id,
     });
 
-    if (!agent) {
-      return new ChatSDKError('not_found:agent').toResponse();
-    }
-
-    // Get the data pool for this agent
-    const dataPool = await getDataPoolByAgentId({ agentId });
-
     if (!dataPool) {
-      console.error('No data pool found for agent:', agentId);
-      return new ChatSDKError('not_found:agent').toResponse();
+      return new ChatSDKError('not_found:database').toResponse();
     }
 
     console.log('Data pool found:', dataPool.id, dataPool.name);
@@ -298,125 +331,48 @@ export async function POST(
   }
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id: agentId } = await params;
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return new ChatSDKError('unauthorized:agent').toResponse();
-    }
-
-    // Verify agent exists and belongs to user
-    const agent = await getAgentById({
-      id: agentId,
-      userId: session.user.id,
-    });
-
-    if (!agent) {
-      return new ChatSDKError('not_found:agent').toResponse();
-    }
-
-    // Get the data pool for this agent
-    const dataPool = await getDataPoolByAgentId({ agentId });
-
-    if (!dataPool) {
-      return new ChatSDKError('not_found:agent').toResponse();
-    }
-
-    // Get all documents in the data pool
-    const documents = await getDataPoolDocuments({
-      dataPoolId: dataPool.id
-    });
-
-    const documentsWithoutEmbeddings = documents.map(doc => ({
-      id: doc.id,
-      title: doc.title,
-      metadata: doc.metadata,
-      createdAt: doc.createdAt,
-    }));
-
-    return NextResponse.json({
-      documents: documentsWithoutEmbeddings,
-      dataPool: {
-        id: dataPool.id,
-        name: dataPool.name,
-      }
-    });
-
-  } catch (error) {
-    console.error('Error getting documents:', error);
-    if (error instanceof ChatSDKError) {
-      return error.toResponse();
-    }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: agentId } = await params;
-    const { searchParams } = new URL(request.url);
-    const documentId = searchParams.get('documentId');
-
-    if (!documentId) {
-      return NextResponse.json(
-        { error: 'Document ID is required' },
-        { status: 400 }
-      );
-    }
-
+    const { id: dataPoolId } = await params;
+    const url = new URL(request.url);
+    const documentId = url.searchParams.get('documentId');
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new ChatSDKError('unauthorized:agent').toResponse();
+      return new ChatSDKError('unauthorized:auth').toResponse();
     }
 
-    // Verify agent exists and belongs to user
-    const agent = await getAgentById({
-      id: agentId,
+    if (!documentId) {
+      return new ChatSDKError('bad_request:database', 'Document ID is required').toResponse();
+    }
+
+    // Verify the data pool exists and belongs to the user
+    const dataPool = await getDataPoolById({
+      id: dataPoolId,
       userId: session.user.id,
     });
 
-    if (!agent) {
-      return new ChatSDKError('not_found:agent').toResponse();
-    }
-
-    // Get the data pool for this agent
-    const dataPool = await getDataPoolByAgentId({ agentId });
-
     if (!dataPool) {
-      return new ChatSDKError('not_found:agent').toResponse();
+      return new ChatSDKError('not_found:database').toResponse();
     }
 
-    // Delete the document (this will also delete the embeddings since they're stored in the same table)
     await deleteDataPoolDocument({
       id: documentId,
-      dataPoolId: dataPool.id,
+      dataPoolId,
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Document deleted successfully'
     });
-
   } catch (error) {
-    console.error('Error deleting document:', error);
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+
+    console.error('Error deleting document:', error);
+    return new ChatSDKError('bad_request:database').toResponse();
   }
 }

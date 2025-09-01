@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -185,14 +186,32 @@ export type Agent = InferSelectModel<typeof agent>;
 
 export const dataPool = pgTable('DataPool', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  agentId: uuid('agentId')
+  userId: uuid('userId')
     .notNull()
-    .references(() => agent.id, { onDelete: 'cascade' }),
+    .references(() => user.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  description: text('description'),
   createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
 });
 
 export type DataPool = InferSelectModel<typeof dataPool>;
+
+// Junction table for many-to-many relationship between agents and data pools
+export const agentDataPool = pgTable('AgentDataPool', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  agentId: uuid('agentId')
+    .notNull()
+    .references(() => agent.id, { onDelete: 'cascade' }),
+  dataPoolId: uuid('dataPoolId')
+    .notNull()
+    .references(() => dataPool.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('createdAt').notNull(),
+}, (table) => ({
+  agentDataPoolUnique: unique().on(table.agentId, table.dataPoolId),
+}));
+
+export type AgentDataPool = InferSelectModel<typeof agentDataPool>;
 
 export const dataPoolDocument = pgTable('DataPoolDocument', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
