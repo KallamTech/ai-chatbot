@@ -27,14 +27,16 @@ interface DocumentToolResultProps {
   type: 'create' | 'update' | 'request-suggestions';
   result: { id: string; title: string; kind: ArtifactKind };
   isReadonly: boolean;
+  chatId?: string;
 }
 
 function PureDocumentToolResult({
   type,
   result,
   isReadonly,
+  chatId,
 }: DocumentToolResultProps) {
-  const { setArtifact } = useArtifact();
+  const { setArtifact } = useArtifact(chatId);
 
   return (
     <button
@@ -93,14 +95,16 @@ interface DocumentToolCallProps {
     | { id: string; description: string } // for update
     | { documentId: string }; // for request-suggestions
   isReadonly: boolean;
+  chatId?: string;
 }
 
 function PureDocumentToolCall({
   type,
   args,
   isReadonly,
+  chatId,
 }: DocumentToolCallProps) {
-  const { setArtifact } = useArtifact();
+  const { setArtifact } = useArtifact(chatId);
 
   return (
     <button

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   DatabaseIcon,
   FileTextIcon,
@@ -73,12 +73,7 @@ export function DataPoolManager({
   >(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load connected agents on mount
-  React.useEffect(() => {
-    loadConnectedAgents();
-  }, []);
-
-  const loadConnectedAgents = async () => {
+  const loadConnectedAgents = useCallback(async () => {
     try {
       const response = await fetch(`/api/datapools/${dataPool.id}/agents`);
       if (!response.ok) {
@@ -93,7 +88,12 @@ export function DataPoolManager({
         description: 'Failed to load connected agents',
       });
     }
-  };
+  }, [dataPool.id]);
+
+  // Load connected agents on mount
+  useEffect(() => {
+    loadConnectedAgents();
+  }, [loadConnectedAgents]);
 
   const loadDocuments = async () => {
     try {

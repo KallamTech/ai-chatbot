@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { saveChatModelAsCookie } from '@/app/(chat)/actions';
 import { Button } from '@/components/ui/button';
@@ -19,35 +19,17 @@ import { CheckCircleFillIcon, ChevronDownIcon, BrainIcon } from './icons';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import type { Session } from 'next-auth';
 
-// Key for storing the selection in localStorage
-const MODEL_SELECTION_KEY = 'ai-chatbot-selected-model';
-
 export function ModelSelector({
   session,
   selectedModelId,
+  onModelChange,
   className,
 }: {
   session: Session;
   selectedModelId: string;
+  onModelChange: (modelId: string) => void;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
-  // Use localStorage to persist selection between refreshes
-  const [localSelectedModelId, setLocalSelectedModelId] = useState<
-    string | null
-  >(null);
-
-  // Initialize state from localStorage on mount
-  useEffect(() => {
-    // First try to get from localStorage
-    const storedModel = localStorage.getItem(MODEL_SELECTION_KEY);
-    if (storedModel) {
-      setLocalSelectedModelId(storedModel);
-    } else if (selectedModelId) {
-      // If no localStorage value, use the prop and save to localStorage
-      setLocalSelectedModelId(selectedModelId);
-      localStorage.setItem(MODEL_SELECTION_KEY, selectedModelId);
-    }
-  }, [selectedModelId]);
 
   const userType = session.user.type;
   const { availableChatModelIds } = entitlementsByUserType[userType];
@@ -75,34 +57,40 @@ export function ModelSelector({
   }, [availableChatModels]);
 
   // Order providers for consistent display
-  const providerOrder = ['OpenAI', 'Anthropic', 'Google', 'DeepSeek', 'xAI'];
+  const providerOrder = [
+    'OpenAI',
+    'Anthropic',
+    'Google',
+    'DeepSeek',
+    'xAI',
+    'Perplexity',
+  ];
   const orderedProviders = providerOrder.filter(
     (provider) => modelsByProvider[provider],
   );
 
-  // Prioritize the local selection first, then fallback to props or first available
-  const effectiveModelId =
-    localSelectedModelId || selectedModelId || availableChatModelIds[0];
-
-  const selectedChatModel = useMemo(
-    () =>
+  const selectedChatModel = useMemo(() => {
+    const found =
       availableChatModels.find(
-        (chatModel) => chatModel.id === effectiveModelId,
-      ) || availableChatModels[0],
-    [effectiveModelId, availableChatModels],
-  );
+        (chatModel) => chatModel.id === selectedModelId,
+      ) || availableChatModels[0];
+    return found;
+  }, [selectedModelId, availableChatModels]);
 
-  const handleModelSelect = (id: string) => {
+  const handleModelSelect = async (id: string) => {
+    console.log('🚀 ModelSelector: Selecting model:', id);
     setOpen(false);
-    // Update local state immediately
-    setLocalSelectedModelId(id);
-    // Persist to localStorage
-    localStorage.setItem(MODEL_SELECTION_KEY, id);
 
-    // Also update the server cookie (this might cause refresh)
-    startTransition(() => {
-      saveChatModelAsCookie(id);
-    });
+    // Update the parent component immediately
+    onModelChange(id);
+
+    // Save to cookie
+    try {
+      await saveChatModelAsCookie(id);
+      console.log('🚀 ModelSelector: Cookie saved successfully');
+    } catch (error) {
+      console.error('🚀 ModelSelector: Failed to save cookie:', error);
+    }
   };
 
   return (
@@ -131,7 +119,10 @@ export function ModelSelector({
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px]">
+      <DropdownMenuContent
+        align="start"
+        className="min-w-[300px] max-h-[60vh] overflow-y-auto"
+      >
         {orderedProviders.map((provider, providerIndex) => {
           const models = modelsByProvider[provider];
           return (
@@ -147,33 +138,30 @@ export function ModelSelector({
                   <DropdownMenuItem
                     data-testid={`model-selector-item-${id}`}
                     key={id}
-                    onSelect={() => handleModelSelect(id)}
-                    data-active={id === effectiveModelId}
-                    asChild
+                    onSelect={() => {
+                      handleModelSelect(id);
+                    }}
+                    data-active={id === selectedModelId}
+                    className="gap-4 group/item flex flex-row justify-between items-center w-full"
                   >
-                    <button
-                      type="button"
-                      className="gap-4 group/item flex flex-row justify-between items-center w-full"
-                    >
-                      <div className="flex flex-col gap-1 items-start">
-                        <div className="flex items-center gap-2">
-                          <span>{chatModel.name}</span>
-                          {chatModel.hasReasoning && (
-                            <BrainIcon
-                              size={12}
-                              className="text-purple-500 dark:text-purple-400"
-                            />
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {chatModel.description}
-                        </div>
+                    <div className="flex flex-col gap-1 items-start">
+                      <div className="flex items-center gap-2">
+                        <span>{chatModel.name}</span>
+                        {chatModel.hasReasoning && (
+                          <BrainIcon
+                            size={12}
+                            className="text-purple-500 dark:text-purple-400"
+                          />
+                        )}
                       </div>
+                      <div className="text-xs text-muted-foreground">
+                        {chatModel.description}
+                      </div>
+                    </div>
 
-                      <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
-                        <CheckCircleFillIcon />
-                      </div>
-                    </button>
+                    <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
+                      <CheckCircleFillIcon />
+                    </div>
                   </DropdownMenuItem>
                 );
               })}

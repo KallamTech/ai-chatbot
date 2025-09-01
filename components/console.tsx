@@ -26,14 +26,21 @@ export interface ConsoleOutput {
 interface ConsoleProps {
   consoleOutputs: Array<ConsoleOutput>;
   setConsoleOutputs: Dispatch<SetStateAction<Array<ConsoleOutput>>>;
+  isArtifactVisible?: boolean;
 }
 
-export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
+export function Console({
+  consoleOutputs,
+  setConsoleOutputs,
+  isArtifactVisible,
+}: ConsoleProps) {
   const [height, setHeight] = useState<number>(300);
   const [isResizing, setIsResizing] = useState(false);
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
-  const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+  // Always call the hook, then use prop if provided for backward compatibility
+  const hookArtifactVisible = useArtifactSelector((state) => state.isVisible);
+  const artifactVisible = isArtifactVisible ?? hookArtifactVisible;
 
   const minHeight = 100;
   const maxHeight = 800;
@@ -72,10 +79,10 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
   }, [consoleOutputs]);
 
   useEffect(() => {
-    if (!isArtifactVisible) {
+    if (!artifactVisible) {
       setConsoleOutputs([]);
     }
-  }, [isArtifactVisible, setConsoleOutputs]);
+  }, [artifactVisible, setConsoleOutputs]);
 
   return consoleOutputs.length > 0 ? (
     <>

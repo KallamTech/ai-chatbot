@@ -26,14 +26,16 @@ interface DocumentPreviewProps {
   isReadonly: boolean;
   result?: any;
   args?: any;
+  chatId?: string;
 }
 
 export function DocumentPreview({
   isReadonly,
   result,
   args,
+  chatId,
 }: DocumentPreviewProps) {
-  const { artifact, setArtifact } = useArtifact();
+  const { artifact, setArtifact } = useArtifact(chatId);
 
   const { data: documents, isLoading: isDocumentsFetching } = useSWR<
     Array<Document>
@@ -65,6 +67,7 @@ export function DocumentPreview({
           type="create"
           result={{ id: result.id, title: result.title, kind: result.kind }}
           isReadonly={isReadonly}
+          chatId={chatId}
         />
       );
     }
@@ -75,6 +78,7 @@ export function DocumentPreview({
           type="create"
           args={{ title: args.title, kind: args.kind }}
           isReadonly={isReadonly}
+          chatId={chatId}
         />
       );
     }
@@ -111,7 +115,7 @@ export function DocumentPreview({
         kind={document.kind}
         isStreaming={artifact.status === 'streaming'}
       />
-      <DocumentContent document={document} />
+      <DocumentContent document={document} artifact={artifact} />
     </div>
   );
 }
@@ -234,9 +238,13 @@ const DocumentHeader = memo(PureDocumentHeader, (prevProps, nextProps) => {
   return true;
 });
 
-const DocumentContent = ({ document }: { document: Document }) => {
-  const { artifact } = useArtifact();
-
+const DocumentContent = ({
+  document,
+  artifact,
+}: {
+  document: Document;
+  artifact: UIArtifact;
+}) => {
   const containerClassName = cn(
     'h-[257px] overflow-y-scroll border rounded-b-2xl dark:bg-muted border-t-0 dark:border-zinc-700',
     {

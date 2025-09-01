@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   BotIcon,
   MessageSquareIcon,
@@ -47,11 +47,7 @@ export function AgentDetails({
     null,
   );
 
-  useEffect(() => {
-    loadDataPools();
-  }, []);
-
-  const loadDataPools = async () => {
+  const loadDataPools = useCallback(async () => {
     setIsLoading(true);
     try {
       // Load connected data pools
@@ -85,7 +81,11 @@ export function AgentDetails({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [agent.id]);
+
+  useEffect(() => {
+    loadDataPools();
+  }, [loadDataPools]);
 
   const handleConnectDataPool = async (dataPoolId: string) => {
     setConnectingPoolId(dataPoolId);

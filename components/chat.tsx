@@ -2,7 +2,7 @@
 
 import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -11,7 +11,7 @@ import { Artifact } from './artifact';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
-import { useArtifactSelector } from '@/hooks/use-artifact';
+import { useArtifactSelector, useArtifact } from '@/hooks/use-artifact';
 import { unstable_serialize } from 'swr/infinite';
 import { getChatHistoryPaginationKey } from './sidebar-history';
 import { toast } from './toast';
@@ -31,7 +31,8 @@ export function Chat({
   isReadonly,
   session,
   autoResume,
-  agentId,
+  agentId: propAgentId,
+  chatData,
 }: {
   id: string;
   initialMessages: ChatMessage[];
@@ -41,6 +42,7 @@ export function Chat({
   session: Session;
   autoResume: boolean;
   agentId?: string;
+  chatData?: { agentId?: string | null };
 }) {
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -54,26 +56,35 @@ export function Chat({
   const [selectedModelId, setSelectedModelId] =
     useState<string>(initialChatModel);
 
-  // Update selected model when the cookie changes
+  // Determine the effective agentId from multiple sources
+  // Priority: prop from route > database
+  const effectiveAgentId = propAgentId || chatData?.agentId || undefined;
+
+  // Preserve agentId with a ref to prevent it from becoming undefined
+  const agentIdRef = useRef(effectiveAgentId);
+
+  // Update agentIdRef when effectiveAgentId changes
   useEffect(() => {
-    const checkModelCookie = () => {
-      const cookieValue = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('chat-model='))
-        ?.split('=')[1];
+    agentIdRef.current = effectiveAgentId;
+    if (effectiveAgentId) {
+      console.log('🔧 Chat: Using agentId:', effectiveAgentId);
+    }
+  }, [effectiveAgentId]);
 
-      if (cookieValue && cookieValue !== selectedModelId) {
-        setSelectedModelId(cookieValue);
-      }
-    };
+  // Use a ref to track the current selectedModelId for API calls
+  const selectedModelIdRef = useRef(selectedModelId);
 
-    // Check immediately
-    checkModelCookie();
-
-    // Check periodically for cookie changes
-    const interval = setInterval(checkModelCookie, 100);
-    return () => clearInterval(interval);
+  // Update the ref whenever selectedModelId changes
+  useEffect(() => {
+    selectedModelIdRef.current = selectedModelId;
+    console.log('Chat: selectedModelId changed to:', selectedModelId);
   }, [selectedModelId]);
+
+  // Simple handler for model changes
+  const handleModelChange = (modelId: string) => {
+    console.log('🔥 Chat: handleModelChange called with:', modelId);
+    setSelectedModelId(modelId);
+  };
 
   const {
     messages,
@@ -89,14 +100,24 @@ export function Chat({
     experimental_throttle: 100,
     generateId: generateUUID,
     transport: new DefaultChatTransport({
-      api: agentId ? `/api/agents/${agentId}/chat` : '/api/chat',
+      api: agentIdRef.current
+        ? `/api/agents/${agentIdRef.current}/chat`
+        : '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
+        const currentAgentId = agentIdRef.current;
+        const apiRoute = currentAgentId
+          ? `/api/agents/${currentAgentId}/chat`
+          : '/api/chat';
+        console.log('🚀 API: prepareSendMessagesRequest called');
+        console.log('🚀 API: Using route:', apiRoute);
+        console.log('🚀 API: currentAgentId:', currentAgentId);
+        console.log('🚀 API: selectedModelId:', selectedModelIdRef.current);
         return {
           body: {
             id,
             message: messages.at(-1),
-            selectedChatModel: selectedModelId,
+            selectedChatModel: selectedModelIdRef.current,
             selectedVisibilityType: visibilityType,
             ...body,
           },
@@ -144,7 +165,22 @@ export function Chat({
   );
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-  const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
+  const isArtifactVisible = useArtifactSelector((state) => state.isVisible, id);
+  const { setArtifact } = useArtifact(id);
+
+  // Reset artifact visibility when opening a chat (unless actively streaming)
+  useEffect(() => {
+    setArtifact((currentArtifact) => {
+      // Only hide the artifact if it's not currently streaming
+      if (currentArtifact.status !== 'streaming' && currentArtifact.isVisible) {
+        return {
+          ...currentArtifact,
+          isVisible: false,
+        };
+      }
+      return currentArtifact;
+    });
+  }, [id, setArtifact]); // Reset when chat ID changes
 
   useAutoResume({
     autoResume,
@@ -162,6 +198,7 @@ export function Chat({
           selectedVisibilityType={initialVisibilityType}
           isReadonly={isReadonly}
           session={session}
+          onModelChange={handleModelChange}
         />
 
         <Messages

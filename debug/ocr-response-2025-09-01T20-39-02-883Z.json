@@ -1,0 +1,60 @@
+{
+  "pages": [
+    {
+      "index": 0,
+      "markdown": "# Kaleida Restructuring Agreement - Apple Computer Inc. and International Business Machines Corp. \n\nKALEIDA RESTRUCTURING AGREEMENT<br>BETWEEN APPLE AND IBM\n\nThis is a Restructuring Agreement (hereinafter 'Agreement') made effective November 16th, 1995, between Apple Computer, Inc. (hereinafter 'Apple'), a California corporation having its principal place of business in Cupertino, California, and International Business Machines Corporation ('IBM') a New York corporation having its principal place of business in Armonk, New York.\n\n## 1. GENERAL PLAN\n\n1.1 Apple and IBM are the two principal shareholders in, and have in the past been the sole providers of funds to, Kaleida Labs, Inc. ('Kaleida'), a Delaware corporation having its principal place of business in Mountain View, California. The parties have decided to make fundamental changes in Kaleida (hereinafter called the 'Restructuring'). Both parties intend to continue to use Kaleida's ScriptX technology, but to do so in a more efficient and cost effective manner. The parties have agreed that they will cause Kaleida to cease to exist as a separate operating entity, although Kaleida will continue as a legal entity. At some later date, the parties may decide to formally dissolve Kaleida, Kaleida employees, customers and the public will begin to be informed of the planned changes on approximately 11/16/95. Effective approximately 1/16/96, Kaleida will have no employees and will cease its operations.\n1.2 Apple plans to hire a 'Core Team' of approximately 10 to 15 Kaleida employees to continue maintenance and enhancements to ScriptX, which will be subject to a separate ScriptX Development and License Agreement ('SDLA') between Apple and IBM. The parties' obligations and rights relating to this continuing maintenance and enhancements to ScriptX will be as defined in that SDLA.\n\n## 2. TRANSITION\n\n2.1 It is anticipated that the phasing out of Kaleida's operations will extend from the current date until some uncertain period of time after Kaleida ceases its operations (hereinafter called the 'Transition Period'). The parties will cause their representatives to oversee the termination of Kaleida employees, deal with customer claims and support issues, and in general manage all other aspects of the Restructuring. The parties will",
+      "images": [],
+      "dimensions": {
+        "dpi": 200,
+        "height": 2339,
+        "width": 1654
+      }
+    },
+    {
+      "index": 1,
+      "markdown": "jointly manage the Restructuring during the Transition Period with a Transition Team comprised of people with financial, technical, legal, human resources and other necessary skills from each of the parties. Mr. David Nagel of Apple and Mr. Steven Mills of IBM, or their designees, will resolve any disagreements that the Transition Team cannot resolve. This Transition Team will develop and implement action plans to resolve all issues, will quickly respond to new issues, and will track all issues until resolved,\n2.2 All costs of the Restructuring through the Transition Period are subject to approval by both parties, including such costs as separation payments to employees, customer and other third party claims, settlement of Toshiba's share for liquidation/ dissolution value, administrative expenses, other Kaleida debts, legal and other fees, etc. Payment of such costs shall be initially made from Kaleida funds. If such funds are insufficient, the parties intend to provide such additional funds as are approved by the parties, split equally between Apple and IBM. The parties do not intend to make the 4th quarter 1995 payment to Kaleida according to the existing Funding Agreement. The parties will develop a process to compensate each other for a pro rata share of any agreed to restructuring costs that are expended directly by one party.\n2.3 In addition, the parties may agree to retain the services of certain former Kaleida employees on a part time basis after 1/16/96 to assist in performing administrative and other work during the Transition Period. The parties will share equally the costs of retaining the services of such persons.\n\n# 3. TOSHIBA \n\nThe parties will mutually determine a fair resolution of the value of Toshiba's share of Kaleida. An offer will be made to Toshiba in return for Toshiba's relinquishing its shares in Kaleida and releasing any claims against Kaleida, Apple and IBM.\n\n## 4. INTELLECTUAL PROPERTY RIGHTS\n\n4.1 The parties agree that the best way to preserve the intellectual property ('IP') assets of Kaleida is to keep Kaleida as a non-operating corporation, which will own the IP assets only and have no employees. Following Toshiba's relinquishment of its shares, Kaleida will be owned 50\\% by each party. The parties will cause Kaleida to be jointly managed by representatives of the parties and the parties shall advance to Kaleida in equal amounts, all administrative and operating costs required in excess of Kaleida's resources. Necessary corporate documents will be modified to simplify the administration, requiring a single board member from each",
+      "images": [],
+      "dimensions": {
+        "dpi": 200,
+        "height": 2339,
+        "width": 1654
+      }
+    },
+    {
+      "index": 2,
+      "markdown": "company and other changes. If and when the parties later formally dissolve Kaleida, they intend to agree at that time on ownership of IP assets and any additional licenses that may be needed.\n4.2 Under the Multimedia License Agreement entered into among Kaleida, Apple, and IBM on May 5, 1992 ('MLA') each party has equivalent broad rights to Kaleida's IP assets on a worldwide, perpetual basis, including copyrighted ScriptX technology, COS, Malibu, ITV and any other Kaleida technologies. In complete satisfaction of the royalty obligations of each party, the parties will cause Kaleida to accept the cancellation of its prepaid royalty obligations to each party and the licenses under the MLA will become pre-paid and royalty free. Promptly after completion of the process described in Section 4.3, the parties will cause Kaleida to deliver to each party a copy of all existing Company Materials and Development Environments, which will include the most current electronic and hardcopy versions of the code (source and object), all documentation, all training materials, etc., (hereinafter called 'Transfer Event'). Each parties use 137\nof the Company Materials will be subject to the license grant in Section 6.1 of the MLA, except that SubSections 6.1.1.2, 6.1.1.3, and 6.1.1.6 of that Section are deleted. Further, the parties agree that all Type I Code becomes Type II Code as of the date of this Agreement and that the Development Environments will be licensed according to the terms of Section 6.1, not Section 6.2. The parties also agree that the procedures in Section 4.2 of the MLA need not be followed. The parties will resolve later any rights to Kaleida trademarks they may require.\n4.3 Notwithstanding the foregoing, the licenses from the Parents to Kaleida and from Kaleida to the Parents in the MLA will not include any Parent Materials that have not been incorporated into Company Materials or used as part of a Development Environment to create or maintain Company Materials (hereinafter called 'Unused Parent Materials'). Prior to the Transfer Event, the parties will use best efforts to cause all Materials at Kaleida to be inventoried and to determine which of the Materials are Unused Parent Materials. Any copies of Unused Parent Materials found on Kaleida's premises will, at the contributing Parent's election, either be returned to the contributing Parent or destroyed. Once the Transfer Event has occurred, however, each party will have the complete rights as defined in Section 4.2 to use the Company Materials in accordance with the license in the MLA, even if such Company Materials inadvertently contain any Unused Parent Materials. The parties will enter into and will cause Kaleida to enter into an amendment to the MLA to effectuate the provisions of this Agreement.\n4.4 This Agreement does not modify the Malibu Agreement between Apple and IBM, dated June 27. 1995.",
+      "images": [],
+      "dimensions": {
+        "dpi": 200,
+        "height": 2339,
+        "width": 1654
+      }
+    },
+    {
+      "index": 3,
+      "markdown": "5. KALEIDA PERSONNEL\n\nThe parties will cause Kaleida to provide its employees with 60 days written notice of termination and separation benefits approved by the parties. IBM and Apple may hire certain employees, in addition to the 'Core Team' required for the SDLA. While the other party's permission or review will not be required for any hiring decisions, the requirements for the Core Team will first be identified. Neither party will interfere with the attempt by Apple to hire the necessary Kaleida employees into the Core Team.\n\n1. OTHER KALEIDA ASSETS\n\nThe parties will cause Kaleida to inventory all its non-IP assets. The parties will agree on whether assets will be liquidated or distributed following the settlement with Toshiba. If assets are liquidated, the proceeds are to be distributed equally. The parties will agree on an equal distribution of all other non-liquidated assets, with appropriate requirements of the Core Team considered first,\n\n1. OTHER\n\nThe parties will cause any necessary Kaleida corporate documents to be created or amended in order to effectuate any of the actions described above, including Board resolutions, amendments\n\n138\n\nto By-Laws, assignments, licenses, etc. This Agreement shall bind and inure to the benefit of the parties and their respective successors and assigns. This Agreement shall be governed by New York law. This Agreement shall is solely for the benefit of the parties hereto and is not intended nor shall it be construed as creating any rights in any third party (including without limitation Kaleida or its other shareholder or creditors). This Agreement may be amended or terminated only by written agreement.\n\nIN WITNESS WHEREOF, the parties hereto have caused this Agreement to be executed by their Authorized Representatives.\n\nINTERNATIONAL BUSINESS\nAPPLE COMPUTER, INC.\nMACHINES CORPORATION\n\nACCEPTED AND AGREED TO:\nACCEPTED AND AGREED TO:\n\nBy: /s/ Steven A. Mills\nBy: /s/ David C. Nagel\n\nConfidential C",
+      "images": [],
+      "dimensions": {
+        "dpi": 200,
+        "height": 2339,
+        "width": 1654
+      }
+    },
+    {
+      "index": 4,
+      "markdown": "Name Steven A. Mills Name David C. Nagel\n\nTitle: General Manager, SWS Title: Senior V.P., Apple Computer, Inc.\n\nDate November 16, 1995 Date November 17, 1995",
+      "images": [],
+      "dimensions": {
+        "dpi": 200,
+        "height": 2339,
+        "width": 1654
+      }
+    }
+  ],
+  "model": "mistral-ocr-2505-completion",
+  "documentAnnotation": null,
+  "usageInfo": {
+    "pagesProcessed": 5,
+    "docSizeBytes": 75002
+  }
+}
