@@ -39,7 +39,6 @@ export const postRequestBodySchema = z.object({
     ModelId.CLAUDE_SONNET_4,
     ModelId.CLAUDE_SONNET_4_REASONING,
     ModelId.GEMINI_2_5_PRO_REASONING,
-    ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
     ModelId.TITLE_MODEL,
     ModelId.ARTIFACT_MODEL,
     ModelId.CODE_MODEL,

@@ -114,13 +114,6 @@ export const chatModels: Array<ChatModel> = [
     hasReasoning: true,
   },
   {
-    id: ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
-    name: 'Gemini 2.5 Flash Image',
-    description: 'Google model optimized for image understanding',
-    provider: 'Google',
-    supportsImages: true,
-  },
-  {
     id: ModelId.PERPLEXITY_SONAR_PRO,
     name: 'Sonar Pro',
     description: 'Perplexity advanced model with web search capabilities',

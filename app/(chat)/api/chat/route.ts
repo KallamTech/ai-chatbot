@@ -158,22 +158,15 @@ export async function POST(request: Request) {
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
-          experimental_activeTools:
-            selectedChatModel === ModelId.O4_MINI_REASONING ||
-            selectedChatModel === ModelId.DEEPSEEK_V3_1_THINKING ||
-            selectedChatModel === ModelId.GROK_3_MINI ||
-            selectedChatModel === ModelId.CLAUDE_SONNET_4_REASONING ||
-            selectedChatModel === ModelId.GEMINI_2_5_PRO_REASONING
-              ? []
-              : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                  'createAgent',
-                  'webSearch',
-                  'newsSearch',
-                ],
+          experimental_activeTools: [
+            'getWeather',
+            'createDocument',
+            'updateDocument',
+            'requestSuggestions',
+            'createAgent',
+            'webSearch',
+            'newsSearch',
+          ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
             getWeather,

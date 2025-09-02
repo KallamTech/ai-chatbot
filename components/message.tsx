@@ -27,6 +27,7 @@ import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
+import { AgentPythonExecutor } from './agent-python-executor';
 
 // Type narrowing is handled by TypeScript's control flow analysis
 // The AI SDK provides proper discriminated unions for tool calls
@@ -38,6 +39,7 @@ const PurePreviewMessage = ({
   isLoading,
   setMessages,
   regenerate,
+  sendMessage,
   isReadonly,
   requiresScrollPadding,
 }: {
@@ -47,6 +49,7 @@ const PurePreviewMessage = ({
   isLoading: boolean;
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
 }) => {
@@ -57,6 +60,21 @@ const PurePreviewMessage = ({
   );
 
   useDataStream();
+  // Callback to send execution results back to agent
+  const handleExecutionComplete = (result: any) => {
+    let resultMessage;
+    if (result.success) {
+      resultMessage = `Python execution completed successfully. Output: ${result.output}${result.result ? `\nReturn value: ${result.result}` : ''}`;
+    } else {
+      resultMessage = `Python execution failed. Error: ${result.error}`;
+    }
+
+    // Send the execution result using the chat's sendMessage function
+    sendMessage({
+      role: 'user',
+      parts: [{ type: 'text', text: resultMessage }],
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -182,11 +200,13 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-getWeather" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={part.input} />
+                        <ToolInput input={(part as any).input} />
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
-                          output={<Weather weatherAtLocation={part.output} />}
+                          output={
+                            <Weather weatherAtLocation={(part as any).output} />
+                          }
                           errorText={undefined}
                         />
                       )}
@@ -203,19 +223,19 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-createDocument" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={part.input} />
+                        <ToolInput input={(part as any).input} />
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
                           output={
-                            'error' in part.output ? (
+                            'error' in (part as any).output ? (
                               <div className="p-2 text-red-500 rounded border">
-                                Error: {String(part.output.error)}
+                                Error: {String((part as any).output.error)}
                               </div>
                             ) : (
                               <DocumentPreview
                                 isReadonly={isReadonly}
-                                result={part.output}
+                                result={(part as any).output}
                                 chatId={chatId}
                               />
                             )
@@ -236,19 +256,19 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-updateDocument" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={part.input} />
+                        <ToolInput input={(part as any).input} />
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
                           output={
-                            'error' in part.output ? (
+                            'error' in (part as any).output ? (
                               <div className="p-2 text-red-500 rounded border">
-                                Error: {String(part.output.error)}
+                                Error: {String((part as any).output.error)}
                               </div>
                             ) : (
                               <DocumentToolResult
                                 type="update"
-                                result={part.output}
+                                result={(part as any).output}
                                 isReadonly={isReadonly}
                                 chatId={chatId}
                               />
@@ -270,22 +290,619 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-requestSuggestions" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={part.input} />
+                        <ToolInput input={(part as any).input} />
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
                           output={
-                            'error' in part.output ? (
+                            'error' in (part as any).output ? (
                               <div className="p-2 text-red-500 rounded border">
-                                Error: {String(part.output.error)}
+                                Error: {String((part as any).output.error)}
                               </div>
                             ) : (
                               <DocumentToolResult
                                 type="request-suggestions"
-                                result={part.output}
+                                result={(part as any).output}
                                 isReadonly={isReadonly}
                                 chatId={chatId}
                               />
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-createAgent') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-createAgent" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-green-600">
+                                  ✅ Agent Created Successfully
+                                </div>
+                                <div className="space-y-1">
+                                  <div>
+                                    <strong>Title:</strong>{' '}
+                                    {(part as any).output.agent?.title}
+                                  </div>
+                                  <div>
+                                    <strong>Description:</strong>{' '}
+                                    {(part as any).output.agent?.description}
+                                  </div>
+                                  <div>
+                                    <strong>ID:</strong>{' '}
+                                    {(part as any).output.agent?.id}
+                                  </div>
+                                  {(part as any).output.workflow && (
+                                    <div>
+                                      <strong>Workflow:</strong>{' '}
+                                      {(part as any).output.workflow.nodes}{' '}
+                                      nodes,{' '}
+                                      {(part as any).output.workflow.edges}{' '}
+                                      connections
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (
+                type === 'tool-pythonRuntime' ||
+                (type as string) === 'tool-pythonRuntime'
+              ) {
+                const toolPart = part as any;
+                const { toolCallId, state } = toolPart;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-pythonRuntime" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={toolPart.input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in toolPart.output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String(toolPart.output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-green-600">
+                                  🐍 Python Code Prepared
+                                </div>
+                                <div className="space-y-1">
+                                  <div>
+                                    <strong>Description:</strong>{' '}
+                                    {toolPart.output.description}
+                                  </div>
+                                  {toolPart.output.code && (
+                                    <div>
+                                      <AgentPythonExecutor
+                                        code={toolPart.output.code}
+                                        description={
+                                          toolPart.output.description
+                                        }
+                                        waitForAgent={
+                                          toolPart.output.waitForExecution
+                                        }
+                                        onExecutionComplete={
+                                          toolPart.output.waitForExecution
+                                            ? handleExecutionComplete
+                                            : undefined
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                  {toolPart.output.output &&
+                                    !toolPart.output.code && (
+                                      <div>
+                                        <strong>Output:</strong>
+                                        <div className="bg-gray-900 text-green-400 p-2 rounded mt-1 font-mono text-sm">
+                                          <pre className="whitespace-pre-wrap">
+                                            {toolPart.output.output}
+                                          </pre>
+                                        </div>
+                                      </div>
+                                    )}
+                                  {toolPart.output.result &&
+                                    !toolPart.output.code && (
+                                      <div>
+                                        <strong>Result:</strong>{' '}
+                                        <code className="bg-blue-100 px-1 rounded">
+                                          {toolPart.output.result}
+                                        </code>
+                                      </div>
+                                    )}
+                                </div>
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-webSearch') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-webSearch" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-blue-600">
+                                  🔍 Web Search Results
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Query:</strong>{' '}
+                                  {(part as any).output.query}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Type:</strong>{' '}
+                                  {(part as any).output.type}
+                                </div>
+                                <div className="mt-3 p-3 bg-muted/50 rounded border-l-2 border-blue-200">
+                                  <div className="whitespace-pre-wrap text-sm">
+                                    {(part as any).output.results}
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Source: {(part as any).output.source} •{' '}
+                                  {new Date(
+                                    (part as any).output.timestamp,
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-newsSearch') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-newsSearch" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-purple-600">
+                                  📰 News Search Results
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Query:</strong>{' '}
+                                  {(part as any).output.query}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Timeframe:</strong>{' '}
+                                  {(part as any).output.timeframe}
+                                </div>
+                                <div className="mt-3 p-3 bg-muted/50 rounded border-l-2 border-purple-200">
+                                  <div className="whitespace-pre-wrap text-sm">
+                                    {(part as any).output.results}
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Source: {(part as any).output.source} •{' '}
+                                  {new Date(
+                                    (part as any).output.timestamp,
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              // Agent-specific document search tools
+              if (type === 'tool-searchDocuments') {
+                const { toolCallId, state } = part as any;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-searchDocuments" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-green-600">
+                                  🔍 Document Search Results
+                                </div>
+                                <div className="space-y-2">
+                                  {(part as any).output.results?.map(
+                                    (result: any, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="p-2 border rounded"
+                                      >
+                                        <div className="font-medium">
+                                          {result.title}
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                          Similarity:{' '}
+                                          {(result.similarity * 100).toFixed(1)}
+                                          %
+                                        </div>
+                                        <div className="text-sm">
+                                          {result.content}
+                                        </div>
+                                        {result.metadata && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {result.metadata.fileName &&
+                                              `File: ${result.metadata.fileName}`}
+                                            {result.metadata.documentType &&
+                                              ` | Type: ${result.metadata.documentType}`}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-findDocumentByTitle') {
+                const { toolCallId, state } = part as any;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-findDocumentByTitle" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-blue-600">
+                                  📄 Document Finder
+                                </div>
+                                {(part as any).output.found ? (
+                                  <div className="space-y-2">
+                                    <div className="text-sm text-green-600">
+                                      Found {(part as any).output.count}{' '}
+                                      document(s)
+                                    </div>
+                                    {(part as any).output.documents?.map(
+                                      (doc: any, index: number) => (
+                                        <div
+                                          key={index}
+                                          className="p-2 border rounded"
+                                        >
+                                          <div className="font-medium">
+                                            {doc.title}
+                                          </div>
+                                          <div className="text-sm text-gray-600">
+                                            ID: {doc.id}
+                                          </div>
+                                          {doc.metadata?.fileName && (
+                                            <div className="text-sm text-gray-500">
+                                              File: {doc.metadata.fileName}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-gray-600">
+                                    {(part as any).output.message}
+                                    {(part as any).output.suggestions && (
+                                      <div className="mt-2">
+                                        <div className="text-xs font-medium">
+                                          Available documents:
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {(
+                                            part as any
+                                          ).output.suggestions.join(', ')}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-getDocumentMetadata') {
+                const { toolCallId, state } = part as any;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-getDocumentMetadata" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-purple-600">
+                                  📋 Document Metadata
+                                </div>
+                                {(part as any).output.found ? (
+                                  <div className="space-y-2">
+                                    <div className="p-2 border rounded">
+                                      <div className="font-medium">
+                                        {(part as any).output.document.title}
+                                      </div>
+                                      <div className="text-sm text-gray-600">
+                                        ID: {(part as any).output.document.id}
+                                      </div>
+                                      <div className="text-sm text-gray-500">
+                                        Created:{' '}
+                                        {new Date(
+                                          (part as any).output.document
+                                            .createdAt,
+                                        ).toLocaleDateString()}
+                                      </div>
+                                      {(part as any).output.document
+                                        .metadata && (
+                                        <div className="mt-2 text-xs">
+                                          <div className="font-medium">
+                                            Metadata:
+                                          </div>
+                                          <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto">
+                                            {JSON.stringify(
+                                              (part as any).output.document
+                                                .metadata,
+                                              null,
+                                              2,
+                                            )}
+                                          </pre>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-gray-600">
+                                    {(part as any).output.message}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-searchSpecificDocument') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader
+                      type="tool-searchSpecificDocument"
+                      state={state}
+                    />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-indigo-600">
+                                  🎯 Specific Document Search
+                                </div>
+                                {(part as any).output.found ? (
+                                  <div className="space-y-2">
+                                    <div className="p-2 border rounded bg-blue-50">
+                                      <div className="font-medium">
+                                        {(part as any).output.document.title}
+                                      </div>
+                                      <div className="text-sm text-gray-600">
+                                        ID: {(part as any).output.document.id}
+                                      </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {(
+                                        part as any
+                                      ).output.searchResults?.results?.map(
+                                        (result: any, index: number) => (
+                                          <div
+                                            key={index}
+                                            className="p-2 border rounded"
+                                          >
+                                            <div className="text-sm text-gray-600">
+                                              Similarity:{' '}
+                                              {(
+                                                result.similarity * 100
+                                              ).toFixed(1)}
+                                              %
+                                            </div>
+                                            <div className="text-sm">
+                                              {result.content}
+                                            </div>
+                                          </div>
+                                        ),
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-gray-600">
+                                    {(part as any).output.message}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-searchImages') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-searchImages" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={(part as any).input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-pink-600">
+                                  🖼️ Image Search Results
+                                </div>
+                                <div className="space-y-2">
+                                  {(part as any).output.results?.map(
+                                    (result: any, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="p-2 border rounded"
+                                      >
+                                        <div className="font-medium">
+                                          {result.title}
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                          Similarity:{' '}
+                                          {(result.similarity * 100).toFixed(1)}
+                                          %
+                                        </div>
+                                        <div className="text-sm">
+                                          {result.content}
+                                        </div>
+                                        {result.metadata && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {result.metadata.fileName &&
+                                              `File: ${result.metadata.fileName}`}
+                                            {result.metadata.documentType &&
+                                              ` | Type: ${result.metadata.documentType}`}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ),
+                                  )}
+                                </div>
+                                {(part as any).output.recommendedThreshold && (
+                                  <div className="text-xs text-gray-500">
+                                    {(part as any).output.recommendedThreshold}
+                                  </div>
+                                )}
+                              </div>
                             )
                           }
                           errorText={undefined}

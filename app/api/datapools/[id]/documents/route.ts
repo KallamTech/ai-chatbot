@@ -13,6 +13,7 @@ import {
   isPdfFile,
   processExtractedImages,
 } from '@/lib/utils/pdf-processor';
+import { analyzeDocumentContent } from '@/lib/utils/document-analyzer';
 import {
   getSupportedFileTypes,
   getSupportedFileExtensions,
@@ -148,11 +149,12 @@ export async function POST(
       | Array<{ base64: string; description?: string; embedding?: number[] }>
       | undefined;
     let embedding: number[] | undefined;
+    let pdfResult: any = undefined;
 
     if (isPdfFile(file)) {
       // Handle PDF files with Mistral OCR
       console.log('Processing PDF file with Mistral OCR...');
-      const pdfResult = await processPdfWithMistralOCR(file);
+      pdfResult = await processPdfWithMistralOCR(file);
 
       if (!pdfResult.success) {
         return NextResponse.json(
@@ -216,12 +218,13 @@ export async function POST(
       }
     }
 
-    // Extract additional metadata for better searchability
-    const contentLength = content.length;
-    const wordCount = content
-      .split(/\s+/)
-      .filter((word) => word.length > 0).length;
-    const estimatedPages = Math.ceil(contentLength / 2000); // Rough estimate: 2000 chars per page
+    // Perform comprehensive document analysis
+    const documentAnalysis = analyzeDocumentContent(
+      content,
+      file.name,
+      file.type || 'text/plain',
+      isPdfFile(file) ? pdfResult : undefined,
+    );
 
     // Create the main document
     const document = await createDataPoolDocument({
@@ -236,13 +239,54 @@ export async function POST(
         fileType: file.type || 'text/plain',
         uploadedAt: new Date().toISOString(),
 
+        // Basic content metrics
+        contentLength: documentAnalysis.contentLength,
+        wordCount: documentAnalysis.wordCount,
+        characterCount: documentAnalysis.characterCount,
+        lineCount: documentAnalysis.lineCount,
+        paragraphCount: documentAnalysis.paragraphCount,
+        sentenceCount: documentAnalysis.sentenceCount,
+        estimatedPages: documentAnalysis.estimatedPages,
+
+        // Document structure
+        hasHeadings: documentAnalysis.hasHeadings,
+        headingCount: documentAnalysis.headingCount,
+        headingLevels: documentAnalysis.headingLevels,
+        hasLists: documentAnalysis.hasLists,
+        listCount: documentAnalysis.listCount,
+        hasTables: documentAnalysis.hasTables,
+        tableCount: documentAnalysis.tableCount,
+        hasCodeBlocks: documentAnalysis.hasCodeBlocks,
+        codeBlockCount: documentAnalysis.codeBlockCount,
+
         // Content analysis
-        contentLength,
-        wordCount,
-        estimatedPages,
+        documentType: documentAnalysis.documentType,
+        language: documentAnalysis.language,
+        readabilityScore: documentAnalysis.readabilityScore,
+        averageWordsPerSentence: documentAnalysis.averageWordsPerSentence,
+        averageSyllablesPerWord: documentAnalysis.averageSyllablesPerWord,
+
+        // Entity extraction
+        dates: documentAnalysis.dates,
+        emails: documentAnalysis.emails,
+        urls: documentAnalysis.urls,
+        phoneNumbers: documentAnalysis.phoneNumbers,
+        organizations: documentAnalysis.organizations,
+        people: documentAnalysis.people,
+        locations: documentAnalysis.locations,
+
+        // Topics and keywords
+        topics: documentAnalysis.topics,
+        keywords: documentAnalysis.keywords,
+        keyPhrases: documentAnalysis.keyPhrases,
+
+        // File-specific metadata
+        hasImages: documentAnalysis.hasImages,
+        imageCount: documentAnalysis.imageCount,
+        hasFootnotes: documentAnalysis.hasFootnotes,
+        footnoteCount: documentAnalysis.footnoteCount,
 
         // Document type and processing info
-        documentType: 'main_document',
         processingStatus: 'completed',
 
         // OCR processing info (for PDFs)
@@ -251,6 +295,7 @@ export async function POST(
           ocrProvider: 'mistral',
           hasExtractedImages: extractedImages && extractedImages.length > 0,
           extractedImagesCount: extractedImages?.length || 0,
+          ocrMetadata: documentAnalysis.ocrMetadata,
         }),
 
         // Extracted images info
@@ -262,19 +307,32 @@ export async function POST(
             })),
           }),
 
-        // Searchable tags for better retrieval
+        // Enhanced searchable tags for better retrieval
         searchTags: [
           title.toLowerCase(),
           file.name
             .toLowerCase()
             .replace(/\.[^/.]+$/, ''), // filename without extension
           file.type || 'text',
+          documentAnalysis.documentType,
+          documentAnalysis.language,
           ...(isPdfFile(file) ? ['pdf', 'ocr-processed'] : []),
           ...(extractedImages && extractedImages.length > 0
             ? ['contains-images']
             : []),
-          `~${wordCount} words`,
-          `~${estimatedPages} pages`,
+          ...(documentAnalysis.hasHeadings ? ['has-headings'] : []),
+          ...(documentAnalysis.hasTables ? ['has-tables'] : []),
+          ...(documentAnalysis.hasLists ? ['has-lists'] : []),
+          ...(documentAnalysis.hasCodeBlocks ? ['has-code'] : []),
+          ...(documentAnalysis.hasFootnotes ? ['has-footnotes'] : []),
+          ...documentAnalysis.topics,
+          ...documentAnalysis.organizations.slice(0, 5), // Top 5 organizations
+          ...documentAnalysis.people.slice(0, 5), // Top 5 people
+          ...documentAnalysis.locations.slice(0, 5), // Top 5 locations
+          ...documentAnalysis.keywords.slice(0, 10), // Top 10 keywords
+          `~${documentAnalysis.wordCount} words`,
+          `~${documentAnalysis.estimatedPages} pages`,
+          `readability-${Math.round(documentAnalysis.readabilityScore / 20)}`, // Rough readability category
         ],
       },
     });

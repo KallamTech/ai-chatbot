@@ -957,7 +957,7 @@ export async function createWorkflowNode({
   description: string;
   systemPrompt: string;
   position: { x: number; y: number };
-  nodeType: 'rag' | 'transform' | 'filter' | 'aggregate';
+  nodeType: 'rag' | 'transform' | 'filter' | 'aggregate' | 'runtime';
   config?: Record<string, any>;
 }): Promise<WorkflowNode> {
   try {
