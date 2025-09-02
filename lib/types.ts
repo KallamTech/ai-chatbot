@@ -171,12 +171,18 @@ export type CustomUIDataTypes = {
   sheetDelta: string;
   codeDelta: string;
   codeExecution: {
-    status: 'starting' | 'loading_packages' | 'completed' | 'error';
+    status:
+      | 'starting'
+      | 'loading_packages'
+      | 'completed'
+      | 'error'
+      | 'waiting_for_execution';
     description?: string;
     message?: string;
     output?: string;
     result?: string | null;
     error?: string;
+    waitForExecution?: boolean;
   };
   suggestion: Suggestion;
   appendMessage: string;

@@ -161,8 +161,9 @@ export function PythonRuntimeDisplay({
                     </p>
                   </div>
                   <p className="text-sm text-orange-700 dark:text-orange-300">
-                    Please click the "Run" button below to execute the Python
-                    code. The agent will continue after seeing the results.
+                    Please click the &quot;Run&quot; button below to execute the
+                    Python code. The agent will continue after seeing the
+                    results.
                   </p>
                 </div>
               )}
