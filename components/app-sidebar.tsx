@@ -29,7 +29,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         <SidebarMenu>
           <div className="flex flex-col gap-2">
             <div className="flex flex-row justify-between items-center">
-              <span className="text-lg font-semibold px-2">tAI</span>
+              <span className="text-lg font-semibold px-2">tAI Platform</span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

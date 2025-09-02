@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 
 import { saveChatModelAsCookie } from '@/app/(chat)/actions';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { chatModels } from '@/lib/ai/models';
 import { cn } from '@/lib/utils';
 
-import { CheckCircleFillIcon, ChevronDownIcon, BrainIcon } from './icons';
+import {
+  CheckCircleFillIcon,
+  ChevronDownIcon,
+  BrainIcon,
+  SearchIcon,
+} from './icons';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import type { Session } from 'next-auth';
 
@@ -30,6 +36,8 @@ export function ModelSelector({
   onModelChange: (modelId: string) => void;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const userType = session.user.type;
   const { availableChatModelIds } = entitlementsByUserType[userType];
@@ -38,10 +46,23 @@ export function ModelSelector({
     availableChatModelIds.includes(chatModel.id),
   );
 
-  // Group models by provider with preferred ordering
+  // Filter models based on search query
+  const filteredModels = useMemo(() => {
+    return availableChatModels.filter((model) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        model.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        model.provider.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesSearch;
+    });
+  }, [availableChatModels, searchQuery]);
+
+  // Group filtered models by provider with preferred ordering
   const modelsByProvider = useMemo(() => {
-    const groups: Record<string, typeof availableChatModels> = {};
-    availableChatModels.forEach((model) => {
+    const groups: Record<string, typeof filteredModels> = {};
+    filteredModels.forEach((model) => {
       if (!groups[model.provider]) {
         groups[model.provider] = [];
       }
@@ -54,7 +75,7 @@ export function ModelSelector({
     });
 
     return groups;
-  }, [availableChatModels]);
+  }, [filteredModels]);
 
   // Order providers for consistent display
   const providerOrder = [
@@ -64,6 +85,12 @@ export function ModelSelector({
     'DeepSeek',
     'xAI',
     'Perplexity',
+    'Meta',
+    'Moonshot AI',
+    'Mistral',
+    'Cohere',
+    'Alibaba',
+    'Z.AI',
   ];
   const orderedProviders = providerOrder.filter(
     (provider) => modelsByProvider[provider],
@@ -76,6 +103,19 @@ export function ModelSelector({
       ) || availableChatModels[0];
     return found;
   }, [selectedModelId, availableChatModels]);
+
+  // Clear search when dropdown closes and focus input when opening
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setSearchQuery('');
+    } else {
+      // Focus the search input when dropdown opens
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 0);
+    }
+  };
 
   const handleModelSelect = async (id: string) => {
     console.log('🚀 ModelSelector: Selecting model:', id);
@@ -94,7 +134,7 @@ export function ModelSelector({
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger
         asChild
         className={cn(
@@ -121,53 +161,91 @@ export function ModelSelector({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="min-w-[300px] max-h-[60vh] overflow-y-auto"
+        className="min-w-[350px] max-h-[60vh] overflow-y-auto"
+        onCloseAutoFocus={(e) => {
+          // Prevent auto-focus when closing
+          e.preventDefault();
+        }}
       >
-        {orderedProviders.map((provider, providerIndex) => {
-          const models = modelsByProvider[provider];
-          return (
-            <div key={provider}>
-              {providerIndex > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {provider}
-              </DropdownMenuLabel>
-              {models.map((chatModel) => {
-                const { id } = chatModel;
-
-                return (
-                  <DropdownMenuItem
-                    data-testid={`model-selector-item-${id}`}
-                    key={id}
-                    onSelect={() => {
-                      handleModelSelect(id);
-                    }}
-                    data-active={id === selectedModelId}
-                    className="gap-4 group/item flex flex-row justify-between items-center w-full"
-                  >
-                    <div className="flex flex-col gap-1 items-start">
-                      <div className="flex items-center gap-2">
-                        <span>{chatModel.name}</span>
-                        {chatModel.hasReasoning && (
-                          <BrainIcon
-                            size={12}
-                            className="text-purple-500 dark:text-purple-400"
-                          />
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {chatModel.description}
-                      </div>
-                    </div>
-
-                    <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
-                      <CheckCircleFillIcon />
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })}
+        {/* Search Controls */}
+        <div className="p-3 border-b">
+          {/* Search Input */}
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+              <SearchIcon size={16} />
             </div>
-          );
-        })}
+            <Input
+              ref={searchInputRef}
+              placeholder="Search models..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                // Prevent dropdown menu from handling keyboard navigation
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                // Prevent dropdown from closing when clicking the input
+                e.stopPropagation();
+              }}
+              className="pl-9 h-8"
+            />
+          </div>
+        </div>
+
+        {/* Models List */}
+        <div className="max-h-[40vh] overflow-y-auto">
+          {orderedProviders.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground text-sm">
+              No models found matching your criteria
+            </div>
+          ) : (
+            orderedProviders.map((provider, providerIndex) => {
+              const models = modelsByProvider[provider];
+              return (
+                <div key={provider}>
+                  {providerIndex > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {provider}
+                  </DropdownMenuLabel>
+                  {models.map((chatModel) => {
+                    const { id } = chatModel;
+
+                    return (
+                      <DropdownMenuItem
+                        data-testid={`model-selector-item-${id}`}
+                        key={id}
+                        onSelect={() => {
+                          handleModelSelect(id);
+                        }}
+                        data-active={id === selectedModelId}
+                        className="gap-4 group/item flex flex-row justify-between items-center w-full"
+                      >
+                        <div className="flex flex-col gap-1 items-start">
+                          <div className="flex items-center gap-2">
+                            <span>{chatModel.name}</span>
+                            {chatModel.hasReasoning && (
+                              <BrainIcon
+                                size={12}
+                                className="text-purple-500 dark:text-purple-400"
+                              />
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {chatModel.description}
+                          </div>
+                        </div>
+
+                        <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
+                          <CheckCircleFillIcon />
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
