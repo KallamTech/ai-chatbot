@@ -73,6 +73,7 @@ export const chatModels: Array<ChatModel> = [
     name: 'Grok Code Fast',
     description: 'xAI fast coding-optimized model',
     provider: 'xAI',
+    hasReasoning: true,
   },
   {
     id: ModelId.GROK_4,
@@ -131,5 +132,74 @@ export const chatModels: Array<ChatModel> = [
     description: 'Perplexity model with web search and reasoning capabilities',
     provider: 'Perplexity',
     hasReasoning: true,
+  },
+  {
+    id: ModelId.LLAMA_3_2_90B,
+    name: 'Llama 3.2 90B',
+    description: 'Meta advanced large language model with 90B parameters',
+    provider: 'Meta',
+  },
+  {
+    id: ModelId.LLAMA_4_SCOUT,
+    name: 'Llama 4 Scout',
+    description: 'Meta Llama 4 Scout model for exploration and discovery tasks',
+    provider: 'Meta',
+  },
+  {
+    id: ModelId.LLAMA_4_MAVERICK,
+    name: 'Llama 4 Maverick',
+    description:
+      'Meta Llama 4 Maverick model for innovative and creative tasks',
+    provider: 'Meta',
+  },
+  {
+    id: ModelId.KIMI_K2,
+    name: 'Kimi K2',
+    description:
+      'Moonshot AI advanced language model with enhanced capabilities',
+    provider: 'Moonshot AI',
+  },
+  {
+    id: ModelId.PIXTRAL_LARGE,
+    name: 'Pixtral Large',
+    description: 'Mistral large multimodal model with vision capabilities',
+    provider: 'Mistral',
+    supportsImages: true,
+  },
+  {
+    id: ModelId.MISTRAL_LARGE,
+    name: 'Mistral Large',
+    description: 'Mistral advanced large language model',
+    provider: 'Mistral',
+  },
+  {
+    id: ModelId.COMMAND_A,
+    name: 'Command A',
+    description: 'Cohere advanced language model for complex tasks',
+    provider: 'Cohere',
+  },
+  {
+    id: ModelId.QWEN_3_235B,
+    name: 'Qwen 3 235B',
+    description: 'Alibaba advanced large language model with 235B parameters',
+    provider: 'Alibaba',
+  },
+  {
+    id: ModelId.QWEN3_CODER,
+    name: 'Qwen3 Coder',
+    description: 'Alibaba specialized coding model based on Qwen3',
+    provider: 'Alibaba',
+  },
+  {
+    id: ModelId.GPT_OSS_120B,
+    name: 'GPT OSS 120B',
+    description: 'OpenAI open-source model with 120B parameters',
+    provider: 'OpenAI',
+  },
+  {
+    id: ModelId.GLM_4_5,
+    name: 'GLM 4.5',
+    description: 'Zhipu AI advanced language model with enhanced reasoning',
+    provider: 'Zhipu AI',
   },
 ];
