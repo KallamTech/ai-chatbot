@@ -84,25 +84,45 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
         // Analyze workflow requirements and create nodes
         const { text: workflowAnalysis } = await generateText({
           model: myProvider.languageModel(ModelId.GPT_4_1),
-          system: `You are a workflow architect for AI agents. Analyze the requirements and create a workflow specification.
+          system: `You are an expert workflow architect for AI agents. Create optimized workflow specifications based on user requirements.
 
-Available node types:
-- rag: Retrieval Augmented Generation (searches documents)
-- transform: Transforms/processes data using LLM
-- filter: Filters data based on criteria
-- aggregate: Combines/summarizes multiple inputs
+**Available Node Types:**
+- **rag**: Retrieval Augmented Generation - searches and retrieves relevant documents from data pools
+- **transform**: Data transformation - processes, formats, or converts data using LLM capabilities
+- **filter**: Data filtering - applies criteria to filter or validate data based on specific conditions
+- **aggregate**: Data aggregation - combines, summarizes, or synthesizes multiple data sources
+- **analyze**: Data analysis - performs analysis, pattern recognition, or insights generation
+- **generate**: Content generation - creates new content based on processed data
 
-Create a JSON array of nodes with connections. Each node should have:
-- name: Short descriptive name
-- description: What this node does
-- nodeType: One of the available types
-- systemPrompt: Detailed system prompt for this node
-- position: {x, y} coordinates for layout
+**Node Creation Guidelines:**
+1. Create 2-4 nodes maximum for optimal performance
+2. Start with RAG nodes for document access
+3. Use Transform nodes for data processing
+4. End with Generate or Aggregate nodes for final output
+5. Each node should have a clear, single responsibility
+6. System prompts should be specific and actionable
 
-Return only the JSON array, no other text.`,
-          prompt: `Requirements: ${workflowRequirements}
+**System Prompt Best Practices:**
+- Be specific about the node's role and capabilities
+- Include clear instructions on what to do with input data
+- Specify output format and quality expectations
+- Mention any constraints or limitations
+- Use active voice and clear language
 
-          Agent purpose: ${agentDescription}`,
+**Output Format:**
+Return a JSON array of nodes. Each node must include:
+- name: Short, descriptive name (2-4 words)
+- description: Clear explanation of the node's purpose
+- nodeType: One of the available types above
+- systemPrompt: Detailed, actionable system prompt (2-3 sentences)
+- position: {x: number, y: number} coordinates for visual layout
+
+Return only the JSON array, no additional text.`,
+          prompt: `Agent Requirements: ${workflowRequirements}
+
+Agent Purpose: ${agentDescription}
+
+Create an optimized workflow that efficiently processes the user's requirements. Focus on creating a logical flow that maximizes the agent's effectiveness.`,
         });
 
         let workflowNodes: any[] = [];
@@ -113,17 +133,16 @@ Return only the JSON array, no other text.`,
           workflowNodes = [
             {
               name: 'Document Search',
-              description: 'Searches relevant documents from the data pool',
+              description: 'Searches and retrieves relevant documents from the data pool',
               nodeType: 'rag',
-              systemPrompt:
-                'You are a document search assistant. Find the most relevant information from the available documents to answer user queries.',
+              systemPrompt: `You are a specialized document search assistant for the "${agentTitle}" agent. Your role is to efficiently search through the available documents in the data pool and retrieve the most relevant information to answer user queries. Use semantic search to find documents that best match the user's intent, and return comprehensive results that provide context and supporting evidence.`,
               position: { x: 100, y: 100 },
             },
             {
-              name: 'Process Results',
-              description: 'Processes and formats the search results',
+              name: 'Process & Format',
+              description: 'Processes search results and formats them into clear, actionable responses',
               nodeType: 'transform',
-              systemPrompt: `You are a data processor for the "${agentTitle}" agent. Process and format information to provide clear, helpful responses.`,
+              systemPrompt: `You are a data processing specialist for the "${agentTitle}" agent. Your role is to take the document search results and transform them into clear, well-structured, and actionable responses. Synthesize information from multiple sources, eliminate redundancy, and present findings in a format that directly addresses the user's query with supporting evidence and context.`,
               position: { x: 300, y: 100 },
             },
           ];
