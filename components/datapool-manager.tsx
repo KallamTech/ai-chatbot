@@ -173,7 +173,11 @@ export function DataPoolManager({
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // File change handling logic
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      // Automatically trigger upload when files are selected
+      handleUpload();
+    }
   };
 
   const handleUpload = async () => {
@@ -534,54 +538,75 @@ export function DataPoolManager({
         </div>
 
         {/* Upload Section */}
-        <Card className="p-4 mb-4">
-          <h3 className="font-semibold mb-3">Upload New Documents</h3>
-          <div>
-            <Label htmlFor="document-file">Select Files</Label>
-            <Input
-              id="document-file"
-              type="file"
-              ref={fileInputRef}
-              accept=".txt,.md,.csv,.json,.html,.css,.js,.xml,.log,.pdf"
+        <Card className="p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Add Documents</h3>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              onChange={handleFileChange}
-              multiple
-            />
-            <div className="text-xs text-muted-foreground mt-1 space-y-1">
-              <p>
-                You can select multiple files. Titles will be automatically
-                generated from filenames.
-              </p>
-              <p>
-                <strong>Supported formats:</strong> .txt, .md, .csv, .json,
-                .html, .css, .js, .xml, .log, .pdf
-              </p>
-              <p className="text-green-600">
-                ✅ Text files are processed immediately
-              </p>
-              <p className="text-orange-600">
-                📄 PDFs are OCR processed and parsed using multimodal embeddings
-                for text and images
-              </p>
-              <p className="text-blue-600">
-                ⚠️ Binary files are stored as metadata only
-              </p>
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isUploading ? (
+                <>
+                  <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadIcon size={16} className="mr-2" />
+                  Add Documents
+                </>
+              )}
+            </Button>
+          </div>
+
+          <Input
+            id="document-file"
+            type="file"
+            ref={fileInputRef}
+            accept=".txt,.md,.csv,.json,.html,.css,.js,.xml,.log,.pdf"
+            disabled={isUploading}
+            onChange={handleFileChange}
+            multiple
+            className="hidden"
+          />
+
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FileTextIcon size={16} />
+              <span>Click "Add Documents" to select files from your computer</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="font-medium text-foreground mb-1">Supported Formats:</p>
+                <p className="text-muted-foreground">
+                  .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-1">Processing:</p>
+                <p className="text-muted-foreground">
+                  Multiple files supported • Auto-generated titles
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center gap-2 text-green-600">
+                <span>✅</span>
+                <span>Text files are processed immediately</span>
+              </div>
+              <div className="flex items-center gap-2 text-orange-600">
+                <span>📄</span>
+                <span>PDFs use OCR and multimodal embeddings</span>
+              </div>
+              <div className="flex items-center gap-2 text-blue-600">
+                <span>⚠️</span>
+                <span>Binary files stored as metadata only</span>
+              </div>
             </div>
           </div>
-          <Button
-            onClick={handleUpload}
-            className="mt-3"
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <>Uploading...</>
-            ) : (
-              <>
-                <UploadIcon size={16} className="mr-2" />
-                Upload Documents
-              </>
-            )}
-          </Button>
         </Card>
 
         {/* Documents List */}
