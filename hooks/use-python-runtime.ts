@@ -5,12 +5,18 @@ import { useDataStream } from '@/components/data-stream-provider';
 
 interface PythonRuntimeExecution {
   id: string;
-  status: 'starting' | 'loading_packages' | 'completed' | 'error';
+  status:
+    | 'starting'
+    | 'loading_packages'
+    | 'completed'
+    | 'error'
+    | 'waiting_for_execution';
   description?: string;
   message?: string;
   output?: string;
   result?: string | null;
   error?: string;
+  waitForExecution?: boolean;
   timestamp: number;
 }
 
@@ -27,10 +33,11 @@ export function usePythonRuntime() {
     if (latestDelta?.type === 'data-codeExecution') {
       const executionData = latestDelta.data;
 
-      setExecutions(prev => {
+      setExecutions((prev) => {
         // Check if this is an update to an existing execution or a new one
-        const existingIndex = prev.findIndex(exec =>
-          exec.status === 'starting' || exec.status === 'loading_packages'
+        const existingIndex = prev.findIndex(
+          (exec) =>
+            exec.status === 'starting' || exec.status === 'loading_packages',
         );
 
         if (existingIndex >= 0) {

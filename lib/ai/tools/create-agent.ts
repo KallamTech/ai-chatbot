@@ -135,14 +135,16 @@ Create an optimized workflow that efficiently processes the user's requirements.
           workflowNodes = [
             {
               name: 'Document Search',
-              description: 'Searches and retrieves relevant documents from the data pool',
+              description:
+                'Searches and retrieves relevant documents from the data pool',
               nodeType: 'rag',
               systemPrompt: `You are a specialized document search assistant for the "${agentTitle}" agent. Your role is to efficiently search through the available documents in the data pool and retrieve the most relevant information to answer user queries. Use semantic search to find documents that best match the user's intent, and return comprehensive results that provide context and supporting evidence.`,
               position: { x: 100, y: 100 },
             },
             {
               name: 'Process & Format',
-              description: 'Processes search results and formats them into clear, actionable responses',
+              description:
+                'Processes search results and formats them into clear, actionable responses',
               nodeType: 'transform',
               systemPrompt: `You are a data processing specialist for the "${agentTitle}" agent. Your role is to take the document search results and transform them into clear, well-structured, and actionable responses. Synthesize information from multiple sources, eliminate redundancy, and present findings in a format that directly addresses the user's query with supporting evidence and context.`,
               position: { x: 300, y: 100 },

@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlayIcon, LoaderIcon, CheckCircleFillIcon, CrossIcon } from '@/components/icons';
+import {
+  PlayIcon,
+  LoaderIcon,
+  CheckCircleFillIcon,
+  CrossIcon,
+} from '@/components/icons';
 import { cn } from '@/lib/utils';
 
 interface AgentPythonRuntimeProps {
@@ -13,7 +18,11 @@ interface AgentPythonRuntimeProps {
   onExecute?: (code: string) => void;
 }
 
-export function AgentPythonRuntime({ code, description, onExecute }: AgentPythonRuntimeProps) {
+export function AgentPythonRuntime({
+  code,
+  description,
+  onExecute,
+}: AgentPythonRuntimeProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResult, setExecutionResult] = useState<{
     success: boolean;
@@ -35,7 +44,7 @@ export function AgentPythonRuntime({ code, description, onExecute }: AgentPython
       }
 
       // For now, simulate execution
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       setExecutionResult({
         success: true,
@@ -44,7 +53,8 @@ export function AgentPythonRuntime({ code, description, onExecute }: AgentPython
     } catch (error) {
       setExecutionResult({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error:
+          error instanceof Error ? error.message : 'Unknown error occurred',
       });
     } finally {
       setIsExecuting(false);
@@ -76,13 +86,15 @@ export function AgentPythonRuntime({ code, description, onExecute }: AgentPython
             </CardTitle>
           </div>
           <Badge variant="outline" className="text-xs">
-            {isExecuting ? 'Executing...' : executionResult ? 'Completed' : 'Ready'}
+            {isExecuting
+              ? 'Executing...'
+              : executionResult
+                ? 'Completed'
+                : 'Ready'}
           </Badge>
         </div>
         {description && (
-          <p className="text-sm text-muted-foreground">
-            {description}
-          </p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         )}
       </CardHeader>
 
@@ -132,11 +144,13 @@ export function AgentPythonRuntime({ code, description, onExecute }: AgentPython
                 'p-3 rounded-md font-mono text-sm',
                 executionResult.success
                   ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-red-50 border border-red-200 text-red-800'
+                  : 'bg-red-50 border border-red-200 text-red-800',
               )}
             >
               <pre className="whitespace-pre-wrap">
-                {executionResult.success ? executionResult.output : executionResult.error}
+                {executionResult.success
+                  ? executionResult.output
+                  : executionResult.error}
               </pre>
             </div>
           </div>

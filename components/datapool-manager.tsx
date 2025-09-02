@@ -574,12 +574,17 @@ export function DataPoolManager({
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <FileTextIcon size={16} />
-              <span>Click &quot;Add Documents&quot; to select files from your computer</span>
+              <span>
+                Click &quot;Add Documents&quot; to select files from your
+                computer
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div>
-                <p className="font-medium text-foreground mb-1">Supported Formats:</p>
+                <p className="font-medium text-foreground mb-1">
+                  Supported Formats:
+                </p>
                 <p className="text-muted-foreground">
                   .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
                 </p>

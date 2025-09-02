@@ -274,6 +274,7 @@ function createAgentSystemPrompt(
   const hasWebSearch = 'webSearch' in agentTools;
   const hasNewsSearch = 'newsSearch' in agentTools;
   const hasDocumentTools = 'createDocument' in agentTools;
+  const hasPythonRuntime = 'pythonRuntime' in agentTools;
 
   const webSearchCapabilities =
     hasWebSearch || hasNewsSearch
@@ -284,6 +285,15 @@ function createAgentSystemPrompt(
   const documentCapabilities = hasDocumentTools
     ? `- You can create new documents using the createDocument tool
 - You can update existing documents using the updateDocument tool`
+    : '';
+
+  const pythonCapabilities = hasPythonRuntime
+    ? `- You can generate Python code using the pythonRuntime tool
+- Python code will be prepared for browser execution using Pyodide
+- Users can execute the code manually in the browser for security and control
+- You can create data analysis scripts, calculations, and any Python operations
+- Use waitForExecution: true when you need to analyze the results of the code execution
+- When waitForExecution is true, the agent will pause and wait for user execution before continuing`
     : '';
 
   return `You are "${agent.title}", a specialized AI agent designed for specific tasks.
@@ -312,7 +322,7 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 **Content Processing:**
 - Summarize, extract, and analyze information from your documents
 - Answer questions based on your data pool content
-- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}
+- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}${pythonCapabilities ? '\n\n**Python Code Generation:**\n' + pythonCapabilities : ''}
 
 **Operational Constraints:**
 - You can ONLY perform tasks related to your defined workflow nodes
