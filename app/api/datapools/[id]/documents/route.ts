@@ -1,45 +1,87 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
 import {
-  getAgentById,
-  getDataPoolByAgentId,
-  createDataPoolDocument,
   getDataPoolDocuments,
-  deleteDataPoolDocument
+  createDataPoolDocument,
+  deleteDataPoolDocument,
+  getDataPoolById,
 } from '@/lib/db/queries';
 import { generateDocumentEmbedding } from '@/lib/utils';
 import { ChatSDKError } from '@/lib/errors';
-import { processPdfWithMistralOCR, isPdfFile, processExtractedImages } from '@/lib/utils/pdf-processor';
-import { getSupportedFileTypes, getSupportedFileExtensions, isPdfProcessingAvailable } from '@/lib/utils/pdf-config';
-
-export async function POST(
+import { NextResponse } from 'next/server';
+import {
+  processPdfWithMistralOCR,
+  isPdfFile,
+  processExtractedImages,
+} from '@/lib/utils/pdf-processor';
+import {
+  getSupportedFileTypes,
+  getSupportedFileExtensions,
+  isPdfProcessingAvailable,
+} from '@/lib/utils/pdf-config';
+export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id: agentId } = await params;
+    const { id: dataPoolId } = await params;
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new ChatSDKError('unauthorized:agent').toResponse();
+      return new ChatSDKError('unauthorized:auth').toResponse();
     }
 
-    // Verify agent exists and belongs to user
-    const agent = await getAgentById({
-      id: agentId,
+    // Verify the data pool exists and belongs to the user
+    const dataPool = await getDataPoolById({
+      id: dataPoolId,
       userId: session.user.id,
     });
 
-    if (!agent) {
-      return new ChatSDKError('not_found:agent').toResponse();
+    if (!dataPool) {
+      return new ChatSDKError('not_found:database').toResponse();
     }
 
-    // Get the data pool for this agent
-    const dataPool = await getDataPoolByAgentId({ agentId });
+    const documents = await getDataPoolDocuments({
+      dataPoolId,
+    });
+
+    const documentsWithoutEmbeddings = documents.map((doc) => ({
+      ...doc,
+      embedding: undefined, // Don't send embeddings to client
+    }));
+
+    return NextResponse.json({
+      documents: documentsWithoutEmbeddings,
+    });
+  } catch (error) {
+    if (error instanceof ChatSDKError) {
+      return error.toResponse();
+    }
+
+    console.error('Error fetching documents:', error);
+    return new ChatSDKError('bad_request:database').toResponse();
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id: dataPoolId } = await params;
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return new ChatSDKError('unauthorized:auth').toResponse();
+    }
+
+    // Verify the data pool exists and belongs to the user
+    const dataPool = await getDataPoolById({
+      id: dataPoolId,
+      userId: session.user.id,
+    });
 
     if (!dataPool) {
-      console.error('No data pool found for agent:', agentId);
-      return new ChatSDKError('not_found:agent').toResponse();
+      return new ChatSDKError('not_found:database').toResponse();
     }
 
     console.log('Data pool found:', dataPool.id, dataPool.name);
@@ -49,10 +91,7 @@ export async function POST(
     const title = formData.get('title') as string;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     // Check file size (limit to 10MB)
@@ -60,14 +99,14 @@ export async function POST(
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: 'File size too large. Maximum allowed size is 10MB.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!title) {
       return NextResponse.json(
         { error: 'Document title is required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -78,27 +117,36 @@ export async function POST(
 
     // Check file extension as backup
     const allowedExtensions = getSupportedFileExtensions();
-    const hasAllowedExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    const hasAllowedExtension = allowedExtensions.some((ext) =>
+      fileName.endsWith(ext),
+    );
 
     if (!allowedTypes.includes(fileType) && !hasAllowedExtension) {
       const supportedFormats = allowedExtensions.join(', ');
       return NextResponse.json(
-        { error: `Unsupported file type. Supported formats: ${supportedFormats}` },
-        { status: 400 }
+        {
+          error: `Unsupported file type. Supported formats: ${supportedFormats}`,
+        },
+        { status: 400 },
       );
     }
 
     // Additional check for PDF files when PDF processing is not available
     if (isPdfFile(file) && !isPdfProcessingAvailable()) {
       return NextResponse.json(
-        { error: 'PDF processing is not available. Please configure MISTRAL_API_KEY environment variable.' },
-        { status: 400 }
+        {
+          error:
+            'PDF processing is not available. Please configure MISTRAL_API_KEY environment variable.',
+        },
+        { status: 400 },
       );
     }
 
     // Process file content based on type
     let content: string;
-    let extractedImages: Array<{ base64: string; description?: string; embedding?: number[] }> | undefined;
+    let extractedImages:
+      | Array<{ base64: string; description?: string; embedding?: number[] }>
+      | undefined;
     let embedding: number[] | undefined;
 
     if (isPdfFile(file)) {
@@ -109,7 +157,7 @@ export async function POST(
       if (!pdfResult.success) {
         return NextResponse.json(
           { error: pdfResult.error || 'Failed to process PDF file' },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -126,26 +174,31 @@ export async function POST(
         content = await file.text();
       } catch (error) {
         return NextResponse.json(
-          { error: 'Failed to read file content. Make sure it\'s a valid text file.' },
-          { status: 400 }
+          {
+            error:
+              "Failed to read file content. Make sure it's a valid text file.",
+          },
+          { status: 400 },
         );
       }
 
       if (!content.trim()) {
         return NextResponse.json(
           { error: 'File content is empty' },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       // Remove null bytes and other problematic characters for PostgreSQL
-      content = content.replace(/\0/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+      content = content
+        .replace(/\0/g, '')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
     }
 
     if (!content.trim()) {
       return NextResponse.json(
         { error: 'File contains only invalid characters' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -153,7 +206,10 @@ export async function POST(
     if (!isPdfFile(file)) {
       try {
         embedding = await generateDocumentEmbedding(content);
-        console.log('Generated embedding for text file:', embedding ? 'success' : 'failed');
+        console.log(
+          'Generated embedding for text file:',
+          embedding ? 'success' : 'failed',
+        );
       } catch (error) {
         console.error('Error generating embedding:', error);
         embedding = undefined;
@@ -162,7 +218,9 @@ export async function POST(
 
     // Extract additional metadata for better searchability
     const contentLength = content.length;
-    const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+    const wordCount = content
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
     const estimatedPages = Math.ceil(contentLength / 2000); // Rough estimate: 2000 chars per page
 
     // Create the main document
@@ -196,23 +254,28 @@ export async function POST(
         }),
 
         // Extracted images info
-        ...(extractedImages && extractedImages.length > 0 && {
-          extractedImages: extractedImages.map(img => ({
-            description: img.description,
-            hasEmbedding: !!img.embedding
-          }))
-        }),
+        ...(extractedImages &&
+          extractedImages.length > 0 && {
+            extractedImages: extractedImages.map((img) => ({
+              description: img.description,
+              hasEmbedding: !!img.embedding,
+            })),
+          }),
 
         // Searchable tags for better retrieval
         searchTags: [
           title.toLowerCase(),
-          file.name.toLowerCase().replace(/\.[^/.]+$/, ''), // filename without extension
+          file.name
+            .toLowerCase()
+            .replace(/\.[^/.]+$/, ''), // filename without extension
           file.type || 'text',
           ...(isPdfFile(file) ? ['pdf', 'ocr-processed'] : []),
-          ...(extractedImages && extractedImages.length > 0 ? ['contains-images'] : []),
+          ...(extractedImages && extractedImages.length > 0
+            ? ['contains-images']
+            : []),
           `~${wordCount} words`,
-          `~${estimatedPages} pages`
-        ]
+          `~${estimatedPages} pages`,
+        ],
       },
     });
 
@@ -224,7 +287,8 @@ export async function POST(
         if (image.embedding) {
           try {
             const imageTitle = `${title} - Image ${i + 1}${image.description ? `: ${image.description}` : ''}`;
-            const imageContent = image.description || `Image extracted from ${title}`;
+            const imageContent =
+              image.description || `Image extracted from ${title}`;
 
             const imageDocument = await createDataPoolDocument({
               dataPoolId: dataPool.id,
@@ -255,8 +319,8 @@ export async function POST(
                   image.description?.toLowerCase() || 'no-description',
                   title.toLowerCase(),
                   `image-${i + 1}`,
-                  'visual-content'
-                ]
+                  'visual-content',
+                ],
               },
             });
 
@@ -281,11 +345,10 @@ export async function POST(
           provider: 'mistral',
           extractedImagesCount: extractedImages?.length || 0,
           hasEmbedding: !!embedding,
-          imageDocumentsCreated: imageDocuments.length
-        }
-      })
+          imageDocumentsCreated: imageDocuments.length,
+        },
+      }),
     });
-
   } catch (error) {
     console.error('Error uploading document:', error);
     if (error instanceof ChatSDKError) {
@@ -293,130 +356,56 @@ export async function POST(
     }
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id: agentId } = await params;
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return new ChatSDKError('unauthorized:agent').toResponse();
-    }
-
-    // Verify agent exists and belongs to user
-    const agent = await getAgentById({
-      id: agentId,
-      userId: session.user.id,
-    });
-
-    if (!agent) {
-      return new ChatSDKError('not_found:agent').toResponse();
-    }
-
-    // Get the data pool for this agent
-    const dataPool = await getDataPoolByAgentId({ agentId });
-
-    if (!dataPool) {
-      return new ChatSDKError('not_found:agent').toResponse();
-    }
-
-    // Get all documents in the data pool
-    const documents = await getDataPoolDocuments({
-      dataPoolId: dataPool.id
-    });
-
-    const documentsWithoutEmbeddings = documents.map(doc => ({
-      id: doc.id,
-      title: doc.title,
-      metadata: doc.metadata,
-      createdAt: doc.createdAt,
-    }));
-
-    return NextResponse.json({
-      documents: documentsWithoutEmbeddings,
-      dataPool: {
-        id: dataPool.id,
-        name: dataPool.name,
-      }
-    });
-
-  } catch (error) {
-    console.error('Error getting documents:', error);
-    if (error instanceof ChatSDKError) {
-      return error.toResponse();
-    }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id: agentId } = await params;
-    const { searchParams } = new URL(request.url);
-    const documentId = searchParams.get('documentId');
-
-    if (!documentId) {
-      return NextResponse.json(
-        { error: 'Document ID is required' },
-        { status: 400 }
-      );
-    }
-
+    const { id: dataPoolId } = await params;
+    const url = new URL(request.url);
+    const documentId = url.searchParams.get('documentId');
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new ChatSDKError('unauthorized:agent').toResponse();
+      return new ChatSDKError('unauthorized:auth').toResponse();
     }
 
-    // Verify agent exists and belongs to user
-    const agent = await getAgentById({
-      id: agentId,
+    if (!documentId) {
+      return new ChatSDKError(
+        'bad_request:database',
+        'Document ID is required',
+      ).toResponse();
+    }
+
+    // Verify the data pool exists and belongs to the user
+    const dataPool = await getDataPoolById({
+      id: dataPoolId,
       userId: session.user.id,
     });
 
-    if (!agent) {
-      return new ChatSDKError('not_found:agent').toResponse();
-    }
-
-    // Get the data pool for this agent
-    const dataPool = await getDataPoolByAgentId({ agentId });
-
     if (!dataPool) {
-      return new ChatSDKError('not_found:agent').toResponse();
+      return new ChatSDKError('not_found:database').toResponse();
     }
 
-    // Delete the document (this will also delete the embeddings since they're stored in the same table)
     await deleteDataPoolDocument({
       id: documentId,
-      dataPoolId: dataPool.id,
+      dataPoolId,
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Document deleted successfully'
     });
-
   } catch (error) {
-    console.error('Error deleting document:', error);
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+
+    console.error('Error deleting document:', error);
+    return new ChatSDKError('bad_request:database').toResponse();
   }
 }

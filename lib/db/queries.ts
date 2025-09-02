@@ -31,6 +31,7 @@ import {
   type Agent,
   dataPool,
   type DataPool,
+  agentDataPool,
   dataPoolDocument,
   type DataPoolDocument,
   workflowNode,
@@ -95,11 +96,13 @@ export async function saveChat({
   userId,
   title,
   visibility,
+  agentId,
 }: {
   id: string;
   userId: string;
   title: string;
   visibility: VisibilityType;
+  agentId?: string;
 }) {
   try {
     return await db.insert(chat).values({
@@ -108,6 +111,7 @@ export async function saveChat({
       userId,
       title,
       visibility,
+      agentId,
     });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to save chat');
@@ -573,10 +577,7 @@ export async function createAgent({
 
     return newAgent;
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to create agent',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to create agent');
   }
 }
 
@@ -614,10 +615,7 @@ export async function getAgentById({
 
     return result || null;
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get agent by ID',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to get agent by ID');
   }
 }
 
@@ -633,29 +631,31 @@ export async function deleteAgent({
       .delete(agent)
       .where(and(eq(agent.id, id), eq(agent.userId, userId)));
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to delete agent',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to delete agent');
   }
 }
 
 // Data pool queries
 export async function createDataPool({
-  agentId,
+  userId,
   name,
+  description,
 }: {
-  agentId: string;
+  userId: string;
   name: string;
+  description?: string;
 }): Promise<DataPool> {
   try {
+    const now = new Date();
     const [newDataPool] = await db
       .insert(dataPool)
       .values({
         id: generateUUID(),
-        agentId,
+        userId,
         name,
-        createdAt: new Date(),
+        description: description || null,
+        createdAt: now,
+        updatedAt: now,
       })
       .returning();
 
@@ -668,22 +668,195 @@ export async function createDataPool({
   }
 }
 
+export async function getDataPoolsByUserId({
+  userId,
+}: {
+  userId: string;
+}): Promise<Array<DataPool>> {
+  try {
+    return await db
+      .select()
+      .from(dataPool)
+      .where(eq(dataPool.userId, userId))
+      .orderBy(desc(dataPool.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get data pools by user ID',
+    );
+  }
+}
+
+export async function getDataPoolById({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}): Promise<DataPool | null> {
+  try {
+    const [result] = await db
+      .select()
+      .from(dataPool)
+      .where(and(eq(dataPool.id, id), eq(dataPool.userId, userId)));
+
+    return result || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get data pool by ID',
+    );
+  }
+}
+
 export async function getDataPoolByAgentId({
   agentId,
 }: {
   agentId: string;
 }): Promise<DataPool | null> {
   try {
+    // For backward compatibility, get the first data pool connected to this agent
     const [result] = await db
-      .select()
+      .select({
+        id: dataPool.id,
+        userId: dataPool.userId,
+        name: dataPool.name,
+        description: dataPool.description,
+        createdAt: dataPool.createdAt,
+        updatedAt: dataPool.updatedAt,
+      })
       .from(dataPool)
-      .where(eq(dataPool.agentId, agentId));
+      .innerJoin(agentDataPool, eq(dataPool.id, agentDataPool.dataPoolId))
+      .where(eq(agentDataPool.agentId, agentId))
+      .limit(1);
 
     return result || null;
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get data pool by agent ID',
+    );
+  }
+}
+
+export async function getDataPoolsByAgentId({
+  agentId,
+}: {
+  agentId: string;
+}): Promise<Array<DataPool>> {
+  try {
+    return await db
+      .select({
+        id: dataPool.id,
+        userId: dataPool.userId,
+        name: dataPool.name,
+        description: dataPool.description,
+        createdAt: dataPool.createdAt,
+        updatedAt: dataPool.updatedAt,
+      })
+      .from(dataPool)
+      .innerJoin(agentDataPool, eq(dataPool.id, agentDataPool.dataPoolId))
+      .where(eq(agentDataPool.agentId, agentId))
+      .orderBy(desc(dataPool.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get data pools by agent ID',
+    );
+  }
+}
+
+export async function connectAgentToDataPool({
+  agentId,
+  dataPoolId,
+}: {
+  agentId: string;
+  dataPoolId: string;
+}): Promise<void> {
+  try {
+    await db
+      .insert(agentDataPool)
+      .values({
+        id: generateUUID(),
+        agentId,
+        dataPoolId,
+        createdAt: new Date(),
+      })
+      .onConflictDoNothing(); // Ignore if connection already exists
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to connect agent to data pool',
+    );
+  }
+}
+
+export async function disconnectAgentFromDataPool({
+  agentId,
+  dataPoolId,
+}: {
+  agentId: string;
+  dataPoolId: string;
+}): Promise<void> {
+  try {
+    await db
+      .delete(agentDataPool)
+      .where(
+        and(
+          eq(agentDataPool.agentId, agentId),
+          eq(agentDataPool.dataPoolId, dataPoolId),
+        ),
+      );
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to disconnect agent from data pool',
+    );
+  }
+}
+
+export async function getAgentsByDataPoolId({
+  dataPoolId,
+}: {
+  dataPoolId: string;
+}): Promise<Array<Agent>> {
+  try {
+    return await db
+      .select({
+        id: agent.id,
+        title: agent.title,
+        description: agent.description,
+        userId: agent.userId,
+        createdAt: agent.createdAt,
+        updatedAt: agent.updatedAt,
+      })
+      .from(agent)
+      .innerJoin(agentDataPool, eq(agent.id, agentDataPool.agentId))
+      .where(eq(agentDataPool.dataPoolId, dataPoolId))
+      .orderBy(desc(agent.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get agents by data pool ID',
+    );
+  }
+}
+
+export async function deleteDataPool({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}): Promise<void> {
+  try {
+    await db
+      .delete(dataPool)
+      .where(and(eq(dataPool.id, id), eq(dataPool.userId, userId)));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete data pool',
     );
   }
 }
@@ -755,10 +928,12 @@ export async function deleteDataPoolDocument({
   try {
     await db
       .delete(dataPoolDocument)
-      .where(and(
-        eq(dataPoolDocument.id, id),
-        eq(dataPoolDocument.dataPoolId, dataPoolId)
-      ));
+      .where(
+        and(
+          eq(dataPoolDocument.id, id),
+          eq(dataPoolDocument.dataPoolId, dataPoolId),
+        ),
+      );
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',

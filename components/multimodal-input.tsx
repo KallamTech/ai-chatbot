@@ -263,7 +263,9 @@ function PureMultimodalInput({
           if (status === 'submitted' || status === 'streaming') {
             toast.error('Please wait for the model to finish its response!');
           } else if (status === 'error') {
-            toast.error('There was an error with the previous request. Please try again.');
+            toast.error(
+              'There was an error with the previous request. Please try again.',
+            );
             submitForm();
           } else {
             submitForm();

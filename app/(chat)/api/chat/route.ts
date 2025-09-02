@@ -25,6 +25,7 @@ import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
 import { createAgent } from '@/lib/ai/tools/create-agent';
+import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import { postRequestBodySchema, type PostRequestBody } from './schema';
@@ -150,7 +151,7 @@ export async function POST(request: Request) {
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
-    const stream = createUIMessageStream({
+    const stream =  createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
@@ -170,6 +171,8 @@ export async function POST(request: Request) {
                   'updateDocument',
                   'requestSuggestions',
                   'createAgent',
+                  'webSearch',
+                  'newsSearch',
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
@@ -181,6 +184,8 @@ export async function POST(request: Request) {
               dataStream,
             }),
             createAgent: createAgent({ session, dataStream }),
+            webSearch: webSearch(),
+            newsSearch: newsSearch(),
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,

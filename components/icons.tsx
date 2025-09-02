@@ -1173,7 +1173,10 @@ export const WarningIcon = ({ size = 16 }: { size?: number }) => {
   );
 };
 
-export const BrainIcon = ({ size = 16, className }: { size?: number; className?: string }) => (
+export const BrainIcon = ({
+  size = 16,
+  className,
+}: { size?: number; className?: string }) => (
   <svg
     height={size}
     strokeLinejoin="round"

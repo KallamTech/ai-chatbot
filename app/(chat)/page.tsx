@@ -18,24 +18,7 @@ export default async function Page() {
 
   const cookieStore = await cookies();
   const modelIdFromCookie = cookieStore.get('chat-model');
-
-  if (!modelIdFromCookie) {
-    return (
-      <>
-        <Chat
-          key={id}
-          id={id}
-          initialMessages={[]}
-          initialChatModel={DEFAULT_CHAT_MODEL}
-          initialVisibilityType="private"
-          isReadonly={false}
-          session={session}
-          autoResume={false}
-        />
-        <DataStreamHandler />
-      </>
-    );
-  }
+  const selectedModel = modelIdFromCookie?.value || DEFAULT_CHAT_MODEL;
 
   return (
     <>
@@ -43,13 +26,13 @@ export default async function Page() {
         key={id}
         id={id}
         initialMessages={[]}
-        initialChatModel={modelIdFromCookie.value}
+        initialChatModel={selectedModel}
         initialVisibilityType="private"
         isReadonly={false}
         session={session}
         autoResume={false}
       />
-      <DataStreamHandler />
+      <DataStreamHandler chatId={id} />
     </>
   );
 }

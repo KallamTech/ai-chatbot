@@ -11,21 +11,21 @@ import { getDocumentTimestampByIndex } from '@/lib/utils';
 
 import { LoaderIcon } from './icons';
 import { Button } from './ui/button';
-import { useArtifact } from '@/hooks/use-artifact';
+import type { UIArtifact } from './artifact';
 
 interface VersionFooterProps {
   handleVersionChange: (type: 'next' | 'prev' | 'toggle' | 'latest') => void;
   documents: Array<Document> | undefined;
   currentVersionIndex: number;
+  artifact: UIArtifact;
 }
 
 export const VersionFooter = ({
   handleVersionChange,
   documents,
   currentVersionIndex,
+  artifact,
 }: VersionFooterProps) => {
-  const { artifact } = useArtifact();
-
   const { width } = useWindowSize();
   const isMobile = width < 768;
 

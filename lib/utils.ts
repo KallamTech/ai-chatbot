@@ -118,16 +118,18 @@ export function getTextFromMessage(message: ChatMessage): string {
 }
 
 // Embedding utilities
-export async function generateEmbedding(text: string): Promise<number[] | undefined> {
+export async function generateEmbedding(
+  text: string,
+): Promise<number[] | undefined> {
   try {
     const { embedding } = await embed({
       model: myProvider.textEmbeddingModel(ModelId.COHERE_EMBED_V4),
       value: text,
       providerOptions: {
         cohere: {
-          inputType: 'search_query'
-        }
-      }
+          inputType: 'search_query',
+        },
+      },
     });
 
     return embedding || undefined;
@@ -137,16 +139,18 @@ export async function generateEmbedding(text: string): Promise<number[] | undefi
   }
 }
 
-export async function generateDocumentEmbedding(text: string): Promise<number[] | undefined> {
+export async function generateDocumentEmbedding(
+  text: string,
+): Promise<number[] | undefined> {
   try {
     const { embedding } = await embed({
       model: myProvider.textEmbeddingModel(ModelId.COHERE_EMBED_V4),
       value: text,
       providerOptions: {
         cohere: {
-          inputType: 'search_document'
-        }
-      }
+          inputType: 'search_document',
+        },
+      },
     });
 
     return embedding || undefined;

@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -18,6 +19,20 @@ export const user = pgTable('User', {
 });
 
 export type User = InferSelectModel<typeof user>;
+
+// Agent table - defined before chat to allow foreign key reference
+export const agent = pgTable('Agent', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+});
+
+export type Agent = InferSelectModel<typeof agent>;
 
 export const chat = pgTable('Chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
@@ -29,6 +44,7 @@ export const chat = pgTable('Chat', {
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
+  agentId: uuid('agentId').references(() => agent.id, { onDelete: 'set null' }),
 });
 
 export type Chat = InferSelectModel<typeof chat>;
@@ -169,30 +185,38 @@ export const stream = pgTable(
 
 export type Stream = InferSelectModel<typeof stream>;
 
-// Agent-related tables
-export const agent = pgTable('Agent', {
+export const dataPool = pgTable('DataPool', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  title: text('title').notNull(),
-  description: text('description').notNull(),
   userId: uuid('userId')
     .notNull()
-    .references(() => user.id),
+    .references(() => user.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
 });
 
-export type Agent = InferSelectModel<typeof agent>;
-
-export const dataPool = pgTable('DataPool', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  agentId: uuid('agentId')
-    .notNull()
-    .references(() => agent.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  createdAt: timestamp('createdAt').notNull(),
-});
-
 export type DataPool = InferSelectModel<typeof dataPool>;
+
+// Junction table for many-to-many relationship between agents and data pools
+export const agentDataPool = pgTable(
+  'AgentDataPool',
+  {
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
+    agentId: uuid('agentId')
+      .notNull()
+      .references(() => agent.id, { onDelete: 'cascade' }),
+    dataPoolId: uuid('dataPoolId')
+      .notNull()
+      .references(() => dataPool.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('createdAt').notNull(),
+  },
+  (table) => ({
+    agentDataPoolUnique: unique().on(table.agentId, table.dataPoolId),
+  }),
+);
+
+export type AgentDataPool = InferSelectModel<typeof agentDataPool>;
 
 export const dataPoolDocument = pgTable('DataPoolDocument', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
@@ -217,7 +241,9 @@ export const workflowNode = pgTable('WorkflowNode', {
   description: text('description').notNull(),
   systemPrompt: text('systemPrompt').notNull(),
   position: json('position').notNull(), // Store x, y coordinates for visual representation
-  nodeType: varchar('nodeType', { enum: ['rag', 'transform', 'filter', 'aggregate'] })
+  nodeType: varchar('nodeType', {
+    enum: ['rag', 'transform', 'filter', 'aggregate'],
+  })
     .notNull()
     .default('transform'),
   config: json('config'), // Store node-specific configuration

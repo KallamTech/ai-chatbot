@@ -120,4 +120,23 @@ export const chatModels: Array<ChatModel> = [
     provider: 'Google',
     supportsImages: true,
   },
+  {
+    id: ModelId.PERPLEXITY_SONAR_PRO,
+    name: 'Sonar Pro',
+    description: 'Perplexity advanced model with web search capabilities',
+    provider: 'Perplexity',
+  },
+  {
+    id: ModelId.PERPLEXITY_SONAR,
+    name: 'Sonar',
+    description: 'Perplexity model with real-time web search',
+    provider: 'Perplexity',
+  },
+  {
+    id: ModelId.PERPLEXITY_SONAR_REASONING,
+    name: 'Sonar Reasoning',
+    description: 'Perplexity model with web search and reasoning capabilities',
+    provider: 'Perplexity',
+    hasReasoning: true,
+  },
 ];

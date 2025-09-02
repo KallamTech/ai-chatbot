@@ -1,18 +1,18 @@
 import { redirect, notFound } from 'next/navigation';
 import { auth } from '@/app/(auth)/auth';
-import { 
-  getAgentById, 
+import {
+  getAgentById,
   getWorkflowNodesByAgentId,
-  getWorkflowEdgesByAgentId 
+  getWorkflowEdgesByAgentId,
 } from '@/lib/db/queries';
 import { AgentDetails } from '@/components/agent-details';
 
 interface AgentPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ agentId: string }>;
 }
 
 export default async function AgentPage({ params }: AgentPageProps) {
-  const { id } = await params;
+  const { agentId } = await params;
   const session = await auth();
 
   if (!session) {
@@ -24,7 +24,7 @@ export default async function AgentPage({ params }: AgentPageProps) {
   }
 
   const agent = await getAgentById({
-    id,
+    id: agentId,
     userId: session.user.id,
   });
 
@@ -33,14 +33,14 @@ export default async function AgentPage({ params }: AgentPageProps) {
   }
 
   const [workflowNodes, workflowEdges] = await Promise.all([
-    getWorkflowNodesByAgentId({ agentId: id }),
-    getWorkflowEdgesByAgentId({ agentId: id }),
+    getWorkflowNodesByAgentId({ agentId }),
+    getWorkflowEdgesByAgentId({ agentId }),
   ]);
 
   return (
     <div className="flex flex-col h-full max-w-6xl mx-auto p-4">
-      <AgentDetails 
-        agent={agent} 
+      <AgentDetails
+        agent={agent}
         workflowNodes={workflowNodes}
         workflowEdges={workflowEdges}
       />

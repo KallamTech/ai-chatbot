@@ -5,10 +5,10 @@ import { artifactDefinitions } from './artifact';
 import { initialArtifactData, useArtifact } from '@/hooks/use-artifact';
 import { useDataStream } from './data-stream-provider';
 
-export function DataStreamHandler() {
+export function DataStreamHandler({ chatId }: { chatId: string }) {
   const { dataStream } = useDataStream();
 
-  const { artifact, setArtifact, setMetadata } = useArtifact();
+  const { artifact, setArtifact, setMetadata } = useArtifact(chatId);
   const lastProcessedIndex = useRef(-1);
 
   useEffect(() => {

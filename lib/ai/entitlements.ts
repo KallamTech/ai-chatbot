@@ -13,10 +13,7 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
    */
   guest: {
     maxMessagesPerDay: 20,
-    availableChatModelIds: [
-      ModelId.GPT_4_1_MINI,
-      ModelId.O4_MINI,
-    ],
+    availableChatModelIds: [ModelId.GPT_4_1_MINI, ModelId.O4_MINI],
   },
 
   /*
@@ -39,6 +36,9 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
       ModelId.CLAUDE_SONNET_3_7,
       ModelId.CLAUDE_SONNET_4_REASONING,
       ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
+      ModelId.PERPLEXITY_SONAR_PRO,
+      ModelId.PERPLEXITY_SONAR,
+      ModelId.PERPLEXITY_SONAR_REASONING,
     ],
   },
 

@@ -25,10 +25,16 @@ import {
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
+import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
+import { createDocument } from '@/lib/ai/tools/create-document';
+import { updateDocument } from '@/lib/ai/tools/update-document';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
-import { postRequestBodySchema, type PostRequestBody } from '@/app/(chat)/api/chat/schema';
-import { geolocation } from '@vercel/functions';
+import {
+  postRequestBodySchema,
+  type PostRequestBody,
+} from '@/app/(chat)/api/chat/schema';
+//import { geolocation } from '@vercel/functions';
 import {
   createResumableStreamContext,
   type ResumableStreamContext,
@@ -65,7 +71,7 @@ function getStreamContext() {
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: agentId } = await params;
   let requestBody: PostRequestBody;
@@ -142,6 +148,7 @@ export async function POST(
         userId: session.user.id,
         title: `${agent.title}: ${title}`, // AGENT-SPECIFIC: Add agent name to title
         visibility: selectedVisibilityType,
+        agentId: agent.id, // AGENT-SPECIFIC: Associate chat with agent
       });
     } else {
       if (chat.userId !== session.user.id) {
@@ -152,7 +159,7 @@ export async function POST(
     const messagesFromDb = await getMessagesByChatId({ id });
     const uiMessages = [...convertToUIMessages(messagesFromDb), message];
 
-    const { longitude, latitude, city, country } = geolocation(request);
+    //const { longitude, latitude, city, country } = geolocation(request);
 
     await saveMessages({
       messages: [
@@ -170,16 +177,25 @@ export async function POST(
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id });
 
-    // AGENT-SPECIFIC: Create agent system prompt and tools
-    const agentTools = createAgentTools(workflowNodes, dataPool);
-    const agentSystemPrompt = createAgentSystemPrompt(agent, workflowNodes, agentTools);
-
-    console.log('Agent chat: Created tools:', Object.keys(agentTools));
-    console.log('Agent chat: Data pool exists:', !!dataPool);
-    console.log('Agent chat: Data pool ID:', dataPool?.id);
-
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
+        // AGENT-SPECIFIC: Create agent system prompt and tools
+        const agentTools = createAgentTools(
+          workflowNodes,
+          dataPool,
+          session,
+          dataStream,
+        );
+        const agentSystemPrompt = createAgentSystemPrompt(
+          agent,
+          workflowNodes,
+          agentTools,
+        );
+
+        console.log('Agent chat: Created tools:', Object.keys(agentTools));
+        console.log('Agent chat: Data pool exists:', !!dataPool);
+        console.log('Agent chat: Data pool ID:', dataPool?.id);
+
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: agentSystemPrompt, // AGENT-SPECIFIC: Use agent system prompt
@@ -236,10 +252,10 @@ export async function POST(
       return error.toResponse();
     }
     console.error('Unexpected error in agent chat:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
 
@@ -247,11 +263,27 @@ export async function POST(
 function createAgentSystemPrompt(
   agent: any,
   workflowNodes: any[],
-  agentTools: any
+  agentTools: any,
 ): string {
   const nodePrompts = workflowNodes
-    .map(node => `- ${node.name}: ${node.systemPrompt}`)
+    .map((node) => `- ${node.name}: ${node.systemPrompt}`)
     .join('\n');
+
+  // Check which tools are available
+  const hasWebSearch = 'webSearch' in agentTools;
+  const hasNewsSearch = 'newsSearch' in agentTools;
+  const hasDocumentTools = 'createDocument' in agentTools;
+
+  const webSearchCapabilities =
+    hasWebSearch || hasNewsSearch
+      ? `- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
+- You can search for the latest news using the newsSearch tool (for current events and breaking news)`
+      : '';
+
+  const documentCapabilities = hasDocumentTools
+    ? `- You can create new documents using the createDocument tool
+- You can update existing documents using the updateDocument tool`
+    : '';
 
   return `You are "${agent.title}", an AI agent with specific capabilities.
 
@@ -267,7 +299,7 @@ IMPORTANT CAPABILITIES:
 - You can get detailed metadata about documents using the getDocumentMetadata tool
 - You can search within specific documents using the searchSpecificDocument tool
 - You can access and analyze any documents that have been uploaded to your data pool
-- You can summarize, extract information, and answer questions about your documents
+- You can summarize, extract information, and answer questions about your documents${webSearchCapabilities ? '\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n' + documentCapabilities : ''}
 
 IMPORTANT CONSTRAINTS:
 - You can ONLY perform tasks related to your defined workflow nodes
@@ -288,12 +320,28 @@ IMAGE SEARCH GUIDELINES:
 - Images are more abstract, so lower thresholds work better than text
 - Always specify searchImages: true when looking for charts, graphs, diagrams, or visual content
 
+WEB SEARCH GUIDELINES:${
+    hasWebSearch || hasNewsSearch
+      ? `
+- Use webSearch tool when users ask for current events, recent developments, or real-time information
+- Use newsSearch tool specifically for breaking news and current affairs
+- Choose search type: 'general' for broad topics, 'news' for current events, 'academic' for research, 'recent' for latest updates
+- Always use websearch when the information needed is not in your data pool or requires up-to-date information`
+      : `
+- Web search tools are not available for this agent`
+  }
+
 CRITICAL INSTRUCTION: When a user asks about documents or content, you MUST use the appropriate search tools to find relevant information in your data pool. Do not say you cannot access documents - use the search tools first.
 
 Available tools: ${Object.keys(agentTools).join(', ')}`;
 }
 
-function createAgentTools(workflowNodes: any[], dataPool: any) {
+function createAgentTools(
+  workflowNodes: any[],
+  dataPool: any,
+  session: any,
+  dataStream: any,
+) {
   const tools: any = {};
 
   console.log('createAgentTools: Creating tools for data pool:', !!dataPool);
@@ -303,12 +351,25 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
     // Always provide document search if there's a data pool (regardless of workflow nodes)
     // Create a bound RAG search tool with the specific data pool ID
     tools.searchDocuments = tool({
-      description: 'Search through documents in your data pool using semantic similarity',
+      description:
+        'Search through documents in your data pool using semantic similarity',
       inputSchema: z.object({
         query: z.string().describe('Search query'),
-        limit: z.number().optional().default(10).describe('Maximum number of results to return'),
-        threshold: z.number().optional().default(0.3).describe('Minimum similarity threshold (0.5 for balanced results)'),
-        searchImages: z.boolean().optional().default(false).describe('Whether to prioritize image content in search'),
+        limit: z
+          .number()
+          .optional()
+          .default(10)
+          .describe('Maximum number of results to return'),
+        threshold: z
+          .number()
+          .optional()
+          .default(0.3)
+          .describe('Minimum similarity threshold (0.5 for balanced results)'),
+        searchImages: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe('Whether to prioritize image content in search'),
       }),
       execute: async ({ query, limit, threshold, searchImages }) => {
         console.log('Agent chat: Searching documents with query:', query);
@@ -319,7 +380,10 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
         if (searchImages) {
           // Lower threshold for images since they're more abstract
           adjustedThreshold = Math.min(threshold, 0.1);
-          console.log('Agent chat: Image search detected, adjusted threshold to:', adjustedThreshold);
+          console.log(
+            'Agent chat: Image search detected, adjusted threshold to:',
+            adjustedThreshold,
+          );
         }
 
         // Use the ragSearch tool but bind it to this specific data pool
@@ -330,7 +394,7 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
           limit,
           threshold: adjustedThreshold,
           // Add image-specific filtering if requested
-          ...(searchImages && { documentType: 'extracted_image' })
+          ...(searchImages && { documentType: 'extracted_image' }),
         });
 
         console.log('Agent chat: Search result:', result);
@@ -338,19 +402,30 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
       },
     });
 
-        // Add tool for finding documents by title/filename
+    // Add tool for finding documents by title/filename
     tools.findDocumentByTitle = tool({
-      description: 'Find a specific document by its title, filename, or partial name match',
+      description:
+        'Find a specific document by its title, filename, or partial name match',
       inputSchema: z.object({
-        title: z.string().describe('Document title, filename, or partial name to search for'),
-        exactMatch: z.boolean().optional().default(false).describe('Whether to require an exact match or allow partial matches'),
+        title: z
+          .string()
+          .describe('Document title, filename, or partial name to search for'),
+        exactMatch: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            'Whether to require an exact match or allow partial matches',
+          ),
       }),
       execute: async ({ title, exactMatch }) => {
         console.log('Agent chat: Finding document by title:', title);
 
         try {
           // Get documents directly from database
-          const documents = await getDataPoolDocuments({ dataPoolId: dataPool.id });
+          const documents = await getDataPoolDocuments({
+            dataPoolId: dataPool.id,
+          });
 
           // Search through documents
           const matches = documents.filter((doc: any) => {
@@ -362,9 +437,11 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
             if (exactMatch) {
               return docTitle === searchTitle || fileName === searchTitle;
             } else {
-              return docTitle.includes(searchTitle) ||
-                     fileName.includes(searchTitle) ||
-                     searchTags.some((tag: string) => tag.includes(searchTitle));
+              return (
+                docTitle.includes(searchTitle) ||
+                fileName.includes(searchTitle) ||
+                searchTags.some((tag: string) => tag.includes(searchTitle))
+              );
             }
           });
 
@@ -372,7 +449,7 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
             return {
               found: false,
               message: `No documents found matching "${title}"`,
-              suggestions: documents.map((doc: any) => doc.title).slice(0, 5)
+              suggestions: documents.map((doc: any) => doc.title).slice(0, 5),
             };
           }
 
@@ -383,37 +460,42 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
               id: doc.id,
               title: doc.title,
               metadata: doc.metadata,
-              createdAt: doc.createdAt
-            }))
+              createdAt: doc.createdAt,
+            })),
           };
         } catch (error) {
           console.error('Error finding document by title:', error);
           return {
             found: false,
-            error: 'Failed to search documents'
+            error: 'Failed to search documents',
           };
         }
       },
     });
 
-        // Add tool for getting document metadata
+    // Add tool for getting document metadata
     tools.getDocumentMetadata = tool({
-      description: 'Get detailed metadata and information about a specific document',
+      description:
+        'Get detailed metadata and information about a specific document',
       inputSchema: z.object({
-        documentId: z.string().describe('ID of the document to get metadata for'),
+        documentId: z
+          .string()
+          .describe('ID of the document to get metadata for'),
       }),
       execute: async ({ documentId }) => {
         console.log('Agent chat: Getting metadata for document:', documentId);
 
         try {
           // Get documents directly from database
-          const documents = await getDataPoolDocuments({ dataPoolId: dataPool.id });
+          const documents = await getDataPoolDocuments({
+            dataPoolId: dataPool.id,
+          });
           const document = documents.find((doc: any) => doc.id === documentId);
 
           if (!document) {
             return {
               found: false,
-              message: `Document with ID ${documentId} not found`
+              message: `Document with ID ${documentId} not found`,
             };
           }
 
@@ -423,38 +505,52 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
               id: document.id,
               title: document.title,
               metadata: document.metadata,
-              createdAt: document.createdAt
-            }
+              createdAt: document.createdAt,
+            },
           };
         } catch (error) {
           console.error('Error getting document metadata:', error);
           return {
             found: false,
-            error: 'Failed to get document metadata'
+            error: 'Failed to get document metadata',
           };
         }
       },
     });
 
-        // Add tool for targeted document search
+    // Add tool for targeted document search
     tools.searchSpecificDocument = tool({
-      description: 'Search within a specific document by ID, useful when you know which document to analyze',
+      description:
+        'Search within a specific document by ID, useful when you know which document to analyze',
       inputSchema: z.object({
-        documentId: z.string().describe('ID of the specific document to search within'),
-        query: z.string().describe('Search query to find specific content within the document'),
+        documentId: z
+          .string()
+          .describe('ID of the specific document to search within'),
+        query: z
+          .string()
+          .describe(
+            'Search query to find specific content within the document',
+          ),
       }),
       execute: async ({ documentId, query }) => {
-        console.log('Agent chat: Searching within specific document:', documentId, 'query:', query);
+        console.log(
+          'Agent chat: Searching within specific document:',
+          documentId,
+          'query:',
+          query,
+        );
 
         try {
           // First get the document metadata directly from database
-          const documents = await getDataPoolDocuments({ dataPoolId: dataPool.id });
+          const documents = await getDataPoolDocuments({
+            dataPoolId: dataPool.id,
+          });
           const document = documents.find((doc: any) => doc.id === documentId);
 
           if (!document) {
             return {
               found: false,
-              message: `Document with ID ${documentId} not found`
+              message: `Document with ID ${documentId} not found`,
             };
           }
 
@@ -467,7 +563,7 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
             threshold: 0.2, // Lower threshold for specific document search
             documentType: (document.metadata as any)?.documentType, // Filter by document type
             fileName: (document.metadata as any)?.fileName, // Filter by filename
-            tags: (document.metadata as any)?.searchTags // Filter by search tags
+            tags: (document.metadata as any)?.searchTags, // Filter by search tags
           });
 
           return {
@@ -475,15 +571,15 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
             document: {
               id: document.id,
               title: document.title,
-              metadata: document.metadata
+              metadata: document.metadata,
             },
-            searchResults: result
+            searchResults: result,
           };
         } catch (error) {
           console.error('Error searching specific document:', error);
           return {
             found: false,
-            error: 'Failed to search within document'
+            error: 'Failed to search within document',
           };
         }
       },
@@ -491,11 +587,24 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
 
     // Add dedicated image search tool with appropriate thresholds
     tools.searchImages = tool({
-      description: 'Search specifically for images and visual content in your data pool',
+      description:
+        'Search specifically for images and visual content in your data pool',
       inputSchema: z.object({
-        query: z.string().describe('Search query for images (e.g., "charts", "graphs", "diagrams")'),
-        limit: z.number().optional().default(5).describe('Maximum number of image results to return'),
-        threshold: z.number().optional().default(0.1).describe('Similarity threshold (0.1 recommended for images)'),
+        query: z
+          .string()
+          .describe(
+            'Search query for images (e.g., "charts", "graphs", "diagrams")',
+          ),
+        limit: z
+          .number()
+          .optional()
+          .default(5)
+          .describe('Maximum number of image results to return'),
+        threshold: z
+          .number()
+          .optional()
+          .default(0.1)
+          .describe('Similarity threshold (0.1 recommended for images)'),
       }),
       execute: async ({ query, limit, threshold }) => {
         console.log('Agent chat: Searching for images with query:', query);
@@ -513,27 +622,57 @@ function createAgentTools(workflowNodes: any[], dataPool: any) {
           return {
             ...result,
             searchType: 'image_search',
-            recommendedThreshold: '0.1 for comprehensive image results'
+            recommendedThreshold: '0.1 for comprehensive image results',
           };
         } catch (error) {
           console.error('Error searching images:', error);
           return {
             error: 'Failed to search images',
-            searchType: 'image_search'
+            searchType: 'image_search',
           };
         }
       },
     });
 
-    console.log('createAgentTools: Created searchDocuments and searchImages tools');
+    console.log(
+      'createAgentTools: Created searchDocuments and searchImages tools',
+    );
   } else {
-    console.log('createAgentTools: No data pool found, cannot create search tools');
+    console.log(
+      'createAgentTools: No data pool found, cannot create search tools',
+    );
   }
 
   // TODO: Add more tools based on other node types:
   // - transform: text processing tools
   // - filter: data filtering tools
   // - aggregate: data aggregation tools
+
+  // Add tools based on workflow node types
+  const nodeTypes = workflowNodes
+    .map((node) => node.nodeType?.toLowerCase())
+    .filter(Boolean);
+
+  // Add websearch tools if there are any search or web-related nodes
+  if (
+    nodeTypes.some((type) =>
+      ['search', 'web', 'news', 'research'].includes(type),
+    )
+  ) {
+    tools.webSearch = webSearch();
+    tools.newsSearch = newsSearch();
+    console.log(
+      'createAgentTools: Added websearch tools based on workflow nodes',
+    );
+  }
+
+  // Add document management tools (always available for agents like main chat)
+  tools.createDocument = createDocument({ session, dataStream });
+  tools.updateDocument = updateDocument({ session, dataStream });
+
+  console.log(
+    'createAgentTools: Added document management tools (createDocument, updateDocument)',
+  );
 
   return tools;
 }
