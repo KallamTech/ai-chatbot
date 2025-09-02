@@ -360,26 +360,21 @@ function createAgentTools(
           .optional()
           .default(10)
           .describe('Maximum number of results to return'),
-        threshold: z
-          .number()
-          .optional()
-          .default(0.3)
-          .describe('Minimum similarity threshold (0.5 for balanced results)'),
         searchImages: z
           .boolean()
           .optional()
           .default(false)
           .describe('Whether to prioritize image content in search'),
       }),
-      execute: async ({ query, limit, threshold, searchImages }) => {
+      execute: async ({ query, limit, searchImages }) => {
         console.log('Agent chat: Searching documents with query:', query);
         console.log('Agent chat: Data pool ID:', dataPool.id);
-
+        const defaultThreshold = 0.3;
         // Adjust threshold based on search type
-        let adjustedThreshold = threshold;
+        let adjustedThreshold = defaultThreshold;
         if (searchImages) {
           // Lower threshold for images since they're more abstract
-          adjustedThreshold = Math.min(threshold, 0.1);
+          adjustedThreshold = Math.min(defaultThreshold, 0.1);
           console.log(
             'Agent chat: Image search detected, adjusted threshold to:',
             adjustedThreshold,

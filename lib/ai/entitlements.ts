@@ -35,7 +35,6 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
       ModelId.GROK_3_MINI,
       ModelId.CLAUDE_SONNET_3_7,
       ModelId.CLAUDE_SONNET_4_REASONING,
-      ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
       ModelId.PERPLEXITY_SONAR_PRO,
       ModelId.PERPLEXITY_SONAR,
       ModelId.PERPLEXITY_SONAR_REASONING,
