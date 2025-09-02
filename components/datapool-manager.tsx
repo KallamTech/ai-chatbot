@@ -624,7 +624,7 @@ export function DataPoolManager({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <FileTextIcon size={16} />
-                  <span>Click "Add Documents" to select files from your computer</span>
+                  <span>Click &quot;Add Documents&quot; to select files from your computer</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
