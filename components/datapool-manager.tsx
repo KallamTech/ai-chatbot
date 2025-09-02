@@ -131,6 +131,7 @@ export function DataPoolManager({
   const [disconnectingAgentId, setDisconnectingAgentId] = useState<
     string | null
   >(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadConnectedAgents = useCallback(async () => {
@@ -174,10 +175,7 @@ export function DataPoolManager({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
-      // Automatically trigger upload when files are selected
-      handleUpload();
-    }
+    setSelectedFiles(files);
   };
 
   const handleUpload = async () => {
@@ -232,6 +230,7 @@ export function DataPoolManager({
 
       // Reset form
       fileInput.value = '';
+      setSelectedFiles(null);
 
       // Show results
       if (errorCount === 0) {
@@ -572,40 +571,93 @@ export function DataPoolManager({
           />
 
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <FileTextIcon size={16} />
-              <span>Click "Add Documents" to select files from your computer</span>
-            </div>
+            {selectedFiles && selectedFiles.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <FileTextIcon size={16} />
+                  <span>{selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected</span>
+                </div>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {Array.from(selectedFiles).map((file, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm bg-background p-2 rounded border">
+                      <FileTextIcon size={14} />
+                      <span className="truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isUploading ? (
+                      <>
+                        <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <UploadIcon size={16} className="mr-2" />
+                        Upload Files
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedFiles(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    disabled={isUploading}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileTextIcon size={16} />
+                  <span>Click "Add Documents" to select files from your computer</span>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              <div>
-                <p className="font-medium text-foreground mb-1">Supported Formats:</p>
-                <p className="text-muted-foreground">
-                  .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
-                </p>
-              </div>
-              <div>
-                <p className="font-medium text-foreground mb-1">Processing:</p>
-                <p className="text-muted-foreground">
-                  Multiple files supported • Auto-generated titles
-                </p>
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="font-medium text-foreground mb-1">Supported Formats:</p>
+                    <p className="text-muted-foreground">
+                      .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground mb-1">Processing:</p>
+                    <p className="text-muted-foreground">
+                      Multiple files supported • Auto-generated titles
+                    </p>
+                  </div>
+                </div>
 
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2 text-green-600">
-                <span>✅</span>
-                <span>Text files are processed immediately</span>
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <span>✅</span>
+                    <span>Text files are processed immediately</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-orange-600">
+                    <span>📄</span>
+                    <span>PDFs use OCR and multimodal embeddings</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <span>⚠️</span>
+                    <span>Binary files stored as metadata only</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-orange-600">
-                <span>📄</span>
-                <span>PDFs use OCR and multimodal embeddings</span>
-              </div>
-              <div className="flex items-center gap-2 text-blue-600">
-                <span>⚠️</span>
-                <span>Binary files stored as metadata only</span>
-              </div>
-            </div>
+            )}
           </div>
         </Card>
 
