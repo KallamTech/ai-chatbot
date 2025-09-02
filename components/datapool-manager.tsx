@@ -575,11 +575,17 @@ export function DataPoolManager({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-green-600">
                   <FileTextIcon size={16} />
-                  <span>{selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} selected</span>
+                  <span>
+                    {selectedFiles.length} file
+                    {selectedFiles.length !== 1 ? 's' : ''} selected
+                  </span>
                 </div>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {Array.from(selectedFiles).map((file, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm bg-background p-2 rounded border">
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-sm bg-background p-2 rounded border"
+                    >
                       <FileTextIcon size={14} />
                       <span className="truncate">{file.name}</span>
                       <span className="text-xs text-muted-foreground">
@@ -624,18 +630,25 @@ export function DataPoolManager({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <FileTextIcon size={16} />
-                  <span>Click &quot;Add Documents&quot; to select files from your computer</span>
+                  <span>
+                    Click &quot;Add Documents&quot; to select files from your
+                    computer
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   <div>
-                    <p className="font-medium text-foreground mb-1">Supported Formats:</p>
+                    <p className="font-medium text-foreground mb-1">
+                      Supported Formats:
+                    </p>
                     <p className="text-muted-foreground">
                       .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
                     </p>
                   </div>
                   <div>
-                    <p className="font-medium text-foreground mb-1">Processing:</p>
+                    <p className="font-medium text-foreground mb-1">
+                      Processing:
+                    </p>
                     <p className="text-muted-foreground">
                       Multiple files supported • Auto-generated titles
                     </p>

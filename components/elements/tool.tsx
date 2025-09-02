@@ -18,7 +18,10 @@ import {
 } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import { CodeBlock } from './code-block';
-import { LoadingIndicator, getContextualLoadingMessage } from '../loading-indicator';
+import {
+  LoadingIndicator,
+  getContextualLoadingMessage,
+} from '../loading-indicator';
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -118,12 +121,18 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
 // Loading state component for tools
 export const ToolLoadingState = ({
   toolType,
-  className
+  className,
 }: {
   toolType?: string;
   className?: string;
 }) => {
-  const getContext = (): 'search' | 'document' | 'python' | 'agent' | 'tool' | 'general' => {
+  const getContext = ():
+    | 'search'
+    | 'document'
+    | 'python'
+    | 'agent'
+    | 'tool'
+    | 'general' => {
     if (toolType?.includes('search')) return 'search';
     if (toolType?.includes('document')) return 'document';
     if (toolType?.includes('python')) return 'python';

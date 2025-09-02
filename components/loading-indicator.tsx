@@ -23,10 +23,7 @@ const LoadingDots = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
       {[0, 1, 2].map((index) => (
         <motion.div
           key={index}
-          className={cn(
-            'bg-muted-foreground rounded-full',
-            dotSizes[size]
-          )}
+          className={cn('bg-muted-foreground rounded-full', dotSizes[size])}
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.5, 1, 0.5],
@@ -52,10 +49,7 @@ const LoadingPulse = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
 
   return (
     <motion.div
-      className={cn(
-        'bg-muted-foreground rounded-full',
-        sizes[size]
-      )}
+      className={cn('bg-muted-foreground rounded-full', sizes[size])}
       animate={{
         scale: [1, 1.2, 1],
         opacity: [0.5, 1, 0.5],
@@ -81,10 +75,7 @@ const LoadingWave = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
       {[0, 1, 2, 3, 4].map((index) => (
         <motion.div
           key={index}
-          className={cn(
-            'bg-muted-foreground rounded-full',
-            barSizes[size]
-          )}
+          className={cn('bg-muted-foreground rounded-full', barSizes[size])}
           animate={{
             height: ['25%', '100%', '25%'],
             opacity: [0.5, 1, 0.5],
@@ -120,10 +111,7 @@ export const LoadingIndicator = ({
 
   return (
     <motion.div
-      className={cn(
-        'flex items-center gap-3 text-muted-foreground',
-        className
-      )}
+      className={cn('flex items-center gap-3 text-muted-foreground', className)}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -146,7 +134,14 @@ export const LoadingIndicator = ({
 
 // Contextual loading messages for different scenarios
 export const getContextualLoadingMessage = (
-  context: 'thinking' | 'agent' | 'tool' | 'search' | 'document' | 'python' | 'general'
+  context:
+    | 'thinking'
+    | 'agent'
+    | 'tool'
+    | 'search'
+    | 'document'
+    | 'python'
+    | 'general',
 ): string => {
   const messages = {
     thinking: [
@@ -204,13 +199,20 @@ export const AnimatedThinking = ({
   size = 'md',
   className,
 }: {
-  context?: 'thinking' | 'agent' | 'tool' | 'search' | 'document' | 'python' | 'general';
+  context?:
+    | 'thinking'
+    | 'agent'
+    | 'tool'
+    | 'search'
+    | 'document'
+    | 'python'
+    | 'general';
   variant?: 'dots' | 'pulse' | 'wave';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }) => {
   const [currentMessage, setCurrentMessage] = useState(
-    getContextualLoadingMessage(context)
+    getContextualLoadingMessage(context),
   );
 
   useEffect(() => {
