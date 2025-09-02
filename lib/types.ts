@@ -5,6 +5,7 @@ import type { updateDocument } from './ai/tools/update-document';
 import type { requestSuggestions } from './ai/tools/request-suggestions';
 import type { createAgent } from './ai/tools/create-agent';
 import type { webSearch, newsSearch } from './ai/tools/websearch';
+import type { pythonRuntime } from './ai/tools/python-runtime';
 import type { InferUITool, UIMessage } from 'ai';
 
 import type { ArtifactKind } from '@/components/artifact';
@@ -27,6 +28,7 @@ type requestSuggestionsTool = InferUITool<
 type createAgentTool = InferUITool<ReturnType<typeof createAgent>>;
 type webSearchTool = InferUITool<ReturnType<typeof webSearch>>;
 type newsSearchTool = InferUITool<ReturnType<typeof newsSearch>>;
+type pythonRuntimeTool = InferUITool<ReturnType<typeof pythonRuntime>>;
 
 // Agent-specific tools (dynamically created)
 type searchDocumentsTool = {
@@ -154,6 +156,7 @@ export type ChatTools = {
   createAgent: createAgentTool;
   webSearch: webSearchTool;
   newsSearch: newsSearchTool;
+  pythonRuntime: pythonRuntimeTool;
   // Agent-specific tools
   searchDocuments: searchDocumentsTool;
   findDocumentByTitle: findDocumentByTitleTool;
@@ -167,6 +170,20 @@ export type CustomUIDataTypes = {
   imageDelta: string;
   sheetDelta: string;
   codeDelta: string;
+  codeExecution: {
+    status:
+      | 'starting'
+      | 'loading_packages'
+      | 'completed'
+      | 'error'
+      | 'waiting_for_execution';
+    description?: string;
+    message?: string;
+    output?: string;
+    result?: string | null;
+    error?: string;
+    waitForExecution?: boolean;
+  };
   suggestion: Suggestion;
   appendMessage: string;
   id: string;

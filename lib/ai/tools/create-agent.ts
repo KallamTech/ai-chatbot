@@ -93,14 +93,16 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
 - **aggregate**: Data aggregation - combines, summarizes, or synthesizes multiple data sources
 - **analyze**: Data analysis - performs analysis, pattern recognition, or insights generation
 - **generate**: Content generation - creates new content based on processed data
+- **runtime**: Python runtime execution - executes Python code for computations, data processing, and algorithmic tasks
 
 **Node Creation Guidelines:**
 1. Create 2-4 nodes maximum for optimal performance
 2. Start with RAG nodes for document access
 3. Use Transform nodes for data processing
-4. End with Generate or Aggregate nodes for final output
-5. Each node should have a clear, single responsibility
-6. System prompts should be specific and actionable
+4. Use Runtime nodes for computational tasks, algorithms, data analysis, or when Python execution is needed
+5. End with Generate or Aggregate nodes for final output
+6. Each node should have a clear, single responsibility
+7. System prompts should be specific and actionable
 
 **System Prompt Best Practices:**
 - Be specific about the node's role and capabilities
@@ -133,14 +135,16 @@ Create an optimized workflow that efficiently processes the user's requirements.
           workflowNodes = [
             {
               name: 'Document Search',
-              description: 'Searches and retrieves relevant documents from the data pool',
+              description:
+                'Searches and retrieves relevant documents from the data pool',
               nodeType: 'rag',
               systemPrompt: `You are a specialized document search assistant for the "${agentTitle}" agent. Your role is to efficiently search through the available documents in the data pool and retrieve the most relevant information to answer user queries. Use semantic search to find documents that best match the user's intent, and return comprehensive results that provide context and supporting evidence.`,
               position: { x: 100, y: 100 },
             },
             {
               name: 'Process & Format',
-              description: 'Processes search results and formats them into clear, actionable responses',
+              description:
+                'Processes search results and formats them into clear, actionable responses',
               nodeType: 'transform',
               systemPrompt: `You are a data processing specialist for the "${agentTitle}" agent. Your role is to take the document search results and transform them into clear, well-structured, and actionable responses. Synthesize information from multiple sources, eliminate redundancy, and present findings in a format that directly addresses the user's query with supporting evidence and context.`,
               position: { x: 300, y: 100 },

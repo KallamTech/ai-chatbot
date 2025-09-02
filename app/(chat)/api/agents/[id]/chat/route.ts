@@ -28,6 +28,7 @@ import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
+import { pythonRuntime } from '@/lib/ai/tools/python-runtime';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
@@ -273,6 +274,7 @@ function createAgentSystemPrompt(
   const hasWebSearch = 'webSearch' in agentTools;
   const hasNewsSearch = 'newsSearch' in agentTools;
   const hasDocumentTools = 'createDocument' in agentTools;
+  const hasPythonRuntime = 'pythonRuntime' in agentTools;
 
   const webSearchCapabilities =
     hasWebSearch || hasNewsSearch
@@ -283,6 +285,15 @@ function createAgentSystemPrompt(
   const documentCapabilities = hasDocumentTools
     ? `- You can create new documents using the createDocument tool
 - You can update existing documents using the updateDocument tool`
+    : '';
+
+  const pythonCapabilities = hasPythonRuntime
+    ? `- You can generate Python code using the pythonRuntime tool
+- Python code will be prepared for browser execution using Pyodide
+- Users can execute the code manually in the browser for security and control
+- You can create data analysis scripts, calculations, and any Python operations
+- Use waitForExecution: true when you need to analyze the results of the code execution
+- When waitForExecution is true, the agent will pause and wait for user execution before continuing`
     : '';
 
   return `You are "${agent.title}", a specialized AI agent designed for specific tasks.
@@ -300,8 +311,6 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 3. What information you need to gather first
 4. How you'll approach the task step-by-step
 
-Present this plan to the user before taking any actions. Only proceed with execution after the plan is clear and approved.
-
 **Core Capabilities:**
 **Document Access & Search:**
 - searchDocuments: Semantic search across all documents in your data pool
@@ -313,7 +322,7 @@ Present this plan to the user before taking any actions. Only proceed with execu
 **Content Processing:**
 - Summarize, extract, and analyze information from your documents
 - Answer questions based on your data pool content
-- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}
+- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}${pythonCapabilities ? '\n\n**Python Code Generation:**\n' + pythonCapabilities : ''}
 
 **Operational Constraints:**
 - You can ONLY perform tasks related to your defined workflow nodes
@@ -656,11 +665,20 @@ function createAgentTools(
   // - transform: text processing tools
   // - filter: data filtering tools
   // - aggregate: data aggregation tools
+  // - runtime: Python runtime tool (implemented)
 
   // Add tools based on workflow node types
   const nodeTypes = workflowNodes
     .map((node) => node.nodeType?.toLowerCase())
     .filter(Boolean);
+
+  // Add Python runtime tool if there are runtime nodes
+  if (nodeTypes.includes('runtime')) {
+    tools.pythonRuntime = pythonRuntime({ dataStream });
+    console.log(
+      'createAgentTools: Added Python runtime tool based on workflow nodes',
+    );
+  }
 
   // Add websearch tools if there are any search or web-related nodes
   if (

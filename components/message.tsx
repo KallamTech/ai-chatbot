@@ -27,6 +27,7 @@ import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
+import { AgentPythonExecutor } from './agent-python-executor';
 
 // Type narrowing is handled by TypeScript's control flow analysis
 // The AI SDK provides proper discriminated unions for tool calls
@@ -38,6 +39,7 @@ const PurePreviewMessage = ({
   isLoading,
   setMessages,
   regenerate,
+  sendMessage,
   isReadonly,
   requiresScrollPadding,
 }: {
@@ -47,6 +49,7 @@ const PurePreviewMessage = ({
   isLoading: boolean;
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   regenerate: UseChatHelpers<ChatMessage>['regenerate'];
+  sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   isReadonly: boolean;
   requiresScrollPadding: boolean;
 }) => {
@@ -57,6 +60,21 @@ const PurePreviewMessage = ({
   );
 
   useDataStream();
+  // Callback to send execution results back to agent
+  const handleExecutionComplete = (result: any) => {
+    let resultMessage;
+    if (result.success) {
+      resultMessage = `Python execution completed successfully. Output: ${result.output}${result.result ? `\nReturn value: ${result.result}` : ''}`;
+    } else {
+      resultMessage = `Python execution failed. Error: ${result.error}`;
+    }
+
+    // Send the execution result using the chat's sendMessage function
+    sendMessage({
+      role: 'user',
+      parts: [{ type: 'text', text: resultMessage }],
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -342,6 +360,87 @@ const PurePreviewMessage = ({
                                       connections
                                     </div>
                                   )}
+                                </div>
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (
+                type === 'tool-pythonRuntime' ||
+                (type as string) === 'tool-pythonRuntime'
+              ) {
+                const toolPart = part as any;
+                const { toolCallId, state } = toolPart;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-pythonRuntime" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={toolPart.input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in toolPart.output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String(toolPart.output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-green-600">
+                                  🐍 Python Code Prepared
+                                </div>
+                                <div className="space-y-1">
+                                  <div>
+                                    <strong>Description:</strong>{' '}
+                                    {toolPart.output.description}
+                                  </div>
+                                  {toolPart.output.code && (
+                                    <div>
+                                      <AgentPythonExecutor
+                                        code={toolPart.output.code}
+                                        description={
+                                          toolPart.output.description
+                                        }
+                                        waitForAgent={
+                                          toolPart.output.waitForExecution
+                                        }
+                                        onExecutionComplete={
+                                          toolPart.output.waitForExecution
+                                            ? handleExecutionComplete
+                                            : undefined
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                  {toolPart.output.output &&
+                                    !toolPart.output.code && (
+                                      <div>
+                                        <strong>Output:</strong>
+                                        <div className="bg-gray-900 text-green-400 p-2 rounded mt-1 font-mono text-sm">
+                                          <pre className="whitespace-pre-wrap">
+                                            {toolPart.output.output}
+                                          </pre>
+                                        </div>
+                                      </div>
+                                    )}
+                                  {toolPart.output.result &&
+                                    !toolPart.output.code && (
+                                      <div>
+                                        <strong>Result:</strong>{' '}
+                                        <code className="bg-blue-100 px-1 rounded">
+                                          {toolPart.output.result}
+                                        </code>
+                                      </div>
+                                    )}
                                 </div>
                               </div>
                             )
