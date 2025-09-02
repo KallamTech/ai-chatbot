@@ -4,8 +4,6 @@ import { tool, generateText } from 'ai';
 import { z } from 'zod';
 import {
   createAgent as createAgentInDB,
-  createDataPool,
-  connectAgentToDataPool,
   createWorkflowNode,
   createWorkflowEdge,
 } from '@/lib/db/queries';
@@ -80,25 +78,6 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
         dataStream.write({
           type: 'data-title',
           data: agent.title,
-          transient: true,
-        });
-
-        // Create data pool for the agent
-        const dataPoolName = `${agentTitle} Data Pool`;
-        const dataPoolResult = await createDataPool({
-          userId: session.user.id,
-          name: dataPoolName,
-        });
-
-        // Connect the agent to the data pool
-        await connectAgentToDataPool({
-          agentId: agent.id,
-          dataPoolId: dataPoolResult.id,
-        });
-
-        dataStream.write({
-          type: 'data-id',
-          data: dataPoolResult.id,
           transient: true,
         });
 
@@ -187,10 +166,7 @@ Return only the JSON array, no other text.`,
             title: agent.title,
             description: agent.description,
           },
-          dataPool: {
-            id: dataPoolResult.id,
-            name: dataPoolResult.name,
-          },
+          dataPool: null, // No data pool created automatically
           workflow: {
             nodes: createdNodes.length,
             edges: Math.max(0, createdNodes.length - 1),
