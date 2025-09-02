@@ -48,7 +48,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <TooltipContent align="end">New Chat</TooltipContent>
               </Tooltip>
             </div>
-            {user?.type !== "guest" && (
+            {user?.type !== 'guest' && (
               <div className="flex flex-row gap-1">
                 <Link
                   href="/agents"
