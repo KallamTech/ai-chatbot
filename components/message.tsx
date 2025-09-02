@@ -13,6 +13,7 @@ import {
   ToolContent,
   ToolInput,
   ToolOutput,
+  ToolLoadingState,
 } from './elements/tool';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
@@ -28,6 +29,7 @@ import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 import { AgentPythonExecutor } from './agent-python-executor';
+import { AnimatedThinking } from './loading-indicator';
 
 // Type narrowing is handled by TypeScript's control flow analysis
 // The AI SDK provides proper discriminated unions for tool calls
@@ -324,7 +326,10 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-createAgent" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={(part as any).input} />
+                        <>
+                          <ToolInput input={(part as any).input} />
+                          <ToolLoadingState toolType="tool-createAgent" />
+                        </>
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
@@ -384,7 +389,10 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-pythonRuntime" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={toolPart.input} />
+                        <>
+                          <ToolInput input={toolPart.input} />
+                          <ToolLoadingState toolType="tool-pythonRuntime" />
+                        </>
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
@@ -461,7 +469,10 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-webSearch" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={(part as any).input} />
+                        <>
+                          <ToolInput input={(part as any).input} />
+                          <ToolLoadingState toolType="tool-webSearch" />
+                        </>
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
@@ -566,7 +577,10 @@ const PurePreviewMessage = ({
                     <ToolHeader type="tool-searchDocuments" state={state} />
                     <ToolContent>
                       {state === 'input-available' && (
-                        <ToolInput input={(part as any).input} />
+                        <>
+                          <ToolInput input={(part as any).input} />
+                          <ToolLoadingState toolType="tool-searchDocuments" />
+                        </>
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
@@ -963,13 +977,20 @@ export const ThinkingMessage = () => {
           },
         )}
       >
-        <div className="flex justify-center items-center rounded-full ring-1 size-8 shrink-0 ring-border">
-          <SparklesIcon size={14} />
+        <div className="flex justify-center items-center rounded-full ring-1 size-8 shrink-0 ring-border bg-background">
+          <div className="translate-y-px">
+            <SparklesIcon size={14} />
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <div className="flex flex-col gap-4 text-muted-foreground">
-            Hmm...
+          <div className="flex flex-col gap-4">
+            <AnimatedThinking
+              context="thinking"
+              variant="dots"
+              size="md"
+              className="py-2"
+            />
           </div>
         </div>
       </div>

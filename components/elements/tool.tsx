@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import { CodeBlock } from './code-block';
+import { LoadingIndicator, getContextualLoadingMessage } from '../loading-indicator';
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -34,7 +35,7 @@ export type ToolHeaderProps = {
   className?: string;
 };
 
-const getStatusBadge = (status: ToolUIPart['state']) => {
+const getStatusBadge = (status: ToolUIPart['state'], toolType?: string) => {
   const labels = {
     'input-streaming': 'Pending',
     'input-available': 'Running',
@@ -49,13 +50,31 @@ const getStatusBadge = (status: ToolUIPart['state']) => {
     'output-error': <XCircleIcon className="size-4 text-red-600" />,
   } as const;
 
+  // Get contextual loading message for running tools
+  const getLoadingMessage = () => {
+    if (status === 'input-available') {
+      if (toolType?.includes('search')) {
+        return getContextualLoadingMessage('search');
+      } else if (toolType?.includes('document')) {
+        return getContextualLoadingMessage('document');
+      } else if (toolType?.includes('python')) {
+        return getContextualLoadingMessage('python');
+      } else if (toolType?.includes('agent')) {
+        return getContextualLoadingMessage('agent');
+      } else {
+        return getContextualLoadingMessage('tool');
+      }
+    }
+    return labels[status];
+  };
+
   return (
     <Badge
       className="rounded-full text-xs flex items-center gap-1"
       variant="secondary"
     >
       {icons[status]}
-      <span>{labels[status]}</span>
+      <span>{getLoadingMessage()}</span>
     </Badge>
   );
 };
@@ -78,7 +97,7 @@ export const ToolHeader = ({
       <span className="font-medium text-sm">{type}</span>
     </div>
     <div className="flex items-center gap-2">
-      {getStatusBadge(state)}
+      {getStatusBadge(state, type)}
       <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
     </div>
   </CollapsibleTrigger>
@@ -95,6 +114,34 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
     {...props}
   />
 );
+
+// Loading state component for tools
+export const ToolLoadingState = ({
+  toolType,
+  className
+}: {
+  toolType?: string;
+  className?: string;
+}) => {
+  const getContext = (): 'search' | 'document' | 'python' | 'agent' | 'tool' | 'general' => {
+    if (toolType?.includes('search')) return 'search';
+    if (toolType?.includes('document')) return 'document';
+    if (toolType?.includes('python')) return 'python';
+    if (toolType?.includes('agent')) return 'agent';
+    return 'tool';
+  };
+
+  return (
+    <div className={cn('p-4', className)}>
+      <LoadingIndicator
+        message={getContextualLoadingMessage(getContext())}
+        variant="wave"
+        size="sm"
+        className="justify-center"
+      />
+    </div>
+  );
+};
 
 export type ToolInputProps = ComponentProps<'div'> & {
   input: ToolUIPart['input'];
