@@ -27,6 +27,9 @@ import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
+import { PythonRuntimeDisplay } from './python-runtime-display';
+import { usePythonRuntime } from '@/hooks/use-python-runtime';
+import { AgentPythonExecutor } from './agent-python-executor';
 
 // Type narrowing is handled by TypeScript's control flow analysis
 // The AI SDK provides proper discriminated unions for tool calls
@@ -57,6 +60,7 @@ const PurePreviewMessage = ({
   );
 
   useDataStream();
+  const { executions } = usePythonRuntime();
 
   return (
     <AnimatePresence>
@@ -102,6 +106,18 @@ const PurePreviewMessage = ({
                       contentType: attachment.mediaType,
                       url: attachment.url,
                     }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Python Runtime Executions */}
+            {message.role === 'assistant' && executions.length > 0 && (
+              <div className="space-y-2">
+                {executions.map((execution) => (
+                  <PythonRuntimeDisplay
+                    key={execution.id}
+                    executionData={execution}
                   />
                 ))}
               </div>
@@ -340,6 +356,72 @@ const PurePreviewMessage = ({
                                       nodes,{' '}
                                       {(part as any).output.workflow.edges}{' '}
                                       connections
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
+              if (type === 'tool-pythonRuntime' || (type as string) === 'tool-pythonRuntime') {
+                const toolPart = part as any;
+                const { toolCallId, state } = toolPart;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-pythonRuntime" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <ToolInput input={toolPart.input} />
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in toolPart.output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String(toolPart.output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-green-600">
+                                  🐍 Python Code Prepared
+                                </div>
+                                <div className="space-y-1">
+                                  <div>
+                                    <strong>Description:</strong>{' '}
+                                    {toolPart.output.description}
+                                  </div>
+                                  {toolPart.output.code && (
+                                    <div>
+                                      <AgentPythonExecutor
+                                        code={toolPart.output.code}
+                                        description={toolPart.output.description}
+                                      />
+                                    </div>
+                                  )}
+                                  {toolPart.output.output && !toolPart.output.code && (
+                                    <div>
+                                      <strong>Output:</strong>
+                                      <div className="bg-gray-900 text-green-400 p-2 rounded mt-1 font-mono text-sm">
+                                        <pre className="whitespace-pre-wrap">
+                                          {toolPart.output.output}
+                                        </pre>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {toolPart.output.result && !toolPart.output.code && (
+                                    <div>
+                                      <strong>Result:</strong>{' '}
+                                      <code className="bg-blue-100 px-1 rounded">
+                                        {toolPart.output.result}
+                                      </code>
                                     </div>
                                   )}
                                 </div>

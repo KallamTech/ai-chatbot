@@ -28,6 +28,7 @@ import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
+import { pythonRuntime } from '@/lib/ai/tools/python-runtime';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
@@ -299,8 +300,6 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 2. Which tools you'll use and in what order
 3. What information you need to gather first
 4. How you'll approach the task step-by-step
-
-Present this plan to the user before taking any actions. Only proceed with execution after the plan is clear and approved.
 
 **Core Capabilities:**
 **Document Access & Search:**
@@ -656,11 +655,20 @@ function createAgentTools(
   // - transform: text processing tools
   // - filter: data filtering tools
   // - aggregate: data aggregation tools
+  // - runtime: Python runtime tool (implemented)
 
   // Add tools based on workflow node types
   const nodeTypes = workflowNodes
     .map((node) => node.nodeType?.toLowerCase())
     .filter(Boolean);
+
+  // Add Python runtime tool if there are runtime nodes
+  if (nodeTypes.includes('runtime')) {
+    tools.pythonRuntime = pythonRuntime({ dataStream });
+    console.log(
+      'createAgentTools: Added Python runtime tool based on workflow nodes',
+    );
+  }
 
   // Add websearch tools if there are any search or web-related nodes
   if (

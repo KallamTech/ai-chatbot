@@ -242,7 +242,7 @@ export const workflowNode = pgTable('WorkflowNode', {
   systemPrompt: text('systemPrompt').notNull(),
   position: json('position').notNull(), // Store x, y coordinates for visual representation
   nodeType: varchar('nodeType', {
-    enum: ['rag', 'transform', 'filter', 'aggregate'],
+    enum: ['rag', 'transform', 'filter', 'aggregate', 'runtime'],
   })
     .notNull()
     .default('transform'),
