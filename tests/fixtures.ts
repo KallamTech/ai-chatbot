@@ -14,6 +14,7 @@ export const test = baseTest.extend<{}, Fixtures>({
       const ada = await createAuthenticatedContext({
         browser,
         name: `ada-${workerInfo.workerIndex}-${getUnixTime(new Date())}`,
+        chatModel: 'openai/gpt-4.1',
       });
 
       await use(ada);
@@ -26,6 +27,7 @@ export const test = baseTest.extend<{}, Fixtures>({
       const babbage = await createAuthenticatedContext({
         browser,
         name: `babbage-${workerInfo.workerIndex}-${getUnixTime(new Date())}`,
+        chatModel: 'openai/gpt-4.1-mini',
       });
 
       await use(babbage);
@@ -38,7 +40,7 @@ export const test = baseTest.extend<{}, Fixtures>({
       const curie = await createAuthenticatedContext({
         browser,
         name: `curie-${workerInfo.workerIndex}-${getUnixTime(new Date())}`,
-        chatModel: 'chat-model-reasoning',
+        chatModel: 'openai/o4-mini-reasoning',
       });
 
       await use(curie);

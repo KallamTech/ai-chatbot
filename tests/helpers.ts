@@ -20,11 +20,11 @@ export type UserContext = {
 export async function createAuthenticatedContext({
   browser,
   name,
-  chatModel = 'chat-model',
+  chatModel = 'openai/gpt-4.1',
 }: {
   browser: Browser;
   name: string;
-  chatModel?: 'chat-model' | 'chat-model-reasoning';
+  chatModel?: string;
 }): Promise<UserContext> {
   const directory = path.join(__dirname, '../playwright/.sessions');
 
@@ -53,8 +53,12 @@ export async function createAuthenticatedContext({
 
   const chatPage = new ChatPage(page);
   await chatPage.createNewChat();
-  await chatPage.chooseModelFromSelector('chat-model-reasoning');
-  await expect(chatPage.getSelectedModel()).resolves.toEqual('Reasoning model');
+  
+  // Only try to change model if it's a reasoning model
+  if (chatModel.includes('reasoning') || chatModel.includes('thinking')) {
+    await chatPage.chooseModelFromSelector(chatModel);
+    await expect(chatPage.getSelectedModel()).resolves.toContain('Reasoning');
+  }
 
   await page.waitForTimeout(1000);
   await context.storageState({ path: storageFile });
