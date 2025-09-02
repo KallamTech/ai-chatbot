@@ -28,17 +28,77 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 
 interface DocumentMetadata {
+  // File information
   fileName?: string;
   fileSize?: number;
   fileType?: string;
+  uploadedAt?: string;
+
+  // Basic content metrics
+  contentLength?: number;
   wordCount?: number;
+  characterCount?: number;
+  lineCount?: number;
+  paragraphCount?: number;
+  sentenceCount?: number;
   estimatedPages?: number;
+
+  // Document structure
+  hasHeadings?: boolean;
+  headingCount?: number;
+  headingLevels?: number[];
+  hasLists?: boolean;
+  listCount?: number;
+  hasTables?: boolean;
+  tableCount?: number;
+  hasCodeBlocks?: boolean;
+  codeBlockCount?: number;
+
+  // Content analysis
   documentType?: string;
+  language?: string;
+  readabilityScore?: number;
+  averageWordsPerSentence?: number;
+  averageSyllablesPerWord?: number;
+
+  // Entity extraction
+  dates?: string[];
+  emails?: string[];
+  urls?: string[];
+  phoneNumbers?: string[];
+  organizations?: string[];
+  people?: string[];
+  locations?: string[];
+
+  // Topics and keywords
+  topics?: string[];
+  keywords?: string[];
+  keyPhrases?: string[];
+
+  // File-specific metadata
+  hasImages?: boolean;
+  imageCount?: number;
+  hasFootnotes?: boolean;
+  footnoteCount?: number;
+
+  // Processing info
+  processingStatus?: string;
   requiresOCR?: boolean;
   binaryFile?: boolean;
   processedWithOCR?: boolean;
   hasExtractedImages?: boolean;
   extractedImagesCount?: number;
+  ocrProvider?: string;
+  ocrMetadata?: {
+    model: string;
+    pagesProcessed: number;
+    docSizeBytes: number;
+    averageDpi: number;
+    pageDimensions: Array<{ width: number; height: number; dpi: number }>;
+    processingTime?: number;
+  };
+
+  // Legacy fields
   sourceDocument?: string;
   sourceDocumentTitle?: string;
 }
@@ -561,33 +621,85 @@ export function DataPoolManager({
                             • ~{doc.metadata.estimatedPages} pages
                           </span>
                         )}
+                        {doc.metadata?.documentType && (
+                          <span className="text-xs text-muted-foreground">
+                            • {doc.metadata.documentType.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        {doc.metadata?.language &&
+                          doc.metadata.language !== 'en' && (
+                            <span className="text-xs text-muted-foreground">
+                              • {doc.metadata.language.toUpperCase()}
+                            </span>
+                          )}
                       </div>
 
                       {/* Document type and processing badges */}
-                      <div className="flex items-center gap-2 mt-2">
-                        {doc.metadata?.documentType === 'pdf' && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
-                            📄 PDF Document
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {/* Document type badges */}
+                        {doc.metadata?.documentType && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                            📄 {doc.metadata.documentType.replace(/_/g, ' ')}
                           </span>
                         )}
-                        {doc.metadata?.documentType === 'binary' && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-                            🗃️ Binary File
-                          </span>
-                        )}
-                        {doc.metadata?.requiresOCR && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
-                            ⏳ Awaiting OCR
-                          </span>
-                        )}
-                        {doc.metadata?.documentType === 'extracted_image' && (
+
+                        {/* Structure badges */}
+                        {doc.metadata?.hasHeadings && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
-                            🖼️ Extracted Image
+                            📋 {doc.metadata.headingCount} Headings
                           </span>
                         )}
+                        {doc.metadata?.hasTables && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
+                            📊 {doc.metadata.tableCount} Tables
+                          </span>
+                        )}
+                        {doc.metadata?.hasLists && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                            📝 {doc.metadata.listCount} Lists
+                          </span>
+                        )}
+                        {doc.metadata?.hasCodeBlocks && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                            💻 {doc.metadata.codeBlockCount} Code Blocks
+                          </span>
+                        )}
+
+                        {/* Content badges */}
+                        {doc.metadata?.topics &&
+                          doc.metadata.topics.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-indigo-100 text-indigo-700">
+                              🏷️ {doc.metadata.topics.slice(0, 2).join(', ')}
+                              {doc.metadata.topics.length > 2 &&
+                                ` +${doc.metadata.topics.length - 2}`}
+                            </span>
+                          )}
+
+                        {/* Entity badges */}
+                        {doc.metadata?.organizations &&
+                          doc.metadata.organizations.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">
+                              🏢 {doc.metadata.organizations.length}{' '}
+                              Organizations
+                            </span>
+                          )}
+                        {doc.metadata?.people &&
+                          doc.metadata.people.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-pink-100 text-pink-700">
+                              👥 {doc.metadata.people.length} People
+                            </span>
+                          )}
+                        {doc.metadata?.dates &&
+                          doc.metadata.dates.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-teal-100 text-teal-700">
+                              📅 {doc.metadata.dates.length} Dates
+                            </span>
+                          )}
+
+                        {/* Processing badges */}
                         {doc.metadata?.processedWithOCR && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                            📄 OCR Processed
+                            🔍 OCR Processed
                           </span>
                         )}
                         {doc.metadata?.hasExtractedImages && (
@@ -595,6 +707,14 @@ export function DataPoolManager({
                             🖼️ {doc.metadata.extractedImagesCount} Images
                           </span>
                         )}
+                        {doc.metadata?.readabilityScore && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
+                            📖 Readability:{' '}
+                            {Math.round(doc.metadata.readabilityScore)}
+                          </span>
+                        )}
+
+                        {/* Legacy badges */}
                         {doc.metadata?.sourceDocument && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
                             📎 From: {doc.metadata.sourceDocumentTitle}

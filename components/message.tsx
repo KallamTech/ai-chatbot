@@ -186,7 +186,9 @@ const PurePreviewMessage = ({
                       )}
                       {state === 'output-available' && (
                         <ToolOutput
-                          output={<Weather weatherAtLocation={(part as any).output} />}
+                          output={
+                            <Weather weatherAtLocation={(part as any).output} />
+                          }
                           errorText={undefined}
                         />
                       )}
@@ -319,12 +321,25 @@ const PurePreviewMessage = ({
                                   ✅ Agent Created Successfully
                                 </div>
                                 <div className="space-y-1">
-                                  <div><strong>Title:</strong> {(part as any).output.agent?.title}</div>
-                                  <div><strong>Description:</strong> {(part as any).output.agent?.description}</div>
-                                  <div><strong>ID:</strong> {(part as any).output.agent?.id}</div>
+                                  <div>
+                                    <strong>Title:</strong>{' '}
+                                    {(part as any).output.agent?.title}
+                                  </div>
+                                  <div>
+                                    <strong>Description:</strong>{' '}
+                                    {(part as any).output.agent?.description}
+                                  </div>
+                                  <div>
+                                    <strong>ID:</strong>{' '}
+                                    {(part as any).output.agent?.id}
+                                  </div>
                                   {(part as any).output.workflow && (
                                     <div>
-                                      <strong>Workflow:</strong> {(part as any).output.workflow.nodes} nodes, {(part as any).output.workflow.edges} connections
+                                      <strong>Workflow:</strong>{' '}
+                                      {(part as any).output.workflow.nodes}{' '}
+                                      nodes,{' '}
+                                      {(part as any).output.workflow.edges}{' '}
+                                      connections
                                     </div>
                                   )}
                                 </div>
@@ -362,10 +377,12 @@ const PurePreviewMessage = ({
                                   🔍 Web Search Results
                                 </div>
                                 <div className="text-sm">
-                                  <strong>Query:</strong> {(part as any).output.query}
+                                  <strong>Query:</strong>{' '}
+                                  {(part as any).output.query}
                                 </div>
                                 <div className="text-sm">
-                                  <strong>Type:</strong> {(part as any).output.type}
+                                  <strong>Type:</strong>{' '}
+                                  {(part as any).output.type}
                                 </div>
                                 <div className="mt-3 p-3 bg-muted/50 rounded border-l-2 border-blue-200">
                                   <div className="whitespace-pre-wrap text-sm">
@@ -373,7 +390,10 @@ const PurePreviewMessage = ({
                                   </div>
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  Source: {(part as any).output.source} • {new Date((part as any).output.timestamp).toLocaleString()}
+                                  Source: {(part as any).output.source} •{' '}
+                                  {new Date(
+                                    (part as any).output.timestamp,
+                                  ).toLocaleString()}
                                 </div>
                               </div>
                             )
@@ -409,10 +429,12 @@ const PurePreviewMessage = ({
                                   📰 News Search Results
                                 </div>
                                 <div className="text-sm">
-                                  <strong>Query:</strong> {(part as any).output.query}
+                                  <strong>Query:</strong>{' '}
+                                  {(part as any).output.query}
                                 </div>
                                 <div className="text-sm">
-                                  <strong>Timeframe:</strong> {(part as any).output.timeframe}
+                                  <strong>Timeframe:</strong>{' '}
+                                  {(part as any).output.timeframe}
                                 </div>
                                 <div className="mt-3 p-3 bg-muted/50 rounded border-l-2 border-purple-200">
                                   <div className="whitespace-pre-wrap text-sm">
@@ -420,7 +442,10 @@ const PurePreviewMessage = ({
                                   </div>
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  Source: {(part as any).output.source} • {new Date((part as any).output.timestamp).toLocaleString()}
+                                  Source: {(part as any).output.source} •{' '}
+                                  {new Date(
+                                    (part as any).output.timestamp,
+                                  ).toLocaleString()}
                                 </div>
                               </div>
                             )
@@ -457,21 +482,34 @@ const PurePreviewMessage = ({
                                   🔍 Document Search Results
                                 </div>
                                 <div className="space-y-2">
-                                  {(part as any).output.results?.map((result: any, index: number) => (
-                                    <div key={index} className="p-2 border rounded">
-                                      <div className="font-medium">{result.title}</div>
-                                      <div className="text-sm text-gray-600">
-                                        Similarity: {(result.similarity * 100).toFixed(1)}%
-                                      </div>
-                                      <div className="text-sm">{result.content}</div>
-                                      {result.metadata && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {result.metadata.fileName && `File: ${result.metadata.fileName}`}
-                                          {result.metadata.documentType && ` | Type: ${result.metadata.documentType}`}
+                                  {(part as any).output.results?.map(
+                                    (result: any, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="p-2 border rounded"
+                                      >
+                                        <div className="font-medium">
+                                          {result.title}
                                         </div>
-                                      )}
-                                    </div>
-                                  ))}
+                                        <div className="text-sm text-gray-600">
+                                          Similarity:{' '}
+                                          {(result.similarity * 100).toFixed(1)}
+                                          %
+                                        </div>
+                                        <div className="text-sm">
+                                          {result.content}
+                                        </div>
+                                        {result.metadata && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {result.metadata.fileName &&
+                                              `File: ${result.metadata.fileName}`}
+                                            {result.metadata.documentType &&
+                                              ` | Type: ${result.metadata.documentType}`}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ),
+                                  )}
                                 </div>
                               </div>
                             )
@@ -509,28 +547,42 @@ const PurePreviewMessage = ({
                                 {(part as any).output.found ? (
                                   <div className="space-y-2">
                                     <div className="text-sm text-green-600">
-                                      Found {(part as any).output.count} document(s)
+                                      Found {(part as any).output.count}{' '}
+                                      document(s)
                                     </div>
-                                    {(part as any).output.documents?.map((doc: any, index: number) => (
-                                      <div key={index} className="p-2 border rounded">
-                                        <div className="font-medium">{doc.title}</div>
-                                        <div className="text-sm text-gray-600">ID: {doc.id}</div>
-                                        {doc.metadata?.fileName && (
-                                          <div className="text-sm text-gray-500">
-                                            File: {doc.metadata.fileName}
+                                    {(part as any).output.documents?.map(
+                                      (doc: any, index: number) => (
+                                        <div
+                                          key={index}
+                                          className="p-2 border rounded"
+                                        >
+                                          <div className="font-medium">
+                                            {doc.title}
                                           </div>
-                                        )}
-                                      </div>
-                                    ))}
+                                          <div className="text-sm text-gray-600">
+                                            ID: {doc.id}
+                                          </div>
+                                          {doc.metadata?.fileName && (
+                                            <div className="text-sm text-gray-500">
+                                              File: {doc.metadata.fileName}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ),
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="text-sm text-gray-600">
                                     {(part as any).output.message}
                                     {(part as any).output.suggestions && (
                                       <div className="mt-2">
-                                        <div className="text-xs font-medium">Available documents:</div>
+                                        <div className="text-xs font-medium">
+                                          Available documents:
+                                        </div>
                                         <div className="text-xs text-gray-500">
-                                          {(part as any).output.suggestions.join(', ')}
+                                          {(
+                                            part as any
+                                          ).output.suggestions.join(', ')}
                                         </div>
                                       </div>
                                     )}
@@ -572,16 +624,32 @@ const PurePreviewMessage = ({
                                 {(part as any).output.found ? (
                                   <div className="space-y-2">
                                     <div className="p-2 border rounded">
-                                      <div className="font-medium">{(part as any).output.document.title}</div>
-                                      <div className="text-sm text-gray-600">ID: {(part as any).output.document.id}</div>
-                                      <div className="text-sm text-gray-500">
-                                        Created: {new Date((part as any).output.document.createdAt).toLocaleDateString()}
+                                      <div className="font-medium">
+                                        {(part as any).output.document.title}
                                       </div>
-                                      {(part as any).output.document.metadata && (
+                                      <div className="text-sm text-gray-600">
+                                        ID: {(part as any).output.document.id}
+                                      </div>
+                                      <div className="text-sm text-gray-500">
+                                        Created:{' '}
+                                        {new Date(
+                                          (part as any).output.document
+                                            .createdAt,
+                                        ).toLocaleDateString()}
+                                      </div>
+                                      {(part as any).output.document
+                                        .metadata && (
                                         <div className="mt-2 text-xs">
-                                          <div className="font-medium">Metadata:</div>
+                                          <div className="font-medium">
+                                            Metadata:
+                                          </div>
                                           <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto">
-                                            {JSON.stringify((part as any).output.document.metadata, null, 2)}
+                                            {JSON.stringify(
+                                              (part as any).output.document
+                                                .metadata,
+                                              null,
+                                              2,
+                                            )}
                                           </pre>
                                         </div>
                                       )}
@@ -608,7 +676,10 @@ const PurePreviewMessage = ({
 
                 return (
                   <Tool key={toolCallId} defaultOpen={true}>
-                    <ToolHeader type="tool-searchSpecificDocument" state={state} />
+                    <ToolHeader
+                      type="tool-searchSpecificDocument"
+                      state={state}
+                    />
                     <ToolContent>
                       {state === 'input-available' && (
                         <ToolInput input={(part as any).input} />
@@ -628,18 +699,35 @@ const PurePreviewMessage = ({
                                 {(part as any).output.found ? (
                                   <div className="space-y-2">
                                     <div className="p-2 border rounded bg-blue-50">
-                                      <div className="font-medium">{(part as any).output.document.title}</div>
-                                      <div className="text-sm text-gray-600">ID: {(part as any).output.document.id}</div>
+                                      <div className="font-medium">
+                                        {(part as any).output.document.title}
+                                      </div>
+                                      <div className="text-sm text-gray-600">
+                                        ID: {(part as any).output.document.id}
+                                      </div>
                                     </div>
                                     <div className="space-y-2">
-                                      {(part as any).output.searchResults?.results?.map((result: any, index: number) => (
-                                        <div key={index} className="p-2 border rounded">
-                                          <div className="text-sm text-gray-600">
-                                            Similarity: {(result.similarity * 100).toFixed(1)}%
+                                      {(
+                                        part as any
+                                      ).output.searchResults?.results?.map(
+                                        (result: any, index: number) => (
+                                          <div
+                                            key={index}
+                                            className="p-2 border rounded"
+                                          >
+                                            <div className="text-sm text-gray-600">
+                                              Similarity:{' '}
+                                              {(
+                                                result.similarity * 100
+                                              ).toFixed(1)}
+                                              %
+                                            </div>
+                                            <div className="text-sm">
+                                              {result.content}
+                                            </div>
                                           </div>
-                                          <div className="text-sm">{result.content}</div>
-                                        </div>
-                                      ))}
+                                        ),
+                                      )}
                                     </div>
                                   </div>
                                 ) : (
@@ -681,21 +769,34 @@ const PurePreviewMessage = ({
                                   🖼️ Image Search Results
                                 </div>
                                 <div className="space-y-2">
-                                  {(part as any).output.results?.map((result: any, index: number) => (
-                                    <div key={index} className="p-2 border rounded">
-                                      <div className="font-medium">{result.title}</div>
-                                      <div className="text-sm text-gray-600">
-                                        Similarity: {(result.similarity * 100).toFixed(1)}%
-                                      </div>
-                                      <div className="text-sm">{result.content}</div>
-                                      {result.metadata && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {result.metadata.fileName && `File: ${result.metadata.fileName}`}
-                                          {result.metadata.documentType && ` | Type: ${result.metadata.documentType}`}
+                                  {(part as any).output.results?.map(
+                                    (result: any, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="p-2 border rounded"
+                                      >
+                                        <div className="font-medium">
+                                          {result.title}
                                         </div>
-                                      )}
-                                    </div>
-                                  ))}
+                                        <div className="text-sm text-gray-600">
+                                          Similarity:{' '}
+                                          {(result.similarity * 100).toFixed(1)}
+                                          %
+                                        </div>
+                                        <div className="text-sm">
+                                          {result.content}
+                                        </div>
+                                        {result.metadata && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {result.metadata.fileName &&
+                                              `File: ${result.metadata.fileName}`}
+                                            {result.metadata.documentType &&
+                                              ` | Type: ${result.metadata.documentType}`}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ),
+                                  )}
                                 </div>
                                 {(part as any).output.recommendedThreshold && (
                                   <div className="text-xs text-gray-500">
