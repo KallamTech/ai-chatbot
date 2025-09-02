@@ -33,12 +33,12 @@ type searchDocumentsTool = {
   type: 'tool-searchDocuments';
   toolCallId: string;
   state: 'input-available' | 'output-available';
-  input?: {
+  input: {
     query: string;
     limit?: number;
     searchImages?: boolean;
   };
-  output?: {
+  output: {
     results?: Array<{
       title: string;
       content: string;
@@ -56,11 +56,11 @@ type findDocumentByTitleTool = {
   type: 'tool-findDocumentByTitle';
   toolCallId: string;
   state: 'input-available' | 'output-available';
-  input?: {
+  input: {
     title: string;
     exactMatch?: boolean;
   };
-  output?: {
+  output: {
     found: boolean;
     count?: number;
     documents?: Array<{
@@ -80,10 +80,10 @@ type getDocumentMetadataTool = {
   type: 'tool-getDocumentMetadata';
   toolCallId: string;
   state: 'input-available' | 'output-available';
-  input?: {
+  input: {
     documentId: string;
   };
-  output?: {
+  output: {
     found: boolean;
     document?: {
       id: string;
@@ -100,11 +100,11 @@ type searchSpecificDocumentTool = {
   type: 'tool-searchSpecificDocument';
   toolCallId: string;
   state: 'input-available' | 'output-available';
-  input?: {
+  input: {
     documentId: string;
     query: string;
   };
-  output?: {
+  output: {
     found: boolean;
     document?: {
       id: string;
@@ -126,12 +126,12 @@ type searchImagesTool = {
   type: 'tool-searchImages';
   toolCallId: string;
   state: 'input-available' | 'output-available';
-  input?: {
+  input: {
     query: string;
     limit?: number;
     threshold?: number;
   };
-  output?: {
+  output: {
     results?: Array<{
       title: string;
       content: string;
