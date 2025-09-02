@@ -293,6 +293,15 @@ ${agent.description}
 **Your Workflow Nodes:**
 ${nodePrompts}
 
+**CRITICAL WORKFLOW REQUIREMENT:**
+Before proceeding with any task or response, you MUST ALWAYS create a clear plan that outlines:
+1. What you need to accomplish
+2. Which tools you'll use and in what order
+3. What information you need to gather first
+4. How you'll approach the task step-by-step
+
+Present this plan to the user before taking any actions. Only proceed with execution after the plan is clear and approved.
+
 **Core Capabilities:**
 **Document Access & Search:**
 - searchDocuments: Semantic search across all documents in your data pool
