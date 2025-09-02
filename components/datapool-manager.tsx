@@ -28,17 +28,77 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 
 interface DocumentMetadata {
+  // File information
   fileName?: string;
   fileSize?: number;
   fileType?: string;
+  uploadedAt?: string;
+
+  // Basic content metrics
+  contentLength?: number;
   wordCount?: number;
+  characterCount?: number;
+  lineCount?: number;
+  paragraphCount?: number;
+  sentenceCount?: number;
   estimatedPages?: number;
+
+  // Document structure
+  hasHeadings?: boolean;
+  headingCount?: number;
+  headingLevels?: number[];
+  hasLists?: boolean;
+  listCount?: number;
+  hasTables?: boolean;
+  tableCount?: number;
+  hasCodeBlocks?: boolean;
+  codeBlockCount?: number;
+
+  // Content analysis
   documentType?: string;
+  language?: string;
+  readabilityScore?: number;
+  averageWordsPerSentence?: number;
+  averageSyllablesPerWord?: number;
+
+  // Entity extraction
+  dates?: string[];
+  emails?: string[];
+  urls?: string[];
+  phoneNumbers?: string[];
+  organizations?: string[];
+  people?: string[];
+  locations?: string[];
+
+  // Topics and keywords
+  topics?: string[];
+  keywords?: string[];
+  keyPhrases?: string[];
+
+  // File-specific metadata
+  hasImages?: boolean;
+  imageCount?: number;
+  hasFootnotes?: boolean;
+  footnoteCount?: number;
+
+  // Processing info
+  processingStatus?: string;
   requiresOCR?: boolean;
   binaryFile?: boolean;
   processedWithOCR?: boolean;
   hasExtractedImages?: boolean;
   extractedImagesCount?: number;
+  ocrProvider?: string;
+  ocrMetadata?: {
+    model: string;
+    pagesProcessed: number;
+    docSizeBytes: number;
+    averageDpi: number;
+    pageDimensions: Array<{ width: number; height: number; dpi: number }>;
+    processingTime?: number;
+  };
+
+  // Legacy fields
   sourceDocument?: string;
   sourceDocumentTitle?: string;
 }
@@ -71,6 +131,7 @@ export function DataPoolManager({
   const [disconnectingAgentId, setDisconnectingAgentId] = useState<
     string | null
   >(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadConnectedAgents = useCallback(async () => {
@@ -113,7 +174,8 @@ export function DataPoolManager({
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // File change handling logic
+    const files = event.target.files;
+    setSelectedFiles(files);
   };
 
   const handleUpload = async () => {
@@ -168,6 +230,7 @@ export function DataPoolManager({
 
       // Reset form
       fileInput.value = '';
+      setSelectedFiles(null);
 
       // Show results
       if (errorCount === 0) {
@@ -474,54 +537,141 @@ export function DataPoolManager({
         </div>
 
         {/* Upload Section */}
-        <Card className="p-4 mb-4">
-          <h3 className="font-semibold mb-3">Upload New Documents</h3>
-          <div>
-            <Label htmlFor="document-file">Select Files</Label>
-            <Input
-              id="document-file"
-              type="file"
-              ref={fileInputRef}
-              accept=".txt,.md,.csv,.json,.html,.css,.js,.xml,.log,.pdf"
+        <Card className="p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">Add Documents</h3>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              onChange={handleFileChange}
-              multiple
-            />
-            <div className="text-xs text-muted-foreground mt-1 space-y-1">
-              <p>
-                You can select multiple files. Titles will be automatically
-                generated from filenames.
-              </p>
-              <p>
-                <strong>Supported formats:</strong> .txt, .md, .csv, .json,
-                .html, .css, .js, .xml, .log, .pdf
-              </p>
-              <p className="text-green-600">
-                ✅ Text files are processed immediately
-              </p>
-              <p className="text-orange-600">
-                📄 PDFs are OCR processed and parsed using multimodal embeddings
-                for text and images
-              </p>
-              <p className="text-blue-600">
-                ⚠️ Binary files are stored as metadata only
-              </p>
-            </div>
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isUploading ? (
+                <>
+                  <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadIcon size={16} className="mr-2" />
+                  Add Documents
+                </>
+              )}
+            </Button>
           </div>
-          <Button
-            onClick={handleUpload}
-            className="mt-3"
+
+          <Input
+            id="document-file"
+            type="file"
+            ref={fileInputRef}
+            accept=".txt,.md,.csv,.json,.html,.css,.js,.xml,.log,.pdf"
             disabled={isUploading}
-          >
-            {isUploading ? (
-              <>Uploading...</>
+            onChange={handleFileChange}
+            multiple
+            className="hidden"
+          />
+
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            {selectedFiles && selectedFiles.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <FileTextIcon size={16} />
+                  <span>
+                    {selectedFiles.length} file
+                    {selectedFiles.length !== 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {Array.from(selectedFiles).map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-sm bg-background p-2 rounded border"
+                    >
+                      <FileTextIcon size={14} />
+                      <span className="truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isUploading ? (
+                      <>
+                        <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <UploadIcon size={16} className="mr-2" />
+                        Upload Files
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedFiles(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    disabled={isUploading}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <>
-                <UploadIcon size={16} className="mr-2" />
-                Upload Documents
-              </>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileTextIcon size={16} />
+                  <span>
+                    Click &quot;Add Documents&quot; to select files from your
+                    computer
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="font-medium text-foreground mb-1">
+                      Supported Formats:
+                    </p>
+                    <p className="text-muted-foreground">
+                      .txt, .md, .csv, .json, .html, .css, .js, .xml, .log, .pdf
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground mb-1">
+                      Processing:
+                    </p>
+                    <p className="text-muted-foreground">
+                      Multiple files supported • Auto-generated titles
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <span>✅</span>
+                    <span>Text files are processed immediately</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-orange-600">
+                    <span>📄</span>
+                    <span>PDFs use OCR and multimodal embeddings</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <span>⚠️</span>
+                    <span>Binary files stored as metadata only</span>
+                  </div>
+                </div>
+              </div>
             )}
-          </Button>
+          </div>
         </Card>
 
         {/* Documents List */}
@@ -561,33 +711,85 @@ export function DataPoolManager({
                             • ~{doc.metadata.estimatedPages} pages
                           </span>
                         )}
+                        {doc.metadata?.documentType && (
+                          <span className="text-xs text-muted-foreground">
+                            • {doc.metadata.documentType.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        {doc.metadata?.language &&
+                          doc.metadata.language !== 'en' && (
+                            <span className="text-xs text-muted-foreground">
+                              • {doc.metadata.language.toUpperCase()}
+                            </span>
+                          )}
                       </div>
 
                       {/* Document type and processing badges */}
-                      <div className="flex items-center gap-2 mt-2">
-                        {doc.metadata?.documentType === 'pdf' && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
-                            📄 PDF Document
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {/* Document type badges */}
+                        {doc.metadata?.documentType && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                            📄 {doc.metadata.documentType.replace(/_/g, ' ')}
                           </span>
                         )}
-                        {doc.metadata?.documentType === 'binary' && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-                            🗃️ Binary File
-                          </span>
-                        )}
-                        {doc.metadata?.requiresOCR && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
-                            ⏳ Awaiting OCR
-                          </span>
-                        )}
-                        {doc.metadata?.documentType === 'extracted_image' && (
+
+                        {/* Structure badges */}
+                        {doc.metadata?.hasHeadings && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
-                            🖼️ Extracted Image
+                            📋 {doc.metadata.headingCount} Headings
                           </span>
                         )}
+                        {doc.metadata?.hasTables && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
+                            📊 {doc.metadata.tableCount} Tables
+                          </span>
+                        )}
+                        {doc.metadata?.hasLists && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                            📝 {doc.metadata.listCount} Lists
+                          </span>
+                        )}
+                        {doc.metadata?.hasCodeBlocks && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                            💻 {doc.metadata.codeBlockCount} Code Blocks
+                          </span>
+                        )}
+
+                        {/* Content badges */}
+                        {doc.metadata?.topics &&
+                          doc.metadata.topics.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-indigo-100 text-indigo-700">
+                              🏷️ {doc.metadata.topics.slice(0, 2).join(', ')}
+                              {doc.metadata.topics.length > 2 &&
+                                ` +${doc.metadata.topics.length - 2}`}
+                            </span>
+                          )}
+
+                        {/* Entity badges */}
+                        {doc.metadata?.organizations &&
+                          doc.metadata.organizations.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">
+                              🏢 {doc.metadata.organizations.length}{' '}
+                              Organizations
+                            </span>
+                          )}
+                        {doc.metadata?.people &&
+                          doc.metadata.people.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-pink-100 text-pink-700">
+                              👥 {doc.metadata.people.length} People
+                            </span>
+                          )}
+                        {doc.metadata?.dates &&
+                          doc.metadata.dates.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-teal-100 text-teal-700">
+                              📅 {doc.metadata.dates.length} Dates
+                            </span>
+                          )}
+
+                        {/* Processing badges */}
                         {doc.metadata?.processedWithOCR && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                            📄 OCR Processed
+                            🔍 OCR Processed
                           </span>
                         )}
                         {doc.metadata?.hasExtractedImages && (
@@ -595,6 +797,14 @@ export function DataPoolManager({
                             🖼️ {doc.metadata.extractedImagesCount} Images
                           </span>
                         )}
+                        {doc.metadata?.readabilityScore && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
+                            📖 Readability:{' '}
+                            {Math.round(doc.metadata.readabilityScore)}
+                          </span>
+                        )}
+
+                        {/* Legacy badges */}
                         {doc.metadata?.sourceDocument && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
                             📎 From: {doc.metadata.sourceDocumentTitle}

@@ -5,7 +5,6 @@ import {
   DatabaseIcon,
   FileTextIcon,
   PlusIcon,
-  SettingsIcon,
   Trash2Icon,
   LinkIcon,
 } from 'lucide-react';
@@ -24,6 +23,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Tooltip,
   TooltipContent,
@@ -159,7 +168,8 @@ export function DataPoolsList({
   dataPools: initialDataPools,
 }: DataPoolsListProps) {
   const [dataPools, setDataPools] = useState(initialDataPools);
-  const [deletingPoolId, setDeletingPoolId] = useState<string | null>(null);
+  const [deleteDataPool, setDeleteDataPool] = useState<DataPool | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const refreshDataPools = async () => {
     try {
@@ -178,18 +188,11 @@ export function DataPoolsList({
     }
   };
 
-  const handleDelete = async (poolId: string) => {
-    if (
-      !confirm(
-        'Are you sure you want to delete this data pool? This will also delete all documents in the pool and disconnect it from all agents. This action cannot be undone.',
-      )
-    ) {
-      return;
-    }
+  const handleDeleteDataPool = async (dataPool: DataPool) => {
+    setIsDeleting(true);
 
-    setDeletingPoolId(poolId);
     try {
-      const response = await fetch(`/api/datapools/${poolId}`, {
+      const response = await fetch(`/api/datapools/${dataPool.id}`, {
         method: 'DELETE',
       });
 
@@ -198,21 +201,21 @@ export function DataPoolsList({
         throw new Error(errorData.error || 'Failed to delete data pool');
       }
 
+      setDataPools(dataPools.filter((p) => p.id !== dataPool.id));
+      setDeleteDataPool(null);
+
       toast({
         type: 'success',
-        description: 'Data pool deleted successfully',
+        description: `Data pool "${dataPool.name}" has been deleted`,
       });
-
-      await refreshDataPools();
     } catch (error) {
       console.error('Error deleting data pool:', error);
       toast({
         type: 'error',
-        description:
-          error instanceof Error ? error.message : 'Failed to delete data pool',
+        description: 'Failed to delete data pool. Please try again.',
       });
     } finally {
-      setDeletingPoolId(null);
+      setIsDeleting(false);
     }
   };
 
@@ -260,32 +263,13 @@ export function DataPoolsList({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Link href={`/datapools/${pool.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <SettingsIcon size={14} />
-                        </Button>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Manage data pool</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(pool.id)}
-                        disabled={deletingPoolId === pool.id}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                        onClick={() => setDeleteDataPool(pool)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        {deletingPoolId === pool.id ? (
-                          <div className="size-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Trash2Icon size={14} />
-                        )}
+                        <Trash2Icon size={14} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -317,6 +301,34 @@ export function DataPoolsList({
           </Card>
         ))}
       </div>
+
+      <AlertDialog
+        open={!!deleteDataPool}
+        onOpenChange={() => setDeleteDataPool(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Data Pool</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{deleteDataPool?.name}
+              &quot;? This action cannot be undone. All associated documents and
+              workflow data will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                deleteDataPool && handleDeleteDataPool(deleteDataPool)
+              }
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Data Pool'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

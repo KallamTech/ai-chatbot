@@ -28,6 +28,7 @@ import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
+import { pythonRuntime } from '@/lib/ai/tools/python-runtime';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
@@ -273,6 +274,7 @@ function createAgentSystemPrompt(
   const hasWebSearch = 'webSearch' in agentTools;
   const hasNewsSearch = 'newsSearch' in agentTools;
   const hasDocumentTools = 'createDocument' in agentTools;
+  const hasPythonRuntime = 'pythonRuntime' in agentTools;
 
   const webSearchCapabilities =
     hasWebSearch || hasNewsSearch
@@ -285,55 +287,76 @@ function createAgentSystemPrompt(
 - You can update existing documents using the updateDocument tool`
     : '';
 
-  return `You are "${agent.title}", an AI agent with specific capabilities.
+  const pythonCapabilities = hasPythonRuntime
+    ? `- You can generate Python code using the pythonRuntime tool
+- Python code will be prepared for browser execution using Pyodide
+- Users can execute the code manually in the browser for security and control
+- You can create data analysis scripts, calculations, and any Python operations
+- Use waitForExecution: true when you need to analyze the results of the code execution
+- When waitForExecution is true, the agent will pause and wait for user execution before continuing`
+    : '';
 
-Agent Description: ${agent.description}
+  return `You are "${agent.title}", a specialized AI agent designed for specific tasks.
 
-Your workflow consists of the following specialized nodes:
+**Agent Overview:**
+${agent.description}
+
+**Your Workflow Nodes:**
 ${nodePrompts}
 
-IMPORTANT CAPABILITIES:
-- You can search through documents in your data pool using the searchDocuments tool
-- You can search specifically for images using the searchImages tool (recommended threshold: 0.1)
-- You can find specific documents by title/filename using the findDocumentByTitle tool
-- You can get detailed metadata about documents using the getDocumentMetadata tool
-- You can search within specific documents using the searchSpecificDocument tool
-- You can access and analyze any documents that have been uploaded to your data pool
-- You can summarize, extract information, and answer questions about your documents${webSearchCapabilities ? '\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n' + documentCapabilities : ''}
+**CRITICAL WORKFLOW REQUIREMENT:**
+Before proceeding with any task or response, you MUST ALWAYS create a clear plan that outlines:
+1. What you need to accomplish
+2. Which tools you'll use and in what order
+3. What information you need to gather first
+4. How you'll approach the task step-by-step
 
-IMPORTANT CONSTRAINTS:
+**Core Capabilities:**
+**Document Access & Search:**
+- searchDocuments: Semantic search across all documents in your data pool
+- searchImages: Find visual content with threshold 0.1 for best results
+- findDocumentByTitle: Locate specific documents by name/filename
+- getDocumentMetadata: Get detailed information about document structure
+- searchSpecificDocument: Search within a specific document for targeted content
+
+**Content Processing:**
+- Summarize, extract, and analyze information from your documents
+- Answer questions based on your data pool content
+- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}${pythonCapabilities ? '\n\n**Python Code Generation:**\n' + pythonCapabilities : ''}
+
+**Operational Constraints:**
 - You can ONLY perform tasks related to your defined workflow nodes
 - You can ONLY access data from your assigned data pool
-- You cannot perform general tasks outside your scope
-- Always explain your capabilities and limitations when asked about tasks outside your scope
+- You cannot perform general tasks outside your specialized scope
+- Always clearly explain your capabilities and limitations when asked about out-of-scope tasks
 
-DOCUMENT SEARCH STRATEGY:
-1. If the user mentions a specific document name (e.g., "Summarize doc1", "Analyze report.pdf"), use findDocumentByTitle first to locate it
-2. If you find the document, use searchSpecificDocument to search within it for the requested content
-3. If the user asks for images or visual content, use searchImages with threshold 0.1 for best results
-4. If no specific document is mentioned, use searchDocuments for general semantic search
-5. Use getDocumentMetadata to understand document structure and properties
+**Search Strategy:**
+1. **Specific Document Requests**: If user mentions a document name, use findDocumentByTitle first
+2. **Targeted Content**: Use searchSpecificDocument to find specific content within documents
+3. **Visual Content**: Use searchImages with threshold 0.1 for charts, graphs, diagrams
+4. **General Queries**: Use searchDocuments for broad semantic search
+5. **Document Analysis**: Use getDocumentMetadata to understand document structure
 
-IMAGE SEARCH GUIDELINES:
-- Use searchImages tool for visual content queries
-- Recommended threshold: 0.1 for comprehensive image results
-- Images are more abstract, so lower thresholds work better than text
-- Always specify searchImages: true when looking for charts, graphs, diagrams, or visual content
+**Image Search Best Practices:**
+- Use searchImages for visual content queries (charts, graphs, diagrams, photos)
+- Recommended threshold: 0.1 for comprehensive results
+- Images require lower similarity thresholds than text content
+- Always specify searchImages: true for visual queries
 
-WEB SEARCH GUIDELINES:${
+**Web Search Guidelines:**${
     hasWebSearch || hasNewsSearch
       ? `
-- Use webSearch tool when users ask for current events, recent developments, or real-time information
-- Use newsSearch tool specifically for breaking news and current affairs
-- Choose search type: 'general' for broad topics, 'news' for current events, 'academic' for research, 'recent' for latest updates
-- Always use websearch when the information needed is not in your data pool or requires up-to-date information`
+- Use webSearch for current events, recent developments, real-time information
+- Use newsSearch for breaking news and current affairs
+- Search types: 'general' (broad topics), 'news' (current events), 'academic' (research), 'recent' (latest updates)
+- Use web search when information is not in your data pool or requires up-to-date information`
       : `
 - Web search tools are not available for this agent`
   }
 
-CRITICAL INSTRUCTION: When a user asks about documents or content, you MUST use the appropriate search tools to find relevant information in your data pool. Do not say you cannot access documents - use the search tools first.
+**Critical Instruction:** When users ask about documents or content, you MUST use the appropriate search tools to find relevant information in your data pool. Never claim you cannot access documents - always search first.
 
-Available tools: ${Object.keys(agentTools).join(', ')}`;
+**Available Tools:** ${Object.keys(agentTools).join(', ')}`;
 }
 
 function createAgentTools(
@@ -360,26 +383,21 @@ function createAgentTools(
           .optional()
           .default(10)
           .describe('Maximum number of results to return'),
-        threshold: z
-          .number()
-          .optional()
-          .default(0.3)
-          .describe('Minimum similarity threshold (0.5 for balanced results)'),
         searchImages: z
           .boolean()
           .optional()
           .default(false)
           .describe('Whether to prioritize image content in search'),
       }),
-      execute: async ({ query, limit, threshold, searchImages }) => {
+      execute: async ({ query, limit, searchImages }) => {
         console.log('Agent chat: Searching documents with query:', query);
         console.log('Agent chat: Data pool ID:', dataPool.id);
-
+        const defaultThreshold = 0.3;
         // Adjust threshold based on search type
-        let adjustedThreshold = threshold;
+        let adjustedThreshold = defaultThreshold;
         if (searchImages) {
           // Lower threshold for images since they're more abstract
-          adjustedThreshold = Math.min(threshold, 0.1);
+          adjustedThreshold = Math.min(defaultThreshold, 0.1);
           console.log(
             'Agent chat: Image search detected, adjusted threshold to:',
             adjustedThreshold,
@@ -647,11 +665,20 @@ function createAgentTools(
   // - transform: text processing tools
   // - filter: data filtering tools
   // - aggregate: data aggregation tools
+  // - runtime: Python runtime tool (implemented)
 
   // Add tools based on workflow node types
   const nodeTypes = workflowNodes
     .map((node) => node.nodeType?.toLowerCase())
     .filter(Boolean);
+
+  // Add Python runtime tool if there are runtime nodes
+  if (nodeTypes.includes('runtime')) {
+    tools.pythonRuntime = pythonRuntime({ dataStream });
+    console.log(
+      'createAgentTools: Added Python runtime tool based on workflow nodes',
+    );
+  }
 
   // Add websearch tools if there are any search or web-related nodes
   if (
