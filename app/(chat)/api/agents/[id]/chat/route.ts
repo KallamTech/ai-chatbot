@@ -30,6 +30,7 @@ import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { pythonRuntime } from '@/lib/ai/tools/python-runtime';
+import { generateImage } from '@/lib/ai/tools/generate-image';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
@@ -278,6 +279,7 @@ function createAgentSystemPrompt(
   const hasDeepResearch = 'deepResearch' in agentTools;
   const hasDocumentTools = 'createDocument' in agentTools;
   const hasPythonRuntime = 'pythonRuntime' in agentTools;
+  const hasImageGeneration = 'generateImage' in agentTools;
 
   const webSearchCapabilities =
     hasWebSearch || hasNewsSearch || hasDeepResearch
@@ -297,6 +299,15 @@ function createAgentSystemPrompt(
 - You can create data analysis scripts, calculations, and any Python operations
 - Use waitForExecution: true when you need to analyze the results of the code execution
 - When waitForExecution is true, the agent will pause and wait for user execution before continuing`
+    : '';
+
+  const imageGenerationCapabilities = hasImageGeneration
+    ? `- You can generate images using the generateImage tool
+- Create various types of images including illustrations, photos, artwork, diagrams, and more
+- Specify style (realistic, artistic, illustration, diagram, logo, abstract, cartoon, photographic)
+- Choose aspect ratios (1:1, 16:9, 9:16, 4:3, 3:4, 21:9)
+- Set quality levels (standard, high)
+- Provide detailed descriptions for best results`
     : '';
 
   return `You are "${agent.title}", a specialized AI agent designed for specific tasks.
@@ -325,7 +336,7 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 **Content Processing:**
 - Summarize, extract, and analyze information from your documents
 - Answer questions based on your data pool content
-- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}${pythonCapabilities ? '\n\n**Python Code Generation:**\n' + pythonCapabilities : ''}
+- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}${pythonCapabilities ? '\n\n**Python Code Generation:**\n' + pythonCapabilities : ''}${imageGenerationCapabilities ? '\n\n**Image Generation:**\n' + imageGenerationCapabilities : ''}
 
 **Operational Constraints:**
 - You can ONLY perform tasks related to your defined workflow nodes
@@ -715,6 +726,14 @@ function createAgentTools(
     tools.deepResearch = deepResearch();
     console.log(
       'createAgentTools: Added deep research tool based on workflow nodes',
+    );
+  }
+
+  // Add image generation tool specifically for imagegeneration nodes
+  if (nodeTypes.includes('imagegeneration')) {
+    tools.generateImage = generateImage({ dataStream });
+    console.log(
+      'createAgentTools: Added image generation tool based on workflow nodes',
     );
   }
 

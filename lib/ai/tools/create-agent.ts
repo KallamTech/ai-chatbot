@@ -97,6 +97,7 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
 - **websearch**: Web search - searches the internet for current information, facts, and real-time data using specialized search types (general, academic, recent)
 - **news**: News search - searches for the latest news, current events, and breaking stories with time-based filtering (today, week, month)
 - **deepresearch**: Deep research - performs comprehensive academic and scholarly research with specialized capabilities for literature reviews, exhaustive analysis, and in-depth investigation
+- **imagegeneration**: Image generation - creates images using AI based on text descriptions with various styles, aspect ratios, and quality levels
 
 **Node Creation Guidelines:**
 1. Create 2-4 nodes maximum for optimal performance
@@ -106,9 +107,10 @@ export const createAgent = ({ session, dataStream }: CreateAgentProps) =>
 5. Use Websearch nodes when you need current information, real-time data, or to compare with external sources
 6. Use News nodes for current events, breaking news, or time-sensitive information
 7. Use Deepresearch nodes for comprehensive academic research, literature reviews, scholarly analysis, or exhaustive investigation requiring multiple sources and perspectives
-8. End with Generate or Aggregate nodes for final output
-9. Each node should have a clear, single responsibility
-10. System prompts should be specific and actionable
+8. Use Imagegeneration nodes when the agent needs to create visual content, illustrations, diagrams, artwork, or any image-based output
+9. End with Generate, Aggregate, or Imagegeneration nodes for final output
+10. Each node should have a clear, single responsibility
+11. System prompts should be specific and actionable
 
 **System Prompt Best Practices:**
 - Be specific about the node's role and capabilities

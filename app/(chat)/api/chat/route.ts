@@ -27,6 +27,7 @@ import { getWeather } from '@/lib/ai/tools/get-weather';
 import { createAgent } from '@/lib/ai/tools/create-agent';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { deepResearch } from '@/lib/ai/tools/deepresearch';
+import { generateImage } from '@/lib/ai/tools/generate-image';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import { postRequestBodySchema, type PostRequestBody } from './schema';
@@ -168,6 +169,7 @@ export async function POST(request: Request) {
             'webSearch',
             'newsSearch',
             'deepResearch',
+            'generateImage',
           ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
@@ -182,6 +184,7 @@ export async function POST(request: Request) {
             webSearch: webSearch(),
             newsSearch: newsSearch(),
             deepResearch: deepResearch(),
+            generateImage: generateImage({ dataStream }),
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
