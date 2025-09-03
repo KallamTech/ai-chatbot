@@ -7,9 +7,9 @@ import './globals.css';
 import { SessionProvider } from 'next-auth/react';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://chat.vercel.ai'),
-  title: 'AI Chatbot',
-  description: 'AI Chatbot using the AI SDK.',
+  metadataBase: new URL('https://chat.taimiraguacil.com'),
+  title: 'tAI Platform',
+  description: 'tAI Platform is an advanced conversational AI platform for chat, agents, and data pools. Collaborate, create, and explore with state-of-the-art AI tools.',
 };
 
 export const viewport = {
