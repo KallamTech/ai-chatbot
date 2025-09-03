@@ -4,7 +4,8 @@ export type ErrorType =
   | 'forbidden'
   | 'not_found'
   | 'rate_limit'
-  | 'offline';
+  | 'offline'
+  | 'timeout';
 
 export type Surface =
   | 'chat'
@@ -99,6 +100,8 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return 'You need to sign in to view this chat. Please sign in and try again.';
     case 'offline:chat':
       return "We're having trouble sending your message. Please check your internet connection and try again.";
+    case 'timeout:chat':
+      return "The request took too long to complete. Please try again with a shorter message or check your connection.";
 
     case 'not_found:document':
       return 'The requested document was not found. Please check the document ID and try again.';
@@ -137,6 +140,8 @@ function getStatusCodeByType(type: ErrorType) {
       return 429;
     case 'offline':
       return 503;
+    case 'timeout':
+      return 408;
     default:
       return 500;
   }

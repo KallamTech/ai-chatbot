@@ -46,6 +46,16 @@ export async function fetchWithErrorHandlers(
       throw new ChatSDKError('offline:chat');
     }
 
+    // Handle timeout errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ChatSDKError('timeout:chat');
+    }
+
+    // Handle network errors that might be timeouts
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new ChatSDKError('timeout:chat');
+    }
+
     throw error;
   }
 }

@@ -55,6 +55,7 @@ export function Chat({
   const [input, setInput] = useState<string>('');
   const [selectedModelId, setSelectedModelId] =
     useState<string>(initialChatModel);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   // Determine the effective agentId from multiple sources
   // Priority: prop from route > database
@@ -86,6 +87,12 @@ export function Chat({
     setSelectedModelId(modelId);
   };
 
+  // Clear error when sending a new message
+  const handleSendMessage = (message: any) => {
+    setLastError(null);
+    sendMessage(message);
+  };
+
   const {
     messages,
     setMessages,
@@ -103,7 +110,18 @@ export function Chat({
       api: agentIdRef.current
         ? `/api/agents/${agentIdRef.current}/chat`
         : '/api/chat',
-      fetch: fetchWithErrorHandlers,
+      fetch: (input, init) => {
+        // Add a 5-minute timeout for chat requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
+        return fetchWithErrorHandlers(input, {
+          ...init,
+          signal: controller.signal,
+        }).finally(() => {
+          clearTimeout(timeoutId);
+        });
+      },
       prepareSendMessagesRequest({ messages, id, body }) {
         const currentAgentId = agentIdRef.current;
         const apiRoute = currentAgentId
@@ -132,10 +150,13 @@ export function Chat({
     },
     onError: (error) => {
       if (error instanceof ChatSDKError) {
+        setLastError(error.message);
         toast({
           type: 'error',
           description: error.message,
         });
+      } else {
+        setLastError('An unexpected error occurred. Please try again.');
       }
       // Force stop the generation to reset status to 'ready'
       stop();
@@ -208,9 +229,10 @@ export function Chat({
           messages={messages}
           setMessages={setMessages}
           regenerate={regenerate}
-          sendMessage={sendMessage}
+          sendMessage={handleSendMessage}
           isReadonly={isReadonly}
           isArtifactVisible={isArtifactVisible}
+          lastError={lastError}
         />
 
         <div className="sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 md:max-w-3xl z-[1] border-t-0">
@@ -225,7 +247,7 @@ export function Chat({
               setAttachments={setAttachments}
               messages={messages}
               setMessages={setMessages}
-              sendMessage={sendMessage}
+              sendMessage={handleSendMessage}
               selectedVisibilityType={visibilityType}
             />
           )}
@@ -240,7 +262,7 @@ export function Chat({
         stop={stop}
         attachments={attachments}
         setAttachments={setAttachments}
-        sendMessage={sendMessage}
+        sendMessage={handleSendMessage}
         messages={messages}
         setMessages={setMessages}
         regenerate={regenerate}

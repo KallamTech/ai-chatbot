@@ -1,5 +1,6 @@
 import { PreviewMessage, ThinkingMessage } from './message';
 import { Greeting } from './greeting';
+import { ErrorMessage } from './error-message';
 import { memo } from 'react';
 import type { Vote } from '@/lib/db/schema';
 import equal from 'fast-deep-equal';
@@ -24,6 +25,7 @@ interface MessagesProps {
   sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   isReadonly: boolean;
   isArtifactVisible: boolean;
+  lastError?: string | null;
 }
 
 function PureMessages({
@@ -35,6 +37,7 @@ function PureMessages({
   regenerate,
   sendMessage,
   isReadonly,
+  lastError,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -84,6 +87,18 @@ function PureMessages({
               <ThinkingMessage />
             )}
 
+          {status === 'error' && lastError && (
+            <ErrorMessage
+              error={lastError}
+              onRetry={() => {
+                // Clear the error and regenerate the last assistant message
+                if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+                  regenerate();
+                }
+              }}
+            />
+          )}
+
           <motion.div
             ref={messagesEndRef}
             className="shrink-0 min-w-[24px] min-h-[24px]"
@@ -104,6 +119,7 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
+  if (prevProps.lastError !== nextProps.lastError) return false;
 
   return false;
 });
