@@ -88,9 +88,9 @@ export function Chat({
   };
 
   // Clear error when sending a new message
-  const handleSendMessage = (message: any) => {
+  const handleSendMessage = async (message: any) => {
     setLastError(null);
-    sendMessage(message);
+    return sendMessage(message);
   };
 
   const {
