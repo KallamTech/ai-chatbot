@@ -1072,3 +1072,40 @@ export const ThinkingMessage = () => {
     </motion.div>
   );
 };
+
+export const ErrorMessage = ({ error }: { error: string }) => {
+  const role = 'assistant';
+
+  return (
+    <motion.div
+      data-testid="message-assistant-error"
+      className="px-4 mx-auto w-full max-w-3xl group/message"
+      initial={{ y: 5, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      data-role={role}
+    >
+      <div
+        className={cx(
+          'flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl',
+          {
+            'group-data-[role=user]/message:bg-muted': true,
+          },
+        )}
+      >
+        <div className="flex justify-center items-center rounded-full ring-1 size-8 shrink-0 ring-border bg-background">
+          <div className="translate-y-px">
+            <SparklesIcon size={14} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 w-full">
+          <div className="flex flex-col gap-4">
+            <div className="py-2 text-muted-foreground text-sm">
+              {error || "Something went wrong. Please try again."}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};

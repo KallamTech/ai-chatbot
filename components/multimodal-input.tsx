@@ -111,25 +111,66 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
+  // Clear attachments when an error occurs
+  useEffect(() => {
+    console.log('MultimodalInput: Status changed to:', status, 'attachments count:', attachments.length);
+    if (status === 'error') {
+      console.log('MultimodalInput: ERROR DETECTED - Clearing attachments, current attachments:', attachments.length);
+      setAttachments([]);
+      console.log('MultimodalInput: setAttachments([]) called');
+    }
+  }, [status, setAttachments, attachments.length]);
+
   const submitForm = useCallback(() => {
+    console.log('MultimodalInput: submitForm called with attachments:', attachments.length, 'input:', input);
+    console.log('MultimodalInput: Current status:', status);
+
+    // If we're in an error state, clear attachments before sending
+    if (status === 'error') {
+      console.log('MultimodalInput: ERROR STATE DETECTED - Clearing attachments before send');
+      setAttachments([]);
+    }
+
     window.history.replaceState({}, '', `/chat/${chatId}`);
+
+    // Filter out any problematic attachments
+    const validAttachments = attachments.filter((attachment) => {
+      // Check if attachment has valid URL and content type
+      const isValid = attachment.url && attachment.contentType &&
+                     (attachment.contentType.startsWith('image/') ||
+                      attachment.contentType.startsWith('application/pdf') ||
+                      attachment.contentType.startsWith('text/'));
+
+      if (!isValid) {
+        console.log('MultimodalInput: Filtering out invalid attachment:', attachment);
+      }
+
+      return isValid;
+    });
+
+    console.log('MultimodalInput: Valid attachments after filtering:', validAttachments.length);
+
+    const messageParts = [
+      ...validAttachments.map((attachment) => ({
+        type: 'file' as const,
+        url: attachment.url,
+        name: attachment.name,
+        mediaType: attachment.contentType,
+      })),
+      {
+        type: 'text',
+        text: input,
+      },
+    ];
+
+    console.log('MultimodalInput: Sending message with parts:', messageParts.length, 'file parts:', validAttachments.length);
 
     sendMessage({
       role: 'user',
-      parts: [
-        ...attachments.map((attachment) => ({
-          type: 'file' as const,
-          url: attachment.url,
-          name: attachment.name,
-          mediaType: attachment.contentType,
-        })),
-        {
-          type: 'text',
-          text: input,
-        },
-      ],
+      parts: messageParts,
     });
 
+    console.log('MultimodalInput: Clearing attachments after send');
     setAttachments([]);
     setLocalStorageInput('');
     resetHeight();
@@ -147,6 +188,7 @@ function PureMultimodalInput({
     setLocalStorageInput,
     width,
     chatId,
+    status,
   ]);
 
   const uploadFile = async (file: File) => {
@@ -179,6 +221,7 @@ function PureMultimodalInput({
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files || []);
+      console.log('MultimodalInput: Files selected:', files.length, files.map(f => f.name));
 
       setUploadQueue(files.map((file) => file.name));
 
@@ -189,10 +232,15 @@ function PureMultimodalInput({
           (attachment) => attachment !== undefined,
         );
 
-        setAttachments((currentAttachments) => [
-          ...currentAttachments,
-          ...successfullyUploadedAttachments,
-        ]);
+        console.log('MultimodalInput: Successfully uploaded attachments:', successfullyUploadedAttachments.length);
+        setAttachments((currentAttachments) => {
+          const newAttachments = [
+            ...currentAttachments,
+            ...successfullyUploadedAttachments,
+          ];
+          console.log('MultimodalInput: Attachments updated, new count:', newAttachments.length);
+          return newAttachments;
+        });
       } catch (error) {
         console.error('Error uploading files!', error);
       } finally {

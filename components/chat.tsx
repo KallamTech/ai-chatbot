@@ -55,7 +55,7 @@ export function Chat({
   const [input, setInput] = useState<string>('');
   const [selectedModelId, setSelectedModelId] =
     useState<string>(initialChatModel);
-  const [lastError, setLastError] = useState<string | null>(null);
+  const [errorHandled, setErrorHandled] = useState<boolean>(false);
 
   // Determine the effective agentId from multiple sources
   // Priority: prop from route > database
@@ -89,7 +89,9 @@ export function Chat({
 
   // Clear error when sending a new message
   const handleSendMessage = async (message: any) => {
-    setLastError(null);
+    console.log('Chat: handleSendMessage called with message parts:', message.parts?.length || 0);
+    console.log('Chat: Current attachments count:', attachments.length);
+    setErrorHandled(false); // Reset error handled state when sending new message
     return sendMessage(message);
   };
 
@@ -97,7 +99,7 @@ export function Chat({
     messages,
     setMessages,
     sendMessage,
-    status,
+    status: rawStatus,
     stop,
     regenerate,
     resumeStream,
@@ -149,19 +151,80 @@ export function Chat({
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
-      if (error instanceof ChatSDKError) {
-        setLastError(error.message);
-        toast({
-          type: 'error',
-          description: error.message,
-        });
-      } else {
-        setLastError('An unexpected error occurred. Please try again.');
-      }
-      // Force stop the generation to reset status to 'ready'
+      console.log('Chat: onError called with error:', error.message);
+      const errorMessage = error instanceof ChatSDKError
+        ? error.message
+        : 'An unexpected error occurred. Please try again.';
+
+      console.log('Chat: Error message:', errorMessage);
+
+      toast({
+        type: 'error',
+        description: errorMessage,
+      });
+
+      // Replace the last empty assistant message with an error message
+      setMessages((messages) => {
+        const newMessages = [...messages];
+        const lastMessage = newMessages[newMessages.length - 1];
+
+        if (lastMessage && lastMessage.role === 'assistant' &&
+            (!lastMessage.parts || lastMessage.parts.length === 0 ||
+             (lastMessage.parts.length === 1 && lastMessage.parts[0].type === 'text' && !lastMessage.parts[0].text))) {
+          // Replace empty assistant message with error message
+          newMessages[newMessages.length - 1] = {
+            ...lastMessage,
+            parts: [{ type: 'text', text: errorMessage }],
+          };
+        } else {
+          // Add error message as new assistant message
+          newMessages.push({
+            id: generateUUID(),
+            role: 'assistant',
+            parts: [{ type: 'text', text: errorMessage }],
+          });
+        }
+
+        return newMessages;
+      });
+
+            // Mark error as handled and force stop the generation
+      console.log('Chat: Setting errorHandled to true and calling stop()');
+      setErrorHandled(true);
+      console.log('Chat: Clearing attachments directly in error handler, current count:', attachments.length);
+      setAttachments([]);
+
+      // Completely reset messages to initial state to clear any pending state
+      console.log('Chat: Completely resetting messages to initial state');
+      setMessages(initialMessages);
+
       stop();
+
+      // Force reset status after a short delay
+      setTimeout(() => {
+        console.log('Chat: Force resetting status after timeout');
+        setErrorHandled(false);
+      }, 100);
     },
   });
+
+  // Override status to treat 'error' as 'ready' when we've handled the error
+  const status = errorHandled && rawStatus === 'error' ? 'ready' : rawStatus;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Chat: Status changed - rawStatus:', rawStatus, 'status:', status, 'errorHandled:', errorHandled);
+    console.log('Chat: Status override logic - errorHandled && rawStatus === "error":', errorHandled && rawStatus === 'error');
+  }, [rawStatus, status, errorHandled]);
+
+  // Reset errorHandled when status changes to something other than 'error'
+  useEffect(() => {
+    if (rawStatus !== 'error') {
+      setErrorHandled(false);
+    }
+  }, [rawStatus]);
+
+
 
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
@@ -186,6 +249,11 @@ export function Chat({
   );
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+
+  // Log attachment changes
+  useEffect(() => {
+    console.log('Chat: Attachments changed, count:', attachments.length);
+  }, [attachments]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible, id);
   const { setArtifact } = useArtifact(id);
 
@@ -232,7 +300,6 @@ export function Chat({
           sendMessage={handleSendMessage}
           isReadonly={isReadonly}
           isArtifactVisible={isArtifactVisible}
-          lastError={lastError}
         />
 
         <div className="sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 md:max-w-3xl z-[1] border-t-0">
@@ -241,7 +308,7 @@ export function Chat({
               chatId={id}
               input={input}
               setInput={setInput}
-              status={status}
+              status={rawStatus}
               stop={stop}
               attachments={attachments}
               setAttachments={setAttachments}
@@ -258,7 +325,7 @@ export function Chat({
         chatId={id}
         input={input}
         setInput={setInput}
-        status={status}
+        status={rawStatus}
         stop={stop}
         attachments={attachments}
         setAttachments={setAttachments}
