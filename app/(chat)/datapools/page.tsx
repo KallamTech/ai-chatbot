@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/app/(auth)/auth';
 import { getDataPoolsByUserId } from '@/lib/db/queries';
 import { DataPoolsList } from '@/components/datapools-list';
+import { PageHeader } from '@/components/page-header';
 
 export default async function DataPoolsPage() {
   const session = await auth();
@@ -18,6 +19,7 @@ export default async function DataPoolsPage() {
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto p-4">
+      <PageHeader />
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <div>
