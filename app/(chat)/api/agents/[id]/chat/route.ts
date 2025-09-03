@@ -187,6 +187,7 @@ export async function POST(
           dataPool,
           session,
           dataStream,
+          selectedChatModel,
         );
         const agentSystemPrompt = createAgentSystemPrompt(
           agent,
@@ -370,6 +371,7 @@ function createAgentTools(
   dataPool: any,
   session: any,
   dataStream: any,
+  selectedChatModel?: string,
 ) {
   const tools: any = {};
 
@@ -419,6 +421,8 @@ function createAgentTools(
           threshold: adjustedThreshold,
           // Add image-specific filtering if requested
           ...(searchImages && { documentType: 'extracted_image' }),
+          // Add model information for context management
+          ...(selectedChatModel && { modelId: selectedChatModel }),
         });
 
         console.log('Agent chat: Search result:', result);
