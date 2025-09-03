@@ -26,6 +26,7 @@ import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
+import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { pythonRuntime } from '@/lib/ai/tools/python-runtime';
@@ -46,7 +47,7 @@ import type { ChatMessage } from '@/lib/types';
 import type { ChatModel } from '@/lib/ai/models';
 import type { VisibilityType } from '@/components/visibility-selector';
 
-export const maxDuration = 60;
+export const maxDuration = 600; // 10 minutes
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
@@ -186,6 +187,7 @@ export async function POST(
           dataPool,
           session,
           dataStream,
+          selectedChatModel,
         );
         const agentSystemPrompt = createAgentSystemPrompt(
           agent,
@@ -273,13 +275,14 @@ function createAgentSystemPrompt(
   // Check which tools are available
   const hasWebSearch = 'webSearch' in agentTools;
   const hasNewsSearch = 'newsSearch' in agentTools;
+  const hasDeepResearch = 'deepResearch' in agentTools;
   const hasDocumentTools = 'createDocument' in agentTools;
   const hasPythonRuntime = 'pythonRuntime' in agentTools;
 
   const webSearchCapabilities =
-    hasWebSearch || hasNewsSearch
+    hasWebSearch || hasNewsSearch || hasDeepResearch
       ? `- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
-- You can search for the latest news using the newsSearch tool (for current events and breaking news)`
+- You can search for the latest news using the newsSearch tool (for current events and breaking news)${hasDeepResearch ? '\n- You can perform comprehensive academic research using the deepResearch tool (for literature reviews, scholarly analysis, and in-depth investigation)' : ''}`
       : '';
 
   const documentCapabilities = hasDocumentTools
@@ -344,11 +347,15 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 - Always specify searchImages: true for visual queries
 
 **Web Search Guidelines:**${
-    hasWebSearch || hasNewsSearch
+    hasWebSearch || hasNewsSearch || hasDeepResearch
       ? `
 - Use webSearch for current events, recent developments, real-time information
 - Use newsSearch for breaking news and current affairs
-- Search types: 'general' (broad topics), 'news' (current events), 'academic' (research), 'recent' (latest updates)
+- Use deepResearch for comprehensive academic research, literature reviews, and scholarly analysis
+- WebSearch types: 'general' (broad topics), 'news' (current events), 'academic' (scholarly research), 'recent' (latest updates)
+- NewsSearch timeframes: 'today', 'week', 'month' for time-based filtering
+- DeepResearch types: 'academic' (scholarly sources), 'literature_review' (comprehensive literature analysis), 'comprehensive' (thorough investigation), 'scholarly' (authoritative academic content)
+- DeepResearch depth: 'standard' (basic academic search), 'comprehensive' (thorough investigation), 'exhaustive' (complete literature coverage)
 - Use web search when information is not in your data pool or requires up-to-date information`
       : `
 - Web search tools are not available for this agent`
@@ -364,6 +371,7 @@ function createAgentTools(
   dataPool: any,
   session: any,
   dataStream: any,
+  selectedChatModel?: string,
 ) {
   const tools: any = {};
 
@@ -413,6 +421,8 @@ function createAgentTools(
           threshold: adjustedThreshold,
           // Add image-specific filtering if requested
           ...(searchImages && { documentType: 'extracted_image' }),
+          // Add model information for context management
+          ...(selectedChatModel && { modelId: selectedChatModel }),
         });
 
         console.log('Agent chat: Search result:', result);
@@ -683,13 +693,28 @@ function createAgentTools(
   // Add websearch tools if there are any search or web-related nodes
   if (
     nodeTypes.some((type) =>
-      ['search', 'web', 'news', 'research'].includes(type),
+      [
+        'search',
+        'web',
+        'news',
+        'research',
+        'websearch',
+        'deepresearch',
+      ].includes(type),
     )
   ) {
     tools.webSearch = webSearch();
     tools.newsSearch = newsSearch();
     console.log(
       'createAgentTools: Added websearch tools based on workflow nodes',
+    );
+  }
+
+  // Add deep research tool specifically for deepresearch nodes
+  if (nodeTypes.includes('deepresearch')) {
+    tools.deepResearch = deepResearch();
+    console.log(
+      'createAgentTools: Added deep research tool based on workflow nodes',
     );
   }
 

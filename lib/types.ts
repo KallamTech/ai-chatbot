@@ -5,6 +5,7 @@ import type { updateDocument } from './ai/tools/update-document';
 import type { requestSuggestions } from './ai/tools/request-suggestions';
 import type { createAgent } from './ai/tools/create-agent';
 import type { webSearch, newsSearch } from './ai/tools/websearch';
+import type { deepResearch } from './ai/tools/deepresearch';
 import type { pythonRuntime } from './ai/tools/python-runtime';
 import type { InferUITool, UIMessage } from 'ai';
 
@@ -28,6 +29,7 @@ type requestSuggestionsTool = InferUITool<
 type createAgentTool = InferUITool<ReturnType<typeof createAgent>>;
 type webSearchTool = InferUITool<ReturnType<typeof webSearch>>;
 type newsSearchTool = InferUITool<ReturnType<typeof newsSearch>>;
+type deepResearchTool = InferUITool<ReturnType<typeof deepResearch>>;
 type pythonRuntimeTool = InferUITool<ReturnType<typeof pythonRuntime>>;
 
 // Agent-specific tools (dynamically created)
@@ -156,6 +158,7 @@ export type ChatTools = {
   createAgent: createAgentTool;
   webSearch: webSearchTool;
   newsSearch: newsSearchTool;
+  deepResearch: deepResearchTool;
   pythonRuntime: pythonRuntimeTool;
   // Agent-specific tools
   searchDocuments: searchDocumentsTool;

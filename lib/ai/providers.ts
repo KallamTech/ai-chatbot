@@ -55,6 +55,7 @@ export enum ModelId {
   CODE_MODEL = 'code-model',
   WEBSEARCH_MODEL = 'websearch-model',
   COHERE_EMBED_V4 = 'cohere/embed-v4.0',
+  DEEPRESEARCH_MODEL = 'deepresearch-model',
 }
 
 export const myProvider =
@@ -97,6 +98,7 @@ export const myProvider =
           [ModelId.ARTIFACT_MODEL]: testModels.artifactModel,
           [ModelId.CODE_MODEL]: testModels.artifactModel,
           [ModelId.WEBSEARCH_MODEL]: testModels.chatModel,
+          [ModelId.DEEPRESEARCH_MODEL]: testModels.reasoningModel,
         },
         imageModels: {
           // No dedicated image models currently
@@ -221,6 +223,9 @@ export const myProvider =
           [ModelId.CODE_MODEL]: gateway.languageModel(ModelId.GROK_CODE_FAST_1),
           [ModelId.WEBSEARCH_MODEL]: gateway.languageModel(
             ModelId.PERPLEXITY_SONAR,
+          ),
+          [ModelId.DEEPRESEARCH_MODEL]: gateway.languageModel(
+            ModelId.PERPLEXITY_SONAR_REASONING,
           ),
         },
         imageModels: {

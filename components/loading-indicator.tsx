@@ -141,6 +141,7 @@ export const getContextualLoadingMessage = (
     | 'search'
     | 'document'
     | 'python'
+    | 'research'
     | 'general',
 ): string => {
   const messages = {
@@ -180,6 +181,14 @@ export const getContextualLoadingMessage = (
       'Processing code...',
       'Computing results...',
     ],
+    research: [
+      'Conducting deep research...',
+      'Analyzing academic sources...',
+      'Reviewing literature...',
+      'Investigating scholarly content...',
+      'Performing comprehensive research...',
+      'Examining research papers...',
+    ],
     general: [
       'Loading...',
       'Please wait...',
@@ -206,6 +215,7 @@ export const AnimatedThinking = ({
     | 'search'
     | 'document'
     | 'python'
+    | 'research'
     | 'general';
   variant?: 'dots' | 'pulse' | 'wave';
   size?: 'sm' | 'md' | 'lg';

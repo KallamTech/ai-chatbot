@@ -568,6 +568,81 @@ const PurePreviewMessage = ({
                 );
               }
 
+              if (type === 'tool-deepResearch') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-deepResearch" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <>
+                          <ToolInput input={(part as any).input} />
+                          <ToolLoadingState toolType="tool-deepResearch" />
+                        </>
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-emerald-600">
+                                  🔬 Deep Research Results
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Query:</strong>{' '}
+                                  {(part as any).output.query}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Research Type:</strong>{' '}
+                                  {(part as any).output.researchType}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Depth:</strong>{' '}
+                                  {(part as any).output.depth}
+                                </div>
+                                {(part as any).output.focus && (
+                                  <div className="text-sm">
+                                    <strong>Focus:</strong>{' '}
+                                    {(part as any).output.focus}
+                                  </div>
+                                )}
+                                <div className="mt-3 p-3 bg-muted/50 rounded border-l-2 border-emerald-200">
+                                  <div className="whitespace-pre-wrap text-sm">
+                                    {(part as any).output.results}
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Source: {(part as any).output.source} •{' '}
+                                  {new Date(
+                                    (part as any).output.timestamp,
+                                  ).toLocaleString()}
+                                </div>
+                                {(part as any).output.methodology && (
+                                  <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
+                                    <strong>Methodology:</strong>{' '}
+                                    {JSON.stringify(
+                                      (part as any).output.methodology,
+                                      null,
+                                      2,
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
               // Agent-specific document search tools
               if (type === 'tool-searchDocuments') {
                 const { toolCallId, state } = part as any;

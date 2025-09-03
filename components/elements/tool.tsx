@@ -56,7 +56,9 @@ const getStatusBadge = (status: ToolUIPart['state'], toolType?: string) => {
   // Get contextual loading message for running tools
   const getLoadingMessage = () => {
     if (status === 'input-available') {
-      if (toolType?.includes('search')) {
+      if (toolType?.includes('deepResearch')) {
+        return getContextualLoadingMessage('research');
+      } else if (toolType?.includes('search')) {
         return getContextualLoadingMessage('search');
       } else if (toolType?.includes('document')) {
         return getContextualLoadingMessage('document');
@@ -131,8 +133,10 @@ export const ToolLoadingState = ({
     | 'document'
     | 'python'
     | 'agent'
+    | 'research'
     | 'tool'
     | 'general' => {
+    if (toolType?.includes('deepResearch')) return 'research';
     if (toolType?.includes('search')) return 'search';
     if (toolType?.includes('document')) return 'document';
     if (toolType?.includes('python')) return 'python';
