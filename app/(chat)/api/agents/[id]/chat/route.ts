@@ -281,6 +281,12 @@ function createAgentSystemPrompt(
   const hasPythonRuntime = 'pythonRuntime' in agentTools;
   const hasImageGeneration = 'generateImage' in agentTools;
 
+  // Check for document-specific nodes
+  const hasDocumentNodes = workflowNodes.some(node =>
+    node.nodeType?.toLowerCase() === 'document' ||
+    node.nodeType?.toLowerCase() === 'documentupdate'
+  );
+
   const webSearchCapabilities =
     hasWebSearch || hasNewsSearch || hasDeepResearch
       ? `- You can search the web for current information using the webSearch tool (for general, academic, or recent information)
@@ -288,7 +294,11 @@ function createAgentSystemPrompt(
       : '';
 
   const documentCapabilities = hasDocumentTools
-    ? `- You can create new documents using the createDocument tool
+    ? hasDocumentNodes
+      ? `- You can create new documents using the createDocument tool (text, code, images, sheets)
+- You can update existing documents using the updateDocument tool
+- Document creation and updates are core capabilities of this agent's workflow`
+      : `- You can create new documents using the createDocument tool
 - You can update existing documents using the updateDocument tool`
     : '';
 
@@ -737,13 +747,14 @@ function createAgentTools(
     );
   }
 
-  // Add document management tools (always available for agents like main chat)
-  tools.createDocument = createDocument({ session, dataStream });
-  tools.updateDocument = updateDocument({ session, dataStream });
-
-  console.log(
-    'createAgentTools: Added document management tools (createDocument, updateDocument)',
-  );
+  // Add document management tools for document and documentupdate nodes
+  if (nodeTypes.includes('document') || nodeTypes.includes('documentupdate')) {
+    tools.createDocument = createDocument({ session, dataStream });
+    tools.updateDocument = updateDocument({ session, dataStream });
+    console.log(
+      'createAgentTools: Added document management tools (createDocument, updateDocument) based on workflow nodes',
+    );
+  }
 
   return tools;
 }

@@ -197,6 +197,23 @@ export type CustomUIDataTypes = {
   kind: ArtifactKind;
   clear: null;
   finish: null;
+  'image-generation-start': {
+    prompt: string;
+    style: string;
+    aspectRatio: string;
+    quality: string;
+  };
+  'image-generated': {
+    base64: string;
+    mediaType: string;
+    prompt: string;
+    style: string;
+    aspectRatio: string;
+    quality: string;
+  };
+  'image-generation-error': {
+    error: string;
+  };
 };
 
 export type ChatMessage = UIMessage<
