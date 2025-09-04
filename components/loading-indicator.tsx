@@ -142,6 +142,7 @@ export const getContextualLoadingMessage = (
     | 'document'
     | 'python'
     | 'research'
+    | 'image'
     | 'general',
 ): string => {
   const messages = {
@@ -189,6 +190,14 @@ export const getContextualLoadingMessage = (
       'Performing comprehensive research...',
       'Examining research papers...',
     ],
+    image: [
+      'Generating image...',
+      'Creating artwork...',
+      'Rendering visual content...',
+      'Crafting your image...',
+      'Bringing your vision to life...',
+      'Painting with pixels...',
+    ],
     general: [
       'Loading...',
       'Please wait...',
@@ -216,6 +225,7 @@ export const AnimatedThinking = ({
     | 'document'
     | 'python'
     | 'research'
+    | 'image'
     | 'general';
   variant?: 'dots' | 'pulse' | 'wave';
   size?: 'sm' | 'md' | 'lg';

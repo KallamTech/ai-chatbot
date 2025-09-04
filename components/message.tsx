@@ -1001,6 +1001,78 @@ const PurePreviewMessage = ({
                   </Tool>
                 );
               }
+
+              if (type === 'tool-generateImage') {
+                const { toolCallId, state } = part as any;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-generateImage" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <>
+                          <ToolInput input={(part as any).input} />
+                          <ToolLoadingState toolType="tool-generateImage" />
+                        </>
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-3">
+                                <div className="text-sm font-medium text-purple-600">
+                                  🎨 Generated Image
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Prompt:</strong>{' '}
+                                  {(part as any).output.imageData?.prompt || (part as any).output.message}
+                                </div>
+                                {(part as any).output.imageData && (
+                                  <>
+                                    <div className="text-sm">
+                                      <strong>Style:</strong>{' '}
+                                      {(part as any).output.imageData.style}
+                                    </div>
+                                    <div className="text-sm">
+                                      <strong>Aspect Ratio:</strong>{' '}
+                                      {(part as any).output.imageData.aspectRatio}
+                                    </div>
+                                    <div className="text-sm">
+                                      <strong>Quality:</strong>{' '}
+                                      {(part as any).output.imageData.quality}
+                                    </div>
+                                    <div className="mt-3">
+                                      <img
+                                        src={`data:${(part as any).output.imageData.mediaType};base64,${(part as any).output.imageData.base64}`}
+                                        alt="Generated image"
+                                        className="max-w-full h-auto rounded-lg border shadow-sm"
+                                        style={{ maxHeight: '500px' }}
+                                      />
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Generated using Gemini 2.5 Flash Image Preview
+                                    </div>
+                                  </>
+                                )}
+                                {(part as any).output.success === false && (
+                                  <div className="text-sm text-red-600">
+                                    {(part as any).output.message}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
             })}
 
             {!isReadonly && (

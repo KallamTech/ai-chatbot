@@ -134,6 +134,7 @@ export const ToolLoadingState = ({
     | 'python'
     | 'agent'
     | 'research'
+    | 'image'
     | 'tool'
     | 'general' => {
     if (toolType?.includes('deepResearch')) return 'research';
@@ -141,6 +142,7 @@ export const ToolLoadingState = ({
     if (toolType?.includes('document')) return 'document';
     if (toolType?.includes('python')) return 'python';
     if (toolType?.includes('agent')) return 'agent';
+    if (toolType?.includes('generateImage')) return 'image';
     return 'tool';
   };
 

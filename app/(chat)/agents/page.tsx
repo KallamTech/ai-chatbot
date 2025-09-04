@@ -32,12 +32,34 @@ export default async function AgentsPage() {
 
         <div className="border rounded-lg p-4 bg-muted/50">
           <h3 className="font-semibold mb-2">Getting Started</h3>
-          <p className="text-sm text-muted-foreground mb-2">
+          <p className="text-sm text-muted-foreground mb-3">
             To create an agent, simply start a new chat and say something like:
           </p>
-          <div className="bg-background border rounded-md p-3 text-sm font-mono">
-            &quot;Create an agent that extracts key information from contracts
-            and summarizes them&quot;
+          <div className="grid gap-3">
+            <div className="bg-background border rounded-md p-3 text-sm font-mono">
+              &quot;Create an agent that searches through my uploaded documents
+              and answers questions about their content&quot;
+            </div>
+            <div className="bg-background border rounded-md p-3 text-sm font-mono">
+              &quot;Build a research agent that performs deep academic research
+              and creates comprehensive reports&quot;
+            </div>
+            <div className="bg-background border rounded-md p-3 text-sm font-mono">
+              &quot;Create a data analysis agent that writes Python code to
+              process data and generate visualizations&quot;
+            </div>
+            <div className="bg-background border rounded-md p-3 text-sm font-mono">
+              &quot;Build a content creator that generates images and creates
+              documents for presentations&quot;
+            </div>
+            <div className="bg-background border rounded-md p-3 text-sm font-mono">
+              &quot;Create a news monitoring agent that tracks current events
+              and provides daily briefings&quot;
+            </div>
+            <div className="bg-background border rounded-md p-3 text-sm font-mono">
+              &quot;Build a document assistant that searches images and visual
+              content in my uploaded files&quot;
+            </div>
           </div>
         </div>
 

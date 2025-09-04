@@ -7,6 +7,7 @@ import type { createAgent } from './ai/tools/create-agent';
 import type { webSearch, newsSearch } from './ai/tools/websearch';
 import type { deepResearch } from './ai/tools/deepresearch';
 import type { pythonRuntime } from './ai/tools/python-runtime';
+import type { generateImage } from './ai/tools/generate-image';
 import type { InferUITool, UIMessage } from 'ai';
 
 import type { ArtifactKind } from '@/components/artifact';
@@ -31,6 +32,7 @@ type webSearchTool = InferUITool<ReturnType<typeof webSearch>>;
 type newsSearchTool = InferUITool<ReturnType<typeof newsSearch>>;
 type deepResearchTool = InferUITool<ReturnType<typeof deepResearch>>;
 type pythonRuntimeTool = InferUITool<ReturnType<typeof pythonRuntime>>;
+type generateImageTool = InferUITool<ReturnType<typeof generateImage>>;
 
 // Agent-specific tools (dynamically created)
 type searchDocumentsTool = {
@@ -160,6 +162,7 @@ export type ChatTools = {
   newsSearch: newsSearchTool;
   deepResearch: deepResearchTool;
   pythonRuntime: pythonRuntimeTool;
+  generateImage: generateImageTool;
   // Agent-specific tools
   searchDocuments: searchDocumentsTool;
   findDocumentByTitle: findDocumentByTitleTool;
@@ -194,6 +197,23 @@ export type CustomUIDataTypes = {
   kind: ArtifactKind;
   clear: null;
   finish: null;
+  'image-generation-start': {
+    prompt: string;
+    style: string;
+    aspectRatio: string;
+    quality: string;
+  };
+  'image-generated': {
+    base64: string;
+    mediaType: string;
+    prompt: string;
+    style: string;
+    aspectRatio: string;
+    quality: string;
+  };
+  'image-generation-error': {
+    error: string;
+  };
 };
 
 export type ChatMessage = UIMessage<
