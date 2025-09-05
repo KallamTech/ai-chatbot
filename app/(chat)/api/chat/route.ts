@@ -8,7 +8,7 @@ import {
 } from 'ai';
 import { auth, type UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
-import { ModelId, myProvider } from '@/lib/ai/providers';
+import { myProvider } from '@/lib/ai/providers';
 import {
   createStreamId,
   deleteChatById,
@@ -43,6 +43,39 @@ import type { ChatModel } from '@/lib/ai/models';
 import type { VisibilityType } from '@/components/visibility-selector';
 
 export const maxDuration = 600; // 10 minutes
+
+/**
+ * Filters out messages before the last assistant message containing "An error has occurred"
+ * @param messages Array of database messages
+ * @returns Filtered array of messages
+ */
+function filterMessagesBeforeLastError(messages: any[]): any[] {
+  // Find the index of the last assistant message with "An error has occurred"
+  let lastErrorIndex = -1;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message.role === 'assistant' && message.parts) {
+      // Check if any part contains the error text
+      const hasError = message.parts.some((part: any) =>
+        part.type === 'text' && part.text && part.text.includes('An error has occurred')
+      );
+
+      if (hasError) {
+        lastErrorIndex = i;
+        break;
+      }
+    }
+  }
+
+  // If no error message found, return all messages
+  if (lastErrorIndex === -1) {
+    return messages;
+  }
+
+  // Return messages starting from the error message (inclusive)
+  return messages.slice(lastErrorIndex);
+}
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
@@ -126,7 +159,11 @@ export async function POST(request: Request) {
     }
 
     const messagesFromDb = await getMessagesByChatId({ id });
-    const uiMessages = [...convertToUIMessages(messagesFromDb), message];
+
+    // Filter out messages before the last assistant message with "An error has occurred"
+    const filteredMessages = filterMessagesBeforeLastError(messagesFromDb);
+
+    const uiMessages = [...convertToUIMessages(filteredMessages), message];
 
     const { longitude, latitude, city, country } = geolocation(request);
 
@@ -202,18 +239,34 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onFinish: async ({ messages }) => {
-        await saveMessages({
-          messages: messages.map((message) => ({
+        // Check if any message has empty parts array and add error message
+        const processedMessages = messages.map((message) => {
+          if (message.parts.length === 0) {
+            return {
+              id: message.id,
+              role: message.role,
+              parts: [{ type: 'text', text: 'An error has occurred, please try again noting that all previous messages will be removed from memory' }],
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+            };
+          }
+          return {
             id: message.id,
             role: message.role,
             parts: message.parts,
             createdAt: new Date(),
             attachments: [],
             chatId: id,
-          })),
+          };
+        });
+
+        await saveMessages({
+          messages: processedMessages,
         });
       },
-      onError: () => {
+      onError: (error) => {
+        console.log("Error detected", error);
         return 'Oops, an error occurred!';
       },
     });

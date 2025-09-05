@@ -30,7 +30,7 @@ const LoadingDots = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
           }}
           transition={{
             duration: 1.2,
-            repeat: Infinity,
+            repeat: Number.POSITIVE_INFINITY,
             delay: index * 0.2,
             ease: 'easeInOut',
           }}
@@ -56,7 +56,7 @@ const LoadingPulse = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
       }}
       transition={{
         duration: 1.5,
-        repeat: Infinity,
+        repeat: Number.POSITIVE_INFINITY,
         ease: 'easeInOut',
       }}
     />
@@ -82,7 +82,7 @@ const LoadingWave = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
           }}
           transition={{
             duration: 1.2,
-            repeat: Infinity,
+            repeat: Number.POSITIVE_INFINITY,
             delay: index * 0.1,
             ease: 'easeInOut',
           }}
@@ -122,7 +122,7 @@ export const LoadingIndicator = ({
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{
           duration: 2,
-          repeat: Infinity,
+          repeat: Number.POSITIVE_INFINITY,
           ease: 'easeInOut',
         }}
       >

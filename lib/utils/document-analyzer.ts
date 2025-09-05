@@ -780,7 +780,7 @@ function extractOCRMetadata(
   }
 
   let totalDpi = 0;
-  let pageDimensions: Array<{ width: number; height: number; dpi: number }> =
+  const pageDimensions: Array<{ width: number; height: number; dpi: number }> =
     [];
 
   pages.forEach((page: any) => {
