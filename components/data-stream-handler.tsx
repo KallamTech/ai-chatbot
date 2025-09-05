@@ -70,6 +70,50 @@ export function DataStreamHandler({ chatId }: { chatId: string }) {
               status: 'idle',
             };
 
+          // Image generation data stream handlers
+          case 'data-image-generation-start':
+            return {
+              ...draftArtifact,
+              status: 'streaming',
+              // Store image generation metadata
+              imageGeneration: {
+                prompt: delta.data.prompt,
+                style: delta.data.style,
+                aspectRatio: delta.data.aspectRatio,
+                quality: delta.data.quality,
+                status: 'generating',
+              },
+            };
+
+          case 'data-image-generated':
+            return {
+              ...draftArtifact,
+              status: 'streaming',
+              // Update with generated image data
+              imageGeneration: {
+                ...draftArtifact.imageGeneration,
+                status: 'completed',
+                base64: delta.data.base64,
+                mediaType: delta.data.mediaType,
+                prompt: delta.data.prompt,
+                style: delta.data.style,
+                aspectRatio: delta.data.aspectRatio,
+                quality: delta.data.quality,
+              },
+            };
+
+          case 'data-image-generation-error':
+            return {
+              ...draftArtifact,
+              status: 'streaming',
+              // Update with error information
+              imageGeneration: {
+                ...draftArtifact.imageGeneration,
+                status: 'error',
+                error: delta.data.error,
+              },
+            };
+
           default:
             return draftArtifact;
         }

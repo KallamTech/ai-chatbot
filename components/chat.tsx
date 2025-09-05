@@ -131,14 +131,30 @@ export function Chat({
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
-      if (error instanceof ChatSDKError) {
+      console.log("Error detected", error);
+      if (error instanceof ChatSDKError || error instanceof Error) {
         toast({
           type: 'error',
           description: error.message,
         });
       }
-      // Force stop the generation to reset status to 'ready'
-      stop();
+        // Replace the last empty assistant message with an error message
+      setMessages((messages) => {
+        const newMessages = [...messages];
+        const lastMessage = newMessages[newMessages.length - 1];
+
+        if (lastMessage && lastMessage.role === 'assistant' &&
+            (!lastMessage.parts || lastMessage.parts.length === 0 ||
+             (lastMessage.parts.length === 1 && lastMessage.parts[0].type === 'text' && !lastMessage.parts[0].text))) {
+          // Replace empty assistant message with error message
+          newMessages[newMessages.length - 1] = {
+            ...lastMessage,
+            parts: [{ type: 'text', text: `An error has occured: ${error.message}, please try again`}],
+          };
+        }
+
+        return newMessages;
+      });
     },
   });
 

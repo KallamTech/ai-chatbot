@@ -50,6 +50,16 @@ export interface UIArtifact {
     width: number;
     height: number;
   };
+  imageGeneration?: {
+    prompt?: string;
+    style?: string;
+    aspectRatio?: string;
+    quality?: string;
+    status: 'generating' | 'completed' | 'error';
+    base64?: string;
+    mediaType?: string;
+    error?: string;
+  };
 }
 
 function PureArtifact({

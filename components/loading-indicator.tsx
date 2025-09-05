@@ -30,7 +30,7 @@ const LoadingDots = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
           }}
           transition={{
             duration: 1.2,
-            repeat: Infinity,
+            repeat: Number.POSITIVE_INFINITY,
             delay: index * 0.2,
             ease: 'easeInOut',
           }}
@@ -56,7 +56,7 @@ const LoadingPulse = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
       }}
       transition={{
         duration: 1.5,
-        repeat: Infinity,
+        repeat: Number.POSITIVE_INFINITY,
         ease: 'easeInOut',
       }}
     />
@@ -82,7 +82,7 @@ const LoadingWave = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
           }}
           transition={{
             duration: 1.2,
-            repeat: Infinity,
+            repeat: Number.POSITIVE_INFINITY,
             delay: index * 0.1,
             ease: 'easeInOut',
           }}
@@ -122,7 +122,7 @@ export const LoadingIndicator = ({
         animate={{ opacity: [0.5, 1, 0.5] }}
         transition={{
           duration: 2,
-          repeat: Infinity,
+          repeat: Number.POSITIVE_INFINITY,
           ease: 'easeInOut',
         }}
       >
@@ -142,6 +142,7 @@ export const getContextualLoadingMessage = (
     | 'document'
     | 'python'
     | 'research'
+    | 'image'
     | 'general',
 ): string => {
   const messages = {
@@ -189,6 +190,14 @@ export const getContextualLoadingMessage = (
       'Performing comprehensive research...',
       'Examining research papers...',
     ],
+    image: [
+      'Generating image...',
+      'Creating artwork...',
+      'Rendering visual content...',
+      'Crafting your image...',
+      'Bringing your vision to life...',
+      'Painting with pixels...',
+    ],
     general: [
       'Loading...',
       'Please wait...',
@@ -216,6 +225,7 @@ export const AnimatedThinking = ({
     | 'document'
     | 'python'
     | 'research'
+    | 'image'
     | 'general';
   variant?: 'dots' | 'pulse' | 'wave';
   size?: 'sm' | 'md' | 'lg';

@@ -251,6 +251,7 @@ export const workflowNode = pgTable('WorkflowNode', {
       'websearch',
       'news',
       'deepresearch',
+      'imagegeneration',
     ],
   })
     .notNull()

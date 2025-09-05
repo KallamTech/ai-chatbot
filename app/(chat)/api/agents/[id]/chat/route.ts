@@ -30,6 +30,7 @@ import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { pythonRuntime } from '@/lib/ai/tools/python-runtime';
+import { generateImage } from '@/lib/ai/tools/generate-image';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
@@ -48,6 +49,39 @@ import type { ChatModel } from '@/lib/ai/models';
 import type { VisibilityType } from '@/components/visibility-selector';
 
 export const maxDuration = 600; // 10 minutes
+
+/**
+ * Filters out messages before the last assistant message containing "An error has occurred"
+ * @param messages Array of database messages
+ * @returns Filtered array of messages
+ */
+function filterMessagesBeforeLastError(messages: any[]): any[] {
+  // Find the index of the last assistant message with "An error has occurred"
+  let lastErrorIndex = -1;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message.role === 'assistant' && message.parts) {
+      // Check if any part contains the error text
+      const hasError = message.parts.some((part: any) =>
+        part.type === 'text' && part.text && part.text.includes('An error has occurred')
+      );
+
+      if (hasError) {
+        lastErrorIndex = i;
+        break;
+      }
+    }
+  }
+
+  // If no error message found, return all messages
+  if (lastErrorIndex === -1) {
+    return messages;
+  }
+
+  // Return messages starting from the error message (inclusive)
+  return messages.slice(lastErrorIndex);
+}
 
 let globalStreamContext: ResumableStreamContext | null = null;
 
@@ -159,7 +193,11 @@ export async function POST(
     }
 
     const messagesFromDb = await getMessagesByChatId({ id });
-    const uiMessages = [...convertToUIMessages(messagesFromDb), message];
+
+    // Filter out messages before the last assistant message with "An error has occurred"
+    const filteredMessages = filterMessagesBeforeLastError(messagesFromDb);
+
+    const uiMessages = [...convertToUIMessages(filteredMessages), message];
 
     //const { longitude, latitude, city, country } = geolocation(request);
 
@@ -223,15 +261,30 @@ export async function POST(
       },
       generateId: generateUUID,
       onFinish: async ({ messages }) => {
-        await saveMessages({
-          messages: messages.map((message) => ({
+        // Check if any message has empty parts array and add error message
+        const processedMessages = messages.map((message) => {
+          if (message.parts.length === 0) {
+            return {
+              id: message.id,
+              role: message.role,
+              parts: [{ type: 'text', text: 'An error has occurred, please try again noting that all previous messages will be removed from memory' }],
+              createdAt: new Date(),
+              attachments: [],
+              chatId: id,
+            };
+          }
+          return {
             id: message.id,
             role: message.role,
             parts: message.parts,
             createdAt: new Date(),
             attachments: [],
             chatId: id,
-          })),
+          };
+        });
+
+        await saveMessages({
+          messages: processedMessages,
         });
       },
       onError: () => {
@@ -278,6 +331,13 @@ function createAgentSystemPrompt(
   const hasDeepResearch = 'deepResearch' in agentTools;
   const hasDocumentTools = 'createDocument' in agentTools;
   const hasPythonRuntime = 'pythonRuntime' in agentTools;
+  const hasImageGeneration = 'generateImage' in agentTools;
+
+  // Check for document-specific nodes
+  const hasDocumentNodes = workflowNodes.some(node =>
+    node.nodeType?.toLowerCase() === 'document' ||
+    node.nodeType?.toLowerCase() === 'documentupdate'
+  );
 
   const webSearchCapabilities =
     hasWebSearch || hasNewsSearch || hasDeepResearch
@@ -286,7 +346,11 @@ function createAgentSystemPrompt(
       : '';
 
   const documentCapabilities = hasDocumentTools
-    ? `- You can create new documents using the createDocument tool
+    ? hasDocumentNodes
+      ? `- You can create new documents using the createDocument tool (text, code, images, sheets)
+- You can update existing documents using the updateDocument tool
+- Document creation and updates are core capabilities of this agent's workflow`
+      : `- You can create new documents using the createDocument tool
 - You can update existing documents using the updateDocument tool`
     : '';
 
@@ -297,6 +361,15 @@ function createAgentSystemPrompt(
 - You can create data analysis scripts, calculations, and any Python operations
 - Use waitForExecution: true when you need to analyze the results of the code execution
 - When waitForExecution is true, the agent will pause and wait for user execution before continuing`
+    : '';
+
+  const imageGenerationCapabilities = hasImageGeneration
+    ? `- You can generate images using the generateImage tool
+- Create various types of images including illustrations, photos, artwork, diagrams, and more
+- Specify style (realistic, artistic, illustration, diagram, logo, abstract, cartoon, photographic)
+- Choose aspect ratios (1:1, 16:9, 9:16, 4:3, 3:4, 21:9)
+- Set quality levels (standard, high)
+- Provide detailed descriptions for best results`
     : '';
 
   return `You are "${agent.title}", a specialized AI agent designed for specific tasks.
@@ -325,7 +398,7 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 **Content Processing:**
 - Summarize, extract, and analyze information from your documents
 - Answer questions based on your data pool content
-- Provide insights and analysis from available documents${webSearchCapabilities ? '\n\n**Web Search Capabilities:**\n' + webSearchCapabilities : ''}${documentCapabilities ? '\n\n**Document Creation:**\n' + documentCapabilities : ''}${pythonCapabilities ? '\n\n**Python Code Generation:**\n' + pythonCapabilities : ''}
+- Provide insights and analysis from available documents${webSearchCapabilities ? `\n\n**Web Search Capabilities:**\n${webSearchCapabilities}` : ''}${documentCapabilities ? `\n\n**Document Creation:**\n${documentCapabilities}` : ''}${pythonCapabilities ? `\n\n**Python Code Generation:**\n${pythonCapabilities}` : ''}${imageGenerationCapabilities ? `\n\n**Image Generation:**\n${imageGenerationCapabilities}` : ''}
 
 **Operational Constraints:**
 - You can ONLY perform tasks related to your defined workflow nodes
@@ -718,13 +791,22 @@ function createAgentTools(
     );
   }
 
-  // Add document management tools (always available for agents like main chat)
-  tools.createDocument = createDocument({ session, dataStream });
-  tools.updateDocument = updateDocument({ session, dataStream });
+  // Add image generation tool specifically for imagegeneration nodes
+  if (nodeTypes.includes('imagegeneration')) {
+    tools.generateImage = generateImage({ dataStream });
+    console.log(
+      'createAgentTools: Added image generation tool based on workflow nodes',
+    );
+  }
 
-  console.log(
-    'createAgentTools: Added document management tools (createDocument, updateDocument)',
-  );
+  // Add document management tools for document and documentupdate nodes
+  if (nodeTypes.includes('document') || nodeTypes.includes('documentupdate')) {
+    tools.createDocument = createDocument({ session, dataStream });
+    tools.updateDocument = updateDocument({ session, dataStream });
+    console.log(
+      'createAgentTools: Added document management tools (createDocument, updateDocument) based on workflow nodes',
+    );
+  }
 
   return tools;
 }

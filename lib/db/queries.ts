@@ -965,7 +965,8 @@ export async function createWorkflowNode({
     | 'runtime'
     | 'websearch'
     | 'news'
-    | 'deepresearch';
+    | 'deepresearch'
+    | 'imagegeneration';
   config?: Record<string, any>;
 }): Promise<WorkflowNode> {
   try {
