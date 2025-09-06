@@ -10,7 +10,10 @@ DO NOT UPDATE DOCUMENTS IMMEDIATELY AFTER CREATING THEM. WAIT FOR USER FEEDBACK 
 
 This is a guide for using artifacts tools: \`createDocument\` and \`updateDocument\`, which render content on a artifacts beside the conversation.
 
-**When to use \`createDocument\`:**
+**Using \`createDocument\`:**
+- Follow the user's specific instructions precisely
+- Create content that exactly matches what they requested
+- Include all specific details, format, style, and structure mentioned
 - For substantial content (>10 lines) or code
 - For content users will likely save/reuse (emails, code, essays, etc.)
 - When explicitly requested to create a document
@@ -22,9 +25,10 @@ This is a guide for using artifacts tools: \`createDocument\` and \`updateDocume
 - When asked to keep it in chat
 
 **Using \`updateDocument\`:**
-- Default to full document rewrites for major changes
-- Use targeted updates only for specific, isolated changes
-- Follow user instructions for which parts to modify
+- Make ONLY the specific changes requested by the user
+- Preserve existing content, structure, and formatting unless explicitly asked to rewrite
+- Use targeted updates for all modifications unless user specifically requests a full rewrite
+- Be precise about what should be modified, added, or removed
 
 **When NOT to use \`updateDocument\`:**
 - Immediately after creating a document
@@ -96,26 +100,93 @@ export const sheetPrompt = `
 You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt. The spreadsheet should contain meaningful column headers and data.
 `;
 
+export const createDocumentPrompt = (
+  title: string,
+  type: ArtifactKind,
+) =>
+  type === 'text'
+    ? `\
+You are creating a text document. Follow the user's specific instructions precisely. Create content that exactly matches what they requested, including:
+
+- The specific topic, theme, or subject matter
+- Any requested format, structure, or organization
+- Specific style, tone, or voice requirements
+- Any particular details, examples, or content they mentioned
+- Required length, sections, or specific elements
+
+Title/Topic: ${title}
+
+Instructions: Create a document that precisely follows the user's requirements. Use markdown formatting where appropriate.`
+    : type === 'code'
+      ? `\
+You are creating a code document. Follow the user's specific instructions precisely. Generate code that exactly matches what they requested, including:
+
+- The specific programming language and version
+- Exact functionality, features, or algorithms requested
+- Specific coding style, patterns, or conventions
+- Any particular libraries, frameworks, or dependencies
+- Required comments, documentation, or structure
+- Specific input/output formats or interfaces
+
+Title/Topic: ${title}
+
+Instructions: Create code that precisely follows the user's requirements. Make it complete, runnable, and well-documented.`
+      : type === 'sheet'
+        ? `\
+You are creating a spreadsheet document. Follow the user's specific instructions precisely. Generate a CSV spreadsheet that exactly matches what they requested, including:
+
+- Specific data structure, columns, and organization
+- Exact data types, formats, or calculations needed
+- Particular categories, classifications, or groupings
+- Specific sample data or examples requested
+- Required headers, labels, or metadata
+- Any particular layout or presentation needs
+
+Title/Topic: ${title}
+
+Instructions: Create a spreadsheet that precisely follows the user's requirements.`
+        : type === 'image'
+          ? `\
+You are creating an image document. Follow the user's specific instructions precisely. Generate an image that exactly matches what they requested, including:
+
+- Specific visual elements, subjects, or compositions
+- Exact style, aesthetic, or artistic approach
+- Particular colors, lighting, or mood
+- Specific dimensions, aspect ratio, or format
+- Any particular details, objects, or scenes
+- Required quality, resolution, or technical specifications
+
+Title/Topic: ${title}
+
+Instructions: Create an image that precisely follows the user's requirements.`
+          : '';
+
 export const updateDocumentPrompt = (
   currentContent: string | null,
   type: ArtifactKind,
 ) =>
   type === 'text'
     ? `\
-Improve the following contents of the document based on the given prompt.
+You are updating a text document. Make ONLY the specific changes requested by the user. Do not rewrite the entire document unless explicitly asked to do so. Preserve the existing structure, formatting, and content that is not being modified.
 
+Current document content:
 ${currentContent}
-`
+
+Instructions: Apply only the requested changes to the above content. Keep everything else exactly as it is.`
     : type === 'code'
       ? `\
-Improve the following code snippet based on the given prompt.
+You are updating a code document. Make ONLY the specific changes requested by the user. Do not rewrite the entire code unless explicitly asked to do so. Preserve the existing code structure, comments, and logic that is not being modified.
 
+Current code:
 ${currentContent}
-`
+
+Instructions: Apply only the requested changes to the above code. Keep everything else exactly as it is.`
       : type === 'sheet'
         ? `\
-Improve the following spreadsheet based on the given prompt.
+You are updating a spreadsheet document. Make ONLY the specific changes requested by the user. Do not rewrite the entire spreadsheet unless explicitly asked to do so. Preserve the existing data, structure, and formatting that is not being modified.
 
+Current spreadsheet:
 ${currentContent}
-`
+
+Instructions: Apply only the requested changes to the above spreadsheet. Keep everything else exactly as it is.`
         : '';

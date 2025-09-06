@@ -12,12 +12,12 @@ interface UpdateDocumentProps {
 
 export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
   tool({
-    description: 'Update a document with the given description.',
+    description: 'Update a document by making only the specific changes requested. Preserves existing content and structure unless explicitly asked to rewrite.',
     inputSchema: z.object({
       id: z.string().describe('The ID of the document to update'),
       description: z
         .string()
-        .describe('The description of changes that need to be made'),
+        .describe('Specific description of the changes to make to the document. Be precise about what should be modified, added, or removed.'),
     }),
     execute: async ({ id, description }) => {
       const document = await getDocumentById({ id });

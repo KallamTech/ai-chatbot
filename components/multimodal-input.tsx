@@ -76,48 +76,19 @@ function PureMultimodalInput({
   const isNearLimit = currentLength > charLimit * 0.8; // Show warning at 80% of limit
   const isOverLimit = currentLength > charLimit;
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      adjustHeight();
-    }
-  }, []);
-
-  // Adjust height when input changes
-  useEffect(() => {
-    adjustHeight();
-  }, [input]);
-
-  const adjustHeight = () => {
-    if (textareaRef.current) {
-      // Reset height to auto to get the correct scrollHeight
-      textareaRef.current.style.height = 'auto';
-      // Set height to scrollHeight to fit content, with min/max constraints
-      const scrollHeight = textareaRef.current.scrollHeight;
-      const minHeight = 24; // 24px minimum height
-      const maxHeight = 300; // 300px maximum height
-      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
-      textareaRef.current.style.height = `${newHeight}px`;
-
-      // Show scrollbar when content exceeds max height
-      if (scrollHeight > maxHeight) {
-        textareaRef.current.style.overflow = 'auto';
-      } else {
-        textareaRef.current.style.overflow = 'hidden';
-      }
-    }
-  };
-
-  const resetHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = '24px';
-      textareaRef.current.style.overflow = 'hidden';
-    }
-  };
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
     'input',
     '',
   );
+
+  const adjustTextareaHeight = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 24), 300);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  }, []);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -125,7 +96,8 @@ function PureMultimodalInput({
       // Prefer DOM value over localStorage to handle hydration
       const finalValue = domValue || localStorageInput || '';
       setInput(finalValue);
-      adjustHeight();
+      // Adjust height after setting initial value
+      setTimeout(adjustTextareaHeight, 0);
     }
     // Only run once after hydration
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,9 +107,14 @@ function PureMultimodalInput({
     setLocalStorageInput(input);
   }, [input, setLocalStorageInput]);
 
+  // Adjust height when input changes (for programmatic updates)
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input, adjustTextareaHeight]);
+
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
-    adjustHeight();
+    adjustTextareaHeight();
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,7 +141,6 @@ function PureMultimodalInput({
 
     setAttachments([]);
     setLocalStorageInput('');
-    resetHeight();
     setInput('');
 
     if (width && width > 768) {
@@ -338,21 +314,17 @@ function PureMultimodalInput({
           </div>
         )}
 
-        <textarea
+        <PromptInputTextarea
           data-testid="multimodal-input"
           ref={textareaRef}
           placeholder="Send a message..."
           value={input}
           onChange={handleInput}
           className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 text-base py-4 px-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 dark:[&::-webkit-scrollbar-thumb]:hover:bg-gray-500"
-          rows={1}
           autoFocus
-          style={{
-            height: '24px',
-            minHeight: '24px',
-            maxHeight: '300px',
-            overflow: 'auto'
-          }}
+          minHeight={24}
+          maxHeight={300}
+          disableAutoResize={true}
         />
         <PromptInputToolbar className="px-4 py-2 !border-t-0 !border-top-0 shadow-none dark:!border-transparent dark:border-0">
           <PromptInputTools className="gap-2">
