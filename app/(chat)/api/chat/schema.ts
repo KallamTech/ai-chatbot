@@ -35,7 +35,7 @@ export const postRequestBodySchemaGuest = z.object({
     ModelId.GPT_4_1_MINI,
     ModelId.O4_MINI,
   ]),
-  selectedVisibilityType: z.enum(['public']),
+  selectedVisibilityType: z.enum(['public', 'private']),
 });
 
 // Schema for authenticated users
