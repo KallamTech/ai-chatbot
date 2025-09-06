@@ -120,6 +120,8 @@ function PureArtifact({
     return 400;
   });
   const [isResizing, setIsResizing] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(0);
 
   const { open: isSidebarOpen } = useSidebar();
   const { width: windowWidth, height: windowHeight } = useWindowSize();
@@ -127,28 +129,35 @@ function PureArtifact({
   // Handle resize functionality
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsResizing(true);
-  }, []);
+    setStartX(e.clientX);
+    setStartWidth(artifactPanelWidth);
+  }, [artifactPanelWidth]);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isResizing) return;
 
-      const newWidth = e.clientX;
-      const minWidth = 300;
-      const maxWidth = Math.min(800, windowWidth * 0.7);
+      const deltaX = e.clientX - startX;
+      const newWidth = startWidth + deltaX; // Add because we're resizing from the left edge
+      const minWidth = 360; // Reduced minimum width
+      const maxWidth = Math.min(1000, windowWidth * 0.8); // Increased maximum width
 
       if (newWidth >= minWidth && newWidth <= maxWidth) {
         setArtifactPanelWidth(newWidth);
-        localStorage.setItem('artifact-panel-width', newWidth.toString());
       }
     },
-    [isResizing, windowWidth]
+    [isResizing, startX, startWidth, windowWidth]
   );
 
   const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
+    if (isResizing) {
+      setIsResizing(false);
+      // Save the width to localStorage
+      localStorage.setItem('artifact-panel-width', artifactPanelWidth.toString());
+    }
+  }, [isResizing, artifactPanelWidth]);
 
   useEffect(() => {
     if (isResizing && typeof window !== 'undefined' && window.document) {
@@ -562,10 +571,11 @@ function PureArtifact({
               )}
             </AnimatePresence>
 
-            {/* Resize handle - positioned at the right edge of chat area */}
+            {/* Resize handle - positioned at the left edge of artifact panel */}
             <div
-              className={`absolute top-0 right-0 w-2 h-full bg-transparent hover:bg-primary/20 cursor-col-resize z-50 group ${isResizing ? 'bg-primary/30' : ''}`}
+              className={`absolute top-0 left-0 w-2 h-full bg-transparent hover:bg-primary/20 cursor-col-resize z-50 group ${isResizing ? 'bg-primary/30' : ''}`}
               onMouseDown={handleMouseDown}
+              title="Drag to resize artifact panel"
             >
               <div className={`w-0.5 h-full mx-auto ${isResizing ? 'bg-primary' : 'bg-border group-hover:bg-primary/60'}`} />
             </div>

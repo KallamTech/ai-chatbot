@@ -82,15 +82,35 @@ function PureMultimodalInput({
     }
   }, []);
 
+  // Adjust height when input changes
+  useEffect(() => {
+    adjustHeight();
+  }, [input]);
+
   const adjustHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = '72px';
+      // Reset height to auto to get the correct scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Set height to scrollHeight to fit content, with min/max constraints
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const minHeight = 24; // 24px minimum height
+      const maxHeight = 300; // 300px maximum height
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      textareaRef.current.style.height = `${newHeight}px`;
+
+      // Show scrollbar when content exceeds max height
+      if (scrollHeight > maxHeight) {
+        textareaRef.current.style.overflow = 'auto';
+      } else {
+        textareaRef.current.style.overflow = 'hidden';
+      }
     }
   };
 
   const resetHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = '72px';
+      textareaRef.current.style.height = '24px';
+      textareaRef.current.style.overflow = 'hidden';
     }
   };
 
@@ -117,6 +137,7 @@ function PureMultimodalInput({
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
+    adjustHeight();
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -317,19 +338,21 @@ function PureMultimodalInput({
           </div>
         )}
 
-        <PromptInputTextarea
+        <textarea
           data-testid="multimodal-input"
           ref={textareaRef}
           placeholder="Send a message..."
           value={input}
           onChange={handleInput}
-          minHeight={72}
-          maxHeight={200}
-          disableAutoResize={true}
-          style={{ height: '48px', minHeight: '48px', maxHeight: '48px' }}
-          className="text-base resize-none py-4 px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-transparent !border-0 !border-none outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+          className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 text-base py-4 px-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 dark:[&::-webkit-scrollbar-thumb]:hover:bg-gray-500"
           rows={1}
           autoFocus
+          style={{
+            height: '24px',
+            minHeight: '24px',
+            maxHeight: '300px',
+            overflow: 'auto'
+          }}
         />
         <PromptInputToolbar className="px-4 py-2 !border-t-0 !border-top-0 shadow-none dark:!border-transparent dark:border-0">
           <PromptInputTools className="gap-2">
