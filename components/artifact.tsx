@@ -151,16 +151,17 @@ function PureArtifact({
   }, []);
 
   useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
+    if (isResizing && typeof window !== 'undefined' && window.document) {
+      const doc = window.document;
+      doc.addEventListener('mousemove', handleMouseMove);
+      doc.addEventListener('mouseup', handleMouseUp);
+      doc.body.style.cursor = 'col-resize';
+      doc.body.style.userSelect = 'none';
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
+        doc.removeEventListener('mousemove', handleMouseMove);
+        doc.removeEventListener('mouseup', handleMouseUp);
+        doc.body.style.cursor = '';
+        doc.body.style.userSelect = '';
       };
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
