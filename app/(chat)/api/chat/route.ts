@@ -30,7 +30,12 @@ import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { generateImage } from '@/lib/ai/tools/generate-image';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
-import { postRequestBodySchema, type PostRequestBody } from './schema';
+import {
+  postRequestBodySchemaGuest,
+  postRequestBodySchemaAuthenticated,
+  type PostRequestBodyGuest,
+  type PostRequestBodyAuthenticated
+} from './schema';
 import { geolocation } from '@vercel/functions';
 import {
   createResumableStreamContext,
@@ -100,12 +105,23 @@ export function getStreamContext() {
 }
 
 export async function POST(request: Request) {
-  let requestBody: PostRequestBody;
+  let requestBody: PostRequestBodyGuest | PostRequestBodyAuthenticated;
 
   try {
     const json = await request.json();
-    requestBody = postRequestBodySchema.parse(json);
-  } catch (_) {
+
+    // First check if user is authenticated to determine which schema to use
+    const session = await auth();
+
+    if (session?.user?.type === 'guest') {
+       // User is not authenticated, use the guest schema
+      requestBody = postRequestBodySchemaGuest.parse(json);
+    } else {
+      // User is authenticated, use the authenticated schema
+      requestBody = postRequestBodySchemaAuthenticated.parse(json);
+    }
+  } catch (error) {
+    console.error('Error parsing request body:', error);
     return new ChatSDKError('bad_request:api').toResponse();
   }
 
@@ -124,6 +140,8 @@ export async function POST(request: Request) {
 
     const session = await auth();
 
+    // For now, we still require authentication to proceed with chat
+    // This could be changed later to allow guest users
     if (!session?.user) {
       return new ChatSDKError('unauthorized:chat').toResponse();
     }
@@ -283,6 +301,7 @@ export async function POST(request: Request) {
       return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
     }
   } catch (error) {
+    console.error('Error in chat stream:', error);
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }

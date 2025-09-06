@@ -28,6 +28,7 @@ import equal from 'fast-deep-equal';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
+import type { Session } from 'next-auth';
 
 export const artifactDefinitions = [
   textArtifact,
@@ -77,6 +78,7 @@ function PureArtifact({
   votes,
   isReadonly,
   selectedVisibilityType,
+  session,
 }: {
   chatId: string;
   input: string;
@@ -92,6 +94,7 @@ function PureArtifact({
   regenerate: UseChatHelpers<ChatMessage>['regenerate'];
   isReadonly: boolean;
   selectedVisibilityType: VisibilityType;
+  session: Session;
 }) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact(chatId);
 
@@ -347,6 +350,7 @@ function PureArtifact({
                     className="bg-background dark:bg-muted"
                     setMessages={setMessages}
                     selectedVisibilityType={selectedVisibilityType}
+                    session={session}
                   />
                 </div>
               </div>

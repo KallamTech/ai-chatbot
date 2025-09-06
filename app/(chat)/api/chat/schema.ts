@@ -1,9 +1,16 @@
 import { z } from 'zod';
 import { ModelId } from '@/lib/ai/providers';
 
-const textPartSchema = z.object({
+// Base text part schema for unauthenticated users (shorter limit)
+const textPartSchemaGuest = z.object({
   type: z.enum(['text']),
   text: z.string().min(1).max(2000),
+});
+
+// Extended text part schema for authenticated users (longer limit)
+const textPartSchemaAuthenticated = z.object({
+  type: z.enum(['text']),
+  text: z.string().min(1).max(100000),
 });
 
 const filePartSchema = z.object({
@@ -13,14 +20,31 @@ const filePartSchema = z.object({
   url: z.string().url(),
 });
 
-const partSchema = z.union([textPartSchema, filePartSchema]);
+const partSchemaGuest = z.union([textPartSchemaGuest, filePartSchema]);
+const partSchemaAuthenticated = z.union([textPartSchemaAuthenticated, filePartSchema]);
 
-export const postRequestBodySchema = z.object({
+// Schema for unauthenticated users (guests)
+export const postRequestBodySchemaGuest = z.object({
   id: z.string().uuid(),
   message: z.object({
     id: z.string().uuid(),
     role: z.enum(['user']),
-    parts: z.array(partSchema),
+    parts: z.array(partSchemaGuest),
+  }),
+  selectedChatModel: z.enum([
+    ModelId.GPT_4_1_MINI,
+    ModelId.O4_MINI,
+  ]),
+  selectedVisibilityType: z.enum(['public', 'private']),
+});
+
+// Schema for authenticated users
+export const postRequestBodySchemaAuthenticated = z.object({
+  id: z.string().uuid(),
+  message: z.object({
+    id: z.string().uuid(),
+    role: z.enum(['user']),
+    parts: z.array(partSchemaAuthenticated),
   }),
   selectedChatModel: z.enum([
     ModelId.GPT_4_1,
@@ -54,4 +78,12 @@ export const postRequestBodySchema = z.object({
   selectedVisibilityType: z.enum(['public', 'private']),
 });
 
+// Union type for both schemas
+export const postRequestBodySchema = z.union([
+  postRequestBodySchemaGuest,
+  postRequestBodySchemaAuthenticated,
+]);
+
 export type PostRequestBody = z.infer<typeof postRequestBodySchema>;
+export type PostRequestBodyGuest = z.infer<typeof postRequestBodySchemaGuest>;
+export type PostRequestBodyAuthenticated = z.infer<typeof postRequestBodySchemaAuthenticated>;

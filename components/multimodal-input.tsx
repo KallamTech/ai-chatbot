@@ -32,6 +32,7 @@ import { ArrowDown } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
+import type { Session } from 'next-auth';
 
 function PureMultimodalInput({
   chatId,
@@ -46,6 +47,7 @@ function PureMultimodalInput({
   sendMessage,
   className,
   selectedVisibilityType,
+  session,
 }: {
   chatId: string;
   input: string;
@@ -59,9 +61,20 @@ function PureMultimodalInput({
   sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   className?: string;
   selectedVisibilityType: VisibilityType;
+  session: Session;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+
+  // Character limits based on user type
+  const GUEST_CHAR_LIMIT = 2000;
+  const AUTHENTICATED_CHAR_LIMIT = 100000;
+
+  const isGuest = session?.user?.type === 'guest';
+  const charLimit = isGuest ? GUEST_CHAR_LIMIT : AUTHENTICATED_CHAR_LIMIT;
+  const currentLength = input.length;
+  const isNearLimit = currentLength > charLimit * 0.8; // Show warning at 80% of limit
+  const isOverLimit = currentLength > charLimit;
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -321,13 +334,22 @@ function PureMultimodalInput({
         <PromptInputToolbar className="px-4 py-2 !border-t-0 !border-top-0 shadow-none dark:!border-transparent dark:border-0">
           <PromptInputTools className="gap-2">
             <AttachmentsButton fileInputRef={fileInputRef} status={status} />
+            <div className={`text-xs transition-colors ${
+              isOverLimit
+                ? 'text-red-500'
+                : isNearLimit
+                  ? 'text-yellow-600 dark:text-yellow-400'
+                  : 'text-gray-500 dark:text-gray-400'
+            }`}>
+              {currentLength.toLocaleString()}/{charLimit.toLocaleString()} characters
+            </div>
           </PromptInputTools>
           {status === 'submitted' || status === 'streaming' ? (
             <StopButton stop={stop} setMessages={setMessages} />
           ) : (
             <PromptInputSubmit
               status={status}
-              disabled={!input.trim() || uploadQueue.length > 0}
+              disabled={!input.trim() || uploadQueue.length > 0 || isOverLimit}
                className="p-3 text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 dark:bg-sidebar-accent dark:hover:bg-sidebar-accent/80 dark:text-gray-300"
             >
               <ArrowUpIcon size={20} />
@@ -346,6 +368,8 @@ export const MultimodalInput = memo(
     if (prevProps.status !== nextProps.status) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
+      return false;
+    if (prevProps.session?.user?.type !== nextProps.session?.user?.type)
       return false;
 
     return true;
