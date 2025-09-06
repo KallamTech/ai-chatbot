@@ -16,10 +16,10 @@ interface CreateDocumentProps {
 export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
   tool({
     description:
-      'Create a document for a writing or content creation activities. This tool will call other functions that will generate the contents of the document based on the title and kind.',
+      'Create a document following the user\'s specific instructions and requirements. Generate content that precisely matches what the user requested, including format, style, structure, and any specific details mentioned.',
     inputSchema: z.object({
-      title: z.string(),
-      kind: z.enum(artifactKinds),
+      title: z.string().describe('The title or topic of the document. Should capture the user\'s specific request and requirements.'),
+      kind: z.enum(artifactKinds).describe('The type of document to create: text, code, image, or sheet. Choose based on user\'s specific needs.'),
     }),
     execute: async ({ title, kind }) => {
       const id = generateUUID();

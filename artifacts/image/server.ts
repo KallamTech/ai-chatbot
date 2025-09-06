@@ -1,6 +1,7 @@
 import { ModelId, myProvider } from '@/lib/ai/providers';
 import { createDocumentHandler } from '@/lib/artifacts/server';
 import { generateText } from 'ai';
+import { createDocumentPrompt } from '@/lib/ai/prompts';
 
 export const imageDocumentHandler = createDocumentHandler<'image'>({
   kind: 'image',
@@ -9,6 +10,7 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
 
     const result = await generateText({
       model: myProvider.languageModel(ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW),
+      system: createDocumentPrompt(title, 'image'),
       providerOptions: {
         google: { responseModalities: ['TEXT', 'IMAGE'] },
       },
