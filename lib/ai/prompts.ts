@@ -26,6 +26,8 @@ This is a guide for using artifacts tools: \`createDocument\` and \`updateDocume
 
 **Using \`updateDocument\`:**
 - Make ONLY the specific changes requested by the user
+- Return the COMPLETE updated document content, not instructions or partial changes
+- Do NOT include meta-instructions like "add the following" or "insert here"
 - Preserve existing content, structure, and formatting unless explicitly asked to rewrite
 - Use targeted updates for all modifications unless user specifically requests a full rewrite
 - Be precise about what should be modified, added, or removed
@@ -167,26 +169,47 @@ export const updateDocumentPrompt = (
 ) =>
   type === 'text'
     ? `\
-You are updating a text document. Make ONLY the specific changes requested by the user. Do not rewrite the entire document unless explicitly asked to do so. Preserve the existing structure, formatting, and content that is not being modified.
+You are updating a text document. You must return the COMPLETE updated document content, not instructions or partial changes.
+
+CRITICAL RULES:
+1. Return the ENTIRE document with ONLY the requested changes applied
+2. Do NOT include meta-instructions like "add the following" or "insert here"
+3. Do NOT rewrite the entire document unless explicitly asked
+4. Preserve all existing content, structure, and formatting
+5. Make ONLY the specific changes requested by the user
 
 Current document content:
 ${currentContent}
 
-Instructions: Apply only the requested changes to the above content. Keep everything else exactly as it is.`
+IMPORTANT: Return the complete updated document content. Do not include any instructions or meta-text.`
     : type === 'code'
       ? `\
-You are updating a code document. Make ONLY the specific changes requested by the user. Do not rewrite the entire code unless explicitly asked to do so. Preserve the existing code structure, comments, and logic that is not being modified.
+You are updating a code document. You must return the COMPLETE updated code, not instructions or partial changes.
+
+CRITICAL RULES:
+1. Return the ENTIRE code with ONLY the requested changes applied
+2. Do NOT include meta-instructions like "add the following" or "insert here"
+3. Do NOT rewrite the entire code unless explicitly asked
+4. Preserve all existing code structure, comments, and logic
+5. Make ONLY the specific changes requested by the user
 
 Current code:
 ${currentContent}
 
-Instructions: Apply only the requested changes to the above code. Keep everything else exactly as it is.`
+IMPORTANT: Return the complete updated code. Do not include any instructions or meta-text.`
       : type === 'sheet'
         ? `\
-You are updating a spreadsheet document. Make ONLY the specific changes requested by the user. Do not rewrite the entire spreadsheet unless explicitly asked to do so. Preserve the existing data, structure, and formatting that is not being modified.
+You are updating a spreadsheet document. You must return the COMPLETE updated spreadsheet, not instructions or partial changes.
+
+CRITICAL RULES:
+1. Return the ENTIRE spreadsheet with ONLY the requested changes applied
+2. Do NOT include meta-instructions like "add the following" or "insert here"
+3. Do NOT rewrite the entire spreadsheet unless explicitly asked
+4. Preserve all existing data, structure, and formatting
+5. Make ONLY the specific changes requested by the user
 
 Current spreadsheet:
 ${currentContent}
 
-Instructions: Apply only the requested changes to the above spreadsheet. Keep everything else exactly as it is.`
+IMPORTANT: Return the complete updated spreadsheet. Do not include any instructions or meta-text.`
         : '';
