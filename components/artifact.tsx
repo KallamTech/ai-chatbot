@@ -112,8 +112,58 @@ function PureArtifact({
   const [mode, setMode] = useState<'edit' | 'diff'>('edit');
   const [document, setDocument] = useState<Document | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
+  const [artifactPanelWidth, setArtifactPanelWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('artifact-panel-width');
+      return saved ? parseInt(saved, 10) : 400;
+    }
+    return 400;
+  });
+  const [isResizing, setIsResizing] = useState(false);
 
   const { open: isSidebarOpen } = useSidebar();
+  const { width: windowWidth, height: windowHeight } = useWindowSize();
+
+  // Handle resize functionality
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const newWidth = e.clientX;
+      const minWidth = 300;
+      const maxWidth = Math.min(800, windowWidth * 0.7);
+
+      if (newWidth >= minWidth && newWidth <= maxWidth) {
+        setArtifactPanelWidth(newWidth);
+        localStorage.setItem('artifact-panel-width', newWidth.toString());
+      }
+    },
+    [isResizing, windowWidth]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   useEffect(() => {
     if (documents && documents.length > 0) {
@@ -243,7 +293,6 @@ function PureArtifact({
       ? currentVersionIndex === documents.length - 1
       : true;
 
-  const { width: windowWidth, height: windowHeight } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
 
   const artifactDefinition = artifactDefinitions.find(
@@ -292,7 +341,8 @@ function PureArtifact({
 
           {!isMobile && (
             <motion.div
-              className="relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0"
+              className="relative bg-muted dark:bg-background h-dvh shrink-0 border-r border-border/50"
+              style={{ width: artifactPanelWidth }}
               initial={{ opacity: 0, x: 10, scale: 1 }}
               animate={{
                 opacity: 1,
@@ -315,7 +365,8 @@ function PureArtifact({
               <AnimatePresence>
                 {!isCurrentVersion && (
                   <motion.div
-                    className="left-0 absolute h-dvh w-[400px] top-0 bg-zinc-900/50 z-50"
+                    className="left-0 absolute h-dvh top-0 bg-zinc-900/50 z-50"
+                    style={{ width: artifactPanelWidth }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -354,6 +405,7 @@ function PureArtifact({
                   />
                 </div>
               </div>
+
             </motion.div>
           )}
 
@@ -397,12 +449,12 @@ function PureArtifact({
                   }
                 : {
                     opacity: 1,
-                    x: 400,
+                    x: artifactPanelWidth,
                     y: 0,
                     height: windowHeight,
                     width: windowWidth
-                      ? windowWidth - 400
-                      : 'calc(100dvw-400px)',
+                      ? windowWidth - artifactPanelWidth
+                      : `calc(100dvw - ${artifactPanelWidth}px)`,
                     borderRadius: 0,
                     transition: {
                       delay: 0,
@@ -508,6 +560,14 @@ function PureArtifact({
                 />
               )}
             </AnimatePresence>
+
+            {/* Resize handle - positioned at the right edge of chat area */}
+            <div
+              className={`absolute top-0 right-0 w-2 h-full bg-transparent hover:bg-primary/20 cursor-col-resize z-50 group ${isResizing ? 'bg-primary/30' : ''}`}
+              onMouseDown={handleMouseDown}
+            >
+              <div className={`w-0.5 h-full mx-auto ${isResizing ? 'bg-primary' : 'bg-border group-hover:bg-primary/60'}`} />
+            </div>
           </motion.div>
         </motion.div>
       )}
