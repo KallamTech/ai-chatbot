@@ -229,7 +229,7 @@ export function Chat({
           isArtifactVisible={isArtifactVisible}
         />
 
-        <div className="sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 md:max-w-3xl z-[1] border-t-0">
+        <div className={`sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 z-[1] border-t-0 ${isArtifactVisible ? 'md:max-w-none' : 'md:max-w-7xl'}`}>
           {!isReadonly && (
             <MultimodalInput
               chatId={id}

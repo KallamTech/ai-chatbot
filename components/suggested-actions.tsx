@@ -21,7 +21,7 @@ function PureSuggestedActions({
   const suggestedActions = [
     'What are the advantages of doing an EMBA?',
     "Write code to demonstrate Dijkstra's algorithm",
-    'Help me write an essay about the latest trends in Silicon Valley',
+    'Help me write an essay about the latest trends',
     'What is the weather in Zurich?',
   ];
 
