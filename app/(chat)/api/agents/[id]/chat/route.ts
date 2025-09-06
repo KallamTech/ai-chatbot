@@ -34,8 +34,8 @@ import { generateImage } from '@/lib/ai/tools/generate-image';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
-  postRequestBodySchema,
-  type PostRequestBody,
+  postRequestBodySchemaAuthenticated,
+  type PostRequestBodyAuthenticated
 } from '@/app/(chat)/api/chat/schema';
 //import { geolocation } from '@vercel/functions';
 import {
@@ -110,11 +110,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: agentId } = await params;
-  let requestBody: PostRequestBody;
+  let requestBody: PostRequestBodyAuthenticated;
 
   try {
     const json = await request.json();
-    requestBody = postRequestBodySchema.parse(json);
+    requestBody = postRequestBodySchemaAuthenticated.parse(json);
   } catch (_) {
     return new ChatSDKError('bad_request:api').toResponse();
   }
