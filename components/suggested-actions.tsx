@@ -19,9 +19,9 @@ function PureSuggestedActions({
   selectedVisibilityType,
 }: SuggestedActionsProps) {
   const suggestedActions = [
-    'What are the advantages of doing an EMBA?',
-    "Write code to demonstrate Dijkstra's algorithm",
-    'Help me write an essay about the latest trends',
+    'Generate an image of a cat drinking milk',
+    "Write code to demonstrate the Fibonacci sequence",
+    'Write an essay about the latest AI trends in 2025',
     'What is the weather in Zurich?',
   ];
 

@@ -55,8 +55,9 @@ export const maxDuration = 600; // 10 minutes
 
 /**
  * Filters out messages before the last assistant message containing "An error has occurred"
+ * and replaces base64 content in tool-generatedImage parts
  * @param messages Array of database messages
- * @returns Filtered array of messages
+ * @returns Filtered array of messages with base64 content replaced
  */
 function filterMessagesBeforeLastError(messages: any[]): any[] {
   // Find the index of the last assistant message with "An error has occurred"
@@ -80,13 +81,40 @@ function filterMessagesBeforeLastError(messages: any[]): any[] {
     }
   }
 
-  // If no error message found, return all messages
-  if (lastErrorIndex === -1) {
-    return messages;
+  let filteredMessages = messages;
+  if (lastErrorIndex !== -1) {
+    filteredMessages = messages.slice(lastErrorIndex);
   }
 
-  // Return messages starting from the error message (inclusive)
-  return messages.slice(lastErrorIndex);
+  // Process messages to replace base64 content in tool-generatedImage parts
+  const filteredMessagesProcessed = filteredMessages.map((message) => {
+    if (!message.parts) {
+      return message;
+    }
+
+    const processedParts = message.parts.map((part: any) => {
+      if (part.type === 'tool-generateImage' && part.output?.imageData?.base64) {
+        return {
+          ...part,
+          output: {
+            ...part.output,
+            imageData: {
+              ...part.output.imageData,
+              base64: 'Omitted for context window limitation',
+            },
+          },
+        };
+      }
+      return part;
+    });
+
+    return {
+      ...message,
+      parts: processedParts,
+    };
+  });
+
+  return filteredMessagesProcessed;
 }
 
 let globalStreamContext: ResumableStreamContext | null = null;
