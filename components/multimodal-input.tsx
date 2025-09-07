@@ -18,6 +18,7 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { SuggestedActions } from './suggested-actions';
+import { RagSearchButton } from './rag-search-button';
 import {
   PromptInput,
   PromptInputTextarea,
@@ -48,6 +49,10 @@ function PureMultimodalInput({
   className,
   selectedVisibilityType,
   session,
+  onConnectDataPool,
+  onDisconnectDataPool,
+  connectedDataPools,
+  agentId,
 }: {
   chatId: string;
   input: string;
@@ -62,6 +67,10 @@ function PureMultimodalInput({
   className?: string;
   selectedVisibilityType: VisibilityType;
   session: Session;
+  onConnectDataPool?: (dataPoolId: string) => void;
+  onDisconnectDataPool?: (dataPoolId: string) => void;
+  connectedDataPools?: string[];
+  agentId?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -76,7 +85,6 @@ function PureMultimodalInput({
   const isNearLimit = currentLength > charLimit * 0.8; // Show warning at 80% of limit
   const isOverLimit = currentLength > charLimit;
 
-
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
     'input',
     '',
@@ -85,7 +93,10 @@ function PureMultimodalInput({
   const adjustTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      const newHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 24), 300);
+      const newHeight = Math.min(
+        Math.max(textareaRef.current.scrollHeight, 24),
+        300,
+      );
       textareaRef.current.style.height = `${newHeight}px`;
     }
   }, []);
@@ -329,14 +340,50 @@ function PureMultimodalInput({
         <PromptInputToolbar className="px-4 py-2 !border-t-0 !border-top-0 shadow-none dark:!border-transparent dark:border-0">
           <PromptInputTools className="gap-2">
             <AttachmentsButton fileInputRef={fileInputRef} status={status} />
-            <div className={`text-xs transition-colors ${
-              isOverLimit
-                ? 'text-red-500'
-                : isNearLimit
-                  ? 'text-yellow-600 dark:text-yellow-400'
-                  : 'text-gray-500 dark:text-gray-400'
-            }`}>
-              {currentLength.toLocaleString()}/{charLimit.toLocaleString()} characters
+            {agentId ? (
+              // Agent chat: Show agent-managed datapools info
+              <div
+                className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 cursor-help"
+                title="This agent has its own datapools configured. To add or remove datapools, go to the agent details page."
+              >
+                <span>🤖</span>
+                <span>Agent-managed datapools</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground">Configure in agent details</span>
+              </div>
+            ) : (
+              // Main chat: Show datapool connection controls
+              <>
+                {onConnectDataPool && (
+                  <>
+                    <RagSearchButton
+                      key={`rag-search-${(connectedDataPools || []).join('-')}`}
+                      status={status}
+                      onConnectDataPool={onConnectDataPool}
+                      onDisconnectDataPool={onDisconnectDataPool || (() => {})}
+                      connectedDataPools={connectedDataPools || []}
+                    />
+                  </>
+                )}
+                {connectedDataPools && connectedDataPools.length > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <span>📚</span>
+                    <span>{connectedDataPools.length} datapool{connectedDataPools.length > 1 ? 's' : ''} connected</span>
+                  </div>
+                )}
+              </>
+            )}
+            <div
+              className={`text-xs transition-colors ${
+                isOverLimit
+                  ? 'text-red-500'
+                  : isNearLimit
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-gray-500 dark:text-gray-400'
+              }`}
+            >
+              {currentLength.toLocaleString()}/{charLimit.toLocaleString()}{' '}
+              characters
             </div>
           </PromptInputTools>
           {status === 'submitted' || status === 'streaming' ? (
@@ -345,7 +392,7 @@ function PureMultimodalInput({
             <PromptInputSubmit
               status={status}
               disabled={!input.trim() || uploadQueue.length > 0 || isOverLimit}
-               className="p-3 text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 dark:bg-sidebar-accent dark:hover:bg-sidebar-accent/80 dark:text-gray-300"
+              className="p-3 text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 dark:bg-sidebar-accent dark:hover:bg-sidebar-accent/80 dark:text-gray-300"
             >
               <ArrowUpIcon size={20} />
             </PromptInputSubmit>
@@ -366,6 +413,9 @@ export const MultimodalInput = memo(
       return false;
     if (prevProps.session?.user?.type !== nextProps.session?.user?.type)
       return false;
+    if (!equal(prevProps.connectedDataPools, nextProps.connectedDataPools))
+      return false;
+    if (prevProps.agentId !== nextProps.agentId) return false;
 
     return true;
   },

@@ -3,6 +3,7 @@ import {
   getDataPoolsByUserId,
   createDataPool as createDataPoolInDB,
 } from '@/lib/db/queries';
+import { upstashVectorService } from '@/lib/vector/upstash';
 import { ChatSDKError } from '@/lib/errors';
 import { NextResponse } from 'next/server';
 
@@ -53,6 +54,18 @@ export async function POST(request: Request) {
       name: name.trim(),
       description: description?.trim() || undefined,
     });
+
+    // Create the corresponding Upstash vector index
+    try {
+      await upstashVectorService.createIndex(dataPool.id);
+      console.log(`Created Upstash index for datapool ${dataPool.id}`);
+    } catch (error) {
+      console.error(
+        `Failed to create Upstash index for datapool ${dataPool.id}:`,
+        error,
+      );
+      // Don't fail the request if index creation fails
+    }
 
     return NextResponse.json({
       dataPool,

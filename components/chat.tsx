@@ -2,7 +2,7 @@
 
 import { DefaultChatTransport } from 'ai';
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -55,6 +55,7 @@ export function Chat({
   const [input, setInput] = useState<string>('');
   const [selectedModelId, setSelectedModelId] =
     useState<string>(initialChatModel);
+  const [connectedDataPools, setConnectedDataPools] = useState<string[]>([]);
 
   // Determine the effective agentId from multiple sources
   // Priority: prop from route > database
@@ -67,22 +68,26 @@ export function Chat({
   useEffect(() => {
     agentIdRef.current = effectiveAgentId;
     if (effectiveAgentId) {
-      console.log('🔧 Chat: Using agentId:', effectiveAgentId);
     }
   }, [effectiveAgentId]);
 
   // Use a ref to track the current selectedModelId for API calls
   const selectedModelIdRef = useRef(selectedModelId);
+  // Use a ref to track the current connectedDataPools for API calls
+  const connectedDataPoolsRef = useRef(connectedDataPools);
 
   // Update the ref whenever selectedModelId changes
   useEffect(() => {
     selectedModelIdRef.current = selectedModelId;
-    console.log('Chat: selectedModelId changed to:', selectedModelId);
   }, [selectedModelId]);
+
+  // Update the ref whenever connectedDataPools changes
+  useEffect(() => {
+    connectedDataPoolsRef.current = connectedDataPools;
+  }, [connectedDataPools]);
 
   // Simple handler for model changes
   const handleModelChange = (modelId: string) => {
-    console.log('🔥 Chat: handleModelChange called with:', modelId);
     setSelectedModelId(modelId);
   };
 
@@ -109,16 +114,13 @@ export function Chat({
         const apiRoute = currentAgentId
           ? `/api/agents/${currentAgentId}/chat`
           : '/api/chat';
-        console.log('🚀 API: prepareSendMessagesRequest called');
-        console.log('🚀 API: Using route:', apiRoute);
-        console.log('🚀 API: currentAgentId:', currentAgentId);
-        console.log('🚀 API: selectedModelId:', selectedModelIdRef.current);
         return {
           body: {
             id,
             message: messages.at(-1),
             selectedChatModel: selectedModelIdRef.current,
             selectedVisibilityType: visibilityType,
+            connectedDataPools: agentIdRef.current ? undefined : connectedDataPoolsRef.current,
             ...body,
           },
         };
@@ -131,25 +133,35 @@ export function Chat({
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
-      console.log("Error detected", error);
       if (error instanceof ChatSDKError || error instanceof Error) {
         toast({
           type: 'error',
           description: error.message,
         });
       }
-        // Replace the last empty assistant message with an error message
+      // Replace the last empty assistant message with an error message
       setMessages((messages) => {
         const newMessages = [...messages];
         const lastMessage = newMessages[newMessages.length - 1];
 
-        if (lastMessage && lastMessage.role === 'assistant' &&
-            (!lastMessage.parts || lastMessage.parts.length === 0 ||
-             (lastMessage.parts.length === 1 && lastMessage.parts[0].type === 'text' && !lastMessage.parts[0].text))) {
+        if (
+          lastMessage &&
+          lastMessage.role === 'assistant' &&
+          (!lastMessage.parts ||
+            lastMessage.parts.length === 0 ||
+            (lastMessage.parts.length === 1 &&
+              lastMessage.parts[0].type === 'text' &&
+              !lastMessage.parts[0].text))
+        ) {
           // Replace empty assistant message with error message
           newMessages[newMessages.length - 1] = {
             ...lastMessage,
-            parts: [{ type: 'text', text: `An error has occured: ${error.message}, please try again`}],
+            parts: [
+              {
+                type: 'text',
+                text: `An error has occured: ${error.message}, please try again`,
+              },
+            ],
           };
         }
 
@@ -157,6 +169,29 @@ export function Chat({
       });
     },
   });
+
+  // Handler for connecting datapools
+  const handleConnectDataPool = useCallback((dataPoolId: string) => {
+
+    // Add the datapool to the connected list if not already connected
+    setConnectedDataPools(prev => {
+      if (!prev.includes(dataPoolId)) {
+        const newConnected = [...prev, dataPoolId];
+        return newConnected;
+      }
+      return prev;
+    });
+  }, [connectedDataPools]);
+
+  // Handler for disconnecting datapools
+  const handleDisconnectDataPool = useCallback((dataPoolId: string) => {
+
+    // Remove the datapool from the connected list
+    setConnectedDataPools(prev => {
+      const newConnected = prev.filter(id => id !== dataPoolId);
+      return newConnected;
+    });
+  }, [connectedDataPools]);
 
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
@@ -229,7 +264,9 @@ export function Chat({
           isArtifactVisible={isArtifactVisible}
         />
 
-        <div className={`sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 z-[1] border-t-0 ${isArtifactVisible ? 'md:max-w-none' : 'md:max-w-7xl'}`}>
+        <div
+          className={`sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 z-[1] border-t-0 ${isArtifactVisible ? 'md:max-w-none' : 'md:max-w-7xl'}`}
+        >
           {!isReadonly && (
             <MultimodalInput
               chatId={id}
@@ -244,6 +281,10 @@ export function Chat({
               sendMessage={sendMessage}
               selectedVisibilityType={visibilityType}
               session={session}
+              onConnectDataPool={effectiveAgentId ? undefined : handleConnectDataPool}
+              onDisconnectDataPool={effectiveAgentId ? undefined : handleDisconnectDataPool}
+              connectedDataPools={effectiveAgentId ? [] : connectedDataPools}
+              agentId={effectiveAgentId}
             />
           )}
         </div>

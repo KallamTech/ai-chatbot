@@ -115,7 +115,7 @@ function PureArtifact({
   const [artifactPanelWidth, setArtifactPanelWidth] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('artifact-panel-width');
-      return saved ? parseInt(saved, 10) : 400;
+      return saved ? Number.parseInt(saved, 10) : 400;
     }
     return 400;
   });
@@ -127,13 +127,16 @@ function PureArtifact({
   const { width: windowWidth, height: windowHeight } = useWindowSize();
 
   // Handle resize functionality
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-    setStartX(e.clientX);
-    setStartWidth(artifactPanelWidth);
-  }, [artifactPanelWidth]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsResizing(true);
+      setStartX(e.clientX);
+      setStartWidth(artifactPanelWidth);
+    },
+    [artifactPanelWidth],
+  );
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
@@ -148,14 +151,17 @@ function PureArtifact({
         setArtifactPanelWidth(newWidth);
       }
     },
-    [isResizing, startX, startWidth, windowWidth]
+    [isResizing, startX, startWidth, windowWidth],
   );
 
   const handleMouseUp = useCallback(() => {
     if (isResizing) {
       setIsResizing(false);
       // Save the width to localStorage
-      localStorage.setItem('artifact-panel-width', artifactPanelWidth.toString());
+      localStorage.setItem(
+        'artifact-panel-width',
+        artifactPanelWidth.toString(),
+      );
     }
   }, [isResizing, artifactPanelWidth]);
 
@@ -415,7 +421,6 @@ function PureArtifact({
                   />
                 </div>
               </div>
-
             </motion.div>
           )}
 
@@ -577,7 +582,9 @@ function PureArtifact({
               onMouseDown={handleMouseDown}
               title="Drag to resize artifact panel"
             >
-              <div className={`w-0.5 h-full mx-auto ${isResizing ? 'bg-primary' : 'bg-border group-hover:bg-primary/60'}`} />
+              <div
+                className={`w-0.5 h-full mx-auto ${isResizing ? 'bg-primary' : 'bg-border group-hover:bg-primary/60'}`}
+              />
             </div>
           </motion.div>
         </motion.div>

@@ -59,17 +59,20 @@ About the origin of user's request:
 export const systemPrompt = ({
   selectedChatModel,
   requestHints,
+  connectedDataPools,
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
+  connectedDataPools?: Array<{ id: string; name: string }>;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
-  if (selectedChatModel === 'chat-model-reasoning') {
-    return `${regularPrompt}\n\n${requestPrompt}`;
-  } else {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
-  }
+  // Add RAG search information if datapools are connected
+  const ragPrompt = connectedDataPools && connectedDataPools.length > 0
+    ? `\n\nYou have access to a document search tool (ragSearch) that can search through the user's connected data pools using semantic similarity. When users ask questions that might be answered by documents in their data pools, proactively use the ragSearch tool to find relevant information before responding. This is especially useful for questions about specific topics, facts, or content that might be in the user's documents. Available data pools: ${connectedDataPools.map(dp => dp.name).join(', ')}.`
+    : '';
+
+  return `${regularPrompt}${ragPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
 };
 
 export const codePrompt = `
@@ -102,10 +105,7 @@ export const sheetPrompt = `
 You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt. The spreadsheet should contain meaningful column headers and data.
 `;
 
-export const createDocumentPrompt = (
-  title: string,
-  type: ArtifactKind,
-) =>
+export const createDocumentPrompt = (title: string, type: ArtifactKind) =>
   type === 'text'
     ? `\
 You are creating a text document. Follow the user's specific instructions precisely. Create content that exactly matches what they requested, including:

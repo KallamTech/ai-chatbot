@@ -21,7 +21,10 @@ const filePartSchema = z.object({
 });
 
 const partSchemaGuest = z.union([textPartSchemaGuest, filePartSchema]);
-const partSchemaAuthenticated = z.union([textPartSchemaAuthenticated, filePartSchema]);
+const partSchemaAuthenticated = z.union([
+  textPartSchemaAuthenticated,
+  filePartSchema,
+]);
 
 // Schema for unauthenticated users (guests)
 export const postRequestBodySchemaGuest = z.object({
@@ -92,6 +95,7 @@ export const postRequestBodySchemaAuthenticated = z.object({
     ModelId.DEEPRESEARCH_MODEL,
   ]),
   selectedVisibilityType: z.enum(['public', 'private']),
+  connectedDataPools: z.array(z.string()).optional(),
 });
 
 // Union type for both schemas
@@ -102,4 +106,6 @@ export const postRequestBodySchema = z.union([
 
 export type PostRequestBody = z.infer<typeof postRequestBodySchema>;
 export type PostRequestBodyGuest = z.infer<typeof postRequestBodySchemaGuest>;
-export type PostRequestBodyAuthenticated = z.infer<typeof postRequestBodySchemaAuthenticated>;
+export type PostRequestBodyAuthenticated = z.infer<
+  typeof postRequestBodySchemaAuthenticated
+>;

@@ -2,7 +2,7 @@ import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from '@vercel/analytics/next';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
@@ -10,7 +10,8 @@ import { SessionProvider } from 'next-auth/react';
 export const metadata: Metadata = {
   metadataBase: new URL('https://chat.taimiraguacil.com'),
   title: 'tAI Platform',
-  description: 'tAI Platform is an advanced conversational AI platform for chat, agents, and data pools. Collaborate, create, and explore with state-of-the-art AI tools.',
+  description:
+    'tAI Platform is an advanced conversational AI platform for chat, agents, and data pools. Collaborate, create, and explore with state-of-the-art AI tools.',
 };
 
 export const viewport = {

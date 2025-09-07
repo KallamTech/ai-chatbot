@@ -152,6 +152,54 @@ type searchImagesTool = {
   };
 };
 
+type ragSearchTool = {
+  type: 'tool-ragSearch';
+  toolCallId: string;
+  state: 'input-available' | 'output-available';
+  input: {
+    dataPoolId: string;
+    query: string;
+    limit?: number;
+    threshold?: number;
+    title?: string;
+    maxContextTokens?: number;
+    modelId?: string;
+    truncateStrategy?: 'intelligent' | 'simple' | 'none';
+    searchType?: 'semantic' | 'keyword' | 'hybrid';
+    keywordWeight?: number;
+    semanticWeight?: number;
+  };
+  output: {
+    results?: Array<{
+      id: string;
+      title: string;
+      content: string;
+      similarity: number;
+      metadata?: Record<string, any>;
+      truncated?: boolean;
+      originalLength?: number;
+      estimatedTokens?: number;
+    }>;
+    totalDocuments?: number;
+    filteredDocuments?: number;
+    filteredCount?: number;
+    returnedCount?: number;
+    contextInfo?: {
+      totalTokens: number;
+      contextLimit: number;
+      truncatedCount: number;
+      skippedCount: number;
+      warnings: string[];
+    };
+    appliedFilters?: {
+      title?: string;
+      filterString?: string;
+    };
+    message?: string;
+    error?: string;
+  };
+};
+
 export type ChatTools = {
   getWeather: weatherTool;
   createDocument: createDocumentTool;
@@ -169,6 +217,8 @@ export type ChatTools = {
   getDocumentMetadata: getDocumentMetadataTool;
   searchSpecificDocument: searchSpecificDocumentTool;
   searchImages: searchImagesTool;
+  // RAG search tool
+  ragSearch: ragSearchTool;
 };
 
 export type CustomUIDataTypes = {

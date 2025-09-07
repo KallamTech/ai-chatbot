@@ -3,6 +3,7 @@ import {
   getDataPoolById,
   deleteDataPool as deleteDataPoolFromDB,
 } from '@/lib/db/queries';
+import { upstashVectorService } from '@/lib/vector/upstash';
 import { ChatSDKError } from '@/lib/errors';
 import { NextResponse } from 'next/server';
 
@@ -28,10 +29,23 @@ export async function DELETE(
       return new ChatSDKError('not_found:database').toResponse();
     }
 
+    // Delete from SQL database
     await deleteDataPoolFromDB({
       id,
       userId: session.user.id,
     });
+
+    // Also delete the corresponding Upstash vector index
+    try {
+      await upstashVectorService.deleteIndex(id);
+      console.log(`Deleted Upstash index for datapool ${id}`);
+    } catch (error) {
+      console.error(
+        `Failed to delete Upstash index for datapool ${id}:`,
+        error,
+      );
+      // Don't fail the request if index deletion fails
+    }
 
     return NextResponse.json({
       success: true,

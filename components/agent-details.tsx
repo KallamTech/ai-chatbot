@@ -19,6 +19,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type {
   Agent,
   WorkflowNode,
@@ -46,6 +56,8 @@ export function AgentDetails({
   const [disconnectingPoolId, setDisconnectingPoolId] = useState<string | null>(
     null,
   );
+  const [disconnectDataPool, setDisconnectDataPool] = useState<DataPool | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const loadDataPools = useCallback(async () => {
     setIsLoading(true);
@@ -124,22 +136,25 @@ export function AgentDetails({
   };
 
   const handleDisconnectDataPool = async (dataPoolId: string) => {
-    if (
-      !confirm(
-        'Are you sure you want to disconnect this data pool from the agent?',
-      )
-    ) {
-      return;
+    const dataPool = connectedDataPools.find(dp => dp.id === dataPoolId);
+    if (dataPool) {
+      setDisconnectDataPool(dataPool);
     }
+  };
 
-    setDisconnectingPoolId(dataPoolId);
+  const confirmDisconnectDataPool = async () => {
+    if (!disconnectDataPool) return;
+
+    setIsDisconnecting(true);
+    setDisconnectingPoolId(disconnectDataPool.id);
+
     try {
       const response = await fetch(`/api/agents/${agent.id}/datapools`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ dataPoolId }),
+        body: JSON.stringify({ dataPoolId: disconnectDataPool.id }),
       });
 
       if (!response.ok) {
@@ -153,6 +168,7 @@ export function AgentDetails({
       });
 
       await loadDataPools();
+      setDisconnectDataPool(null);
     } catch (error) {
       console.error('Error disconnecting data pool:', error);
       toast({
@@ -163,6 +179,7 @@ export function AgentDetails({
             : 'Failed to disconnect data pool',
       });
     } finally {
+      setIsDisconnecting(false);
       setDisconnectingPoolId(null);
     }
   };
@@ -383,6 +400,31 @@ export function AgentDetails({
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={!!disconnectDataPool}
+        onOpenChange={() => setDisconnectDataPool(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect Data Pool</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to disconnect &quot;{disconnectDataPool?.name}&quot; from this agent?
+              This will remove the data pool&apos;s knowledge from the agent&apos;s context.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDisconnecting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDisconnectDataPool}
+              disabled={isDisconnecting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDisconnecting ? 'Disconnecting...' : 'Disconnect Data Pool'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

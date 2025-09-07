@@ -64,6 +64,13 @@
       "when": 1756765888533,
       "tag": "0008_large_gertrude_yorkes",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1757238126614,
+      "tag": "0009_heavy_penance",
+      "breakpoints": true
     }
   ]
 }

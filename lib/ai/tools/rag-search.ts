@@ -2,7 +2,7 @@ import 'server-only';
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { getDataPoolDocuments } from '@/lib/db/queries';
+import { upstashVectorService } from '@/lib/vector/upstash';
 import { generateEmbedding } from '@/lib/utils';
 
 // Context window limits for different models (approximate token counts)
@@ -27,6 +27,20 @@ const CONTEXT_LIMITS = {
 // Rough token estimation (1 token ≈ 4 characters for English text)
 function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 4);
+}
+
+// Build SQL-like filter string for Upstash vector search
+function buildFilterString(filters: {
+  title?: string;
+}): string | undefined {
+  const conditions: string[] = [];
+
+  if (filters.title) {
+    // Filter by document title in metadata
+    conditions.push(`title = '${filters.title}'`);
+  }
+
+  return conditions.length > 0 ? conditions.join(' AND ') : undefined;
 }
 
 // Intelligent content truncation that preserves important information
@@ -97,7 +111,7 @@ function truncateContent(
 export const ragSearch = () =>
   tool({
     description:
-      'Search through documents in a data pool using semantic similarity',
+      'Search through documents in a data pool using semantic similarity, keyword matching, or hybrid search (combines both approaches)',
     inputSchema: z.object({
       dataPoolId: z.string().describe('ID of the data pool to search'),
       query: z.string().describe('Search query'),
@@ -111,17 +125,10 @@ export const ragSearch = () =>
         .optional()
         .default(0.3)
         .describe('Minimum similarity threshold (0.3 is more lenient)'),
-      documentType: z
+      title: z
         .string()
         .optional()
-        .describe(
-          'Filter by document type (e.g., "main_document", "extracted_image")',
-        ),
-      fileName: z
-        .string()
-        .optional()
-        .describe('Filter by filename or partial filename'),
-      tags: z.array(z.string()).optional().describe('Filter by search tags'),
+        .describe('Filter by document title (partial match)'),
       maxContextTokens: z
         .number()
         .optional()
@@ -141,31 +148,64 @@ export const ragSearch = () =>
         .describe(
           'Strategy for handling large contexts: intelligent (preserve sentences), simple (word boundaries), none (no truncation)',
         ),
+      searchType: z
+        .enum(['semantic', 'keyword', 'hybrid'])
+        .optional()
+        .default('hybrid')
+        .describe(
+          'Search type: semantic (vector similarity), keyword (SQL text search), hybrid (combines both)',
+        ),
+      keywordWeight: z
+        .number()
+        .optional()
+        .default(0.3)
+        .describe('Weight for keyword search results in hybrid mode (0-1)'),
+      semanticWeight: z
+        .number()
+        .optional()
+        .default(0.7)
+        .describe('Weight for semantic search results in hybrid mode (0-1)'),
     }),
     execute: async ({
       dataPoolId,
       query,
       limit,
       threshold,
-      documentType,
-      fileName,
-      tags,
+      title,
       maxContextTokens,
       modelId,
       truncateStrategy,
+      searchType = 'hybrid', // Default fallback for direct calls
+      keywordWeight = 0.3, // Default fallback for direct calls
+      semanticWeight = 0.7, // Default fallback for direct calls
     }) => {
       try {
         console.log('RAG Search: Starting search for data pool:', dataPoolId);
         console.log('RAG Search: Query:', query);
+        console.log('RAG Search: Parameters:', {
+          maxContextTokens,
+          modelId,
+          searchType,
+          limit,
+          threshold,
+        });
 
-        // Get all documents from the data pool
-        const documents = await getDataPoolDocuments({ dataPoolId });
-        console.log(
-          'RAG Search: Found documents in database:',
-          documents.length,
-        );
+        // Check if the index exists for this datapool
+        const indexExists = await upstashVectorService.indexExists(dataPoolId);
+        if (!indexExists) {
+          console.log('RAG Search: No index found for data pool');
+          return {
+            results: [],
+            message: 'No documents found in the data pool',
+          };
+        }
 
-        if (documents.length === 0) {
+        // Get document count for reference
+        const totalDocuments =
+          await upstashVectorService.getDocumentCount(dataPoolId);
+        console.log('RAG Search: Total documents in index:', totalDocuments);
+
+        if (totalDocuments === 0) {
           console.log('RAG Search: No documents found in data pool');
           return {
             results: [],
@@ -173,97 +213,109 @@ export const ragSearch = () =>
           };
         }
 
-        // Apply metadata filters if provided
-        let filteredDocuments = documents;
-        if (documentType || fileName || tags) {
-          console.log('RAG Search: Applying metadata filters...');
+        // Generate embedding for the query (needed for semantic and hybrid search)
+        let queryEmbedding: number[] | undefined;
+        if (searchType === 'semantic' || searchType === 'hybrid') {
+          queryEmbedding = await generateEmbedding(query);
+          if (!queryEmbedding) {
+            return {
+              error: 'Failed to generate embedding for query',
+            };
+          }
+        }
 
-          filteredDocuments = documents.filter((doc) => {
-            let matches = true;
+        // Build SQL-like filter string for Upstash vector search
+        const filterString = buildFilterString({
+          title,
+        });
 
-            // Filter by document type
-            if (
-              documentType &&
-              (doc.metadata as any)?.documentType !== documentType
-            ) {
-              matches = false;
-            }
+        let searchResults: any[] = [];
 
-            // Filter by filename
-            if (
-              fileName &&
-              (doc.metadata as any)?.fileName &&
-              !(doc.metadata as any).fileName
-                .toLowerCase()
-                .includes(fileName.toLowerCase())
-            ) {
-              matches = false;
-            }
-
-            // Filter by tags
-            if (tags && tags.length > 0 && (doc.metadata as any)?.searchTags) {
-              const docTags = (doc.metadata as any).searchTags;
-              const hasMatchingTag = tags.some((tag) =>
-                docTags.some((docTag: string) =>
-                  docTag.toLowerCase().includes(tag.toLowerCase()),
-                ),
-              );
-              if (!hasMatchingTag) {
-                matches = false;
-              }
-            }
-
-            return matches;
+        // Perform search based on search type
+        if (searchType === 'keyword') {
+          console.log('RAG Search: Using keyword search...');
+          // Import the SQL search function dynamically
+          const { searchDataPoolDocuments } = await import('@/lib/db/queries');
+          const keywordResults = await searchDataPoolDocuments({
+            dataPoolId,
+            query,
+            limit: limit * 2,
+            title,
           });
 
+          // Convert to SearchResult format
+          searchResults = keywordResults.map((doc) => ({
+            id: doc.id,
+            score: doc.relevanceScore / 10, // Normalize to 0-1 range
+            metadata: (doc.metadata as Record<string, any>) || {},
+            content: doc.content,
+          }));
+
           console.log(
-            `RAG Search: After filtering: ${filteredDocuments.length} documents`,
+            'RAG Search: Found documents from keyword search:',
+            searchResults.length,
+          );
+        } else if (searchType === 'semantic') {
+          console.log('RAG Search: Using semantic search...');
+          if (filterString) {
+            console.log('RAG Search: Using filter:', filterString);
+          }
+
+          searchResults = await upstashVectorService.searchDocuments(
+            dataPoolId,
+            queryEmbedding!,
+            {
+              limit: limit * 2, // Get more results to account for filtering
+              filter: filterString,
+              includeMetadata: true,
+              includeValues: false,
+              includeData: true, // Use data field for efficient content retrieval
+            },
+          );
+
+          console.log(
+            'RAG Search: Found documents from semantic search:',
+            searchResults.length,
+          );
+        } else if (searchType === 'hybrid') {
+          console.log('RAG Search: Using hybrid search...');
+          if (filterString) {
+            console.log('RAG Search: Using filter:', filterString);
+          }
+
+          const hybridResults = await upstashVectorService.hybridSearch(
+            dataPoolId,
+            query,
+            queryEmbedding!,
+            {
+              limit: limit * 2,
+              filter: filterString,
+              keywordWeight,
+              semanticWeight,
+              combineResults: true,
+              includeMetadata: true,
+              includeData: true,
+            },
+          );
+
+          // Convert HybridSearchResult to SearchResult format
+          searchResults = hybridResults.map((result) => ({
+            id: result.id,
+            score: result.score,
+            metadata: result.metadata,
+            content: result.content,
+          }));
+
+          console.log(
+            'RAG Search: Found documents from hybrid search:',
+            searchResults.length,
           );
         }
 
-        // Generate embedding for the query
-        const queryEmbedding = await generateEmbedding(query);
-
-        if (!queryEmbedding) {
-          return {
-            error: 'Failed to generate embedding for query',
-          };
-        }
-
-        // Calculate similarity scores for each document
-        console.log('RAG Search: Processing documents for similarity...');
-        const scoredDocuments = filteredDocuments
-          .map((doc) => {
-            console.log(
-              'RAG Search: Document:',
-              doc.title,
-              'has embedding:',
-              !!doc.embedding,
-            );
-
-            if (!doc.embedding) {
-              console.log(
-                'RAG Search: Document has no embedding, skipping:',
-                doc.title,
-              );
-              return { ...doc, similarity: 0 };
-            }
-
-            const similarity = cosineSimilarityLocal(
-              queryEmbedding,
-              doc.embedding as number[],
-            );
-
-            console.log(
-              'RAG Search: Document similarity score:',
-              doc.title,
-              similarity,
-            );
-
-            return { ...doc, similarity };
-          })
-          .filter((doc) => doc.similarity >= threshold)
-          .sort((a, b) => b.similarity - a.similarity)
+        // Apply threshold and limit
+        const scoredDocuments = searchResults
+          .filter((result) => result.score >= threshold)
+          .sort((a, b) => b.score - a.score)
           .slice(0, limit);
 
         console.log(
@@ -285,18 +337,24 @@ export const ragSearch = () =>
           contextLimit = CONTEXT_LIMITS.default;
         }
 
+        console.log('RAG Search: Context limit determined:', {
+          maxContextTokens,
+          modelId,
+          contextLimit,
+        });
+
         // Calculate total context size and manage truncation
         let totalTokens = 0;
         let truncatedCount = 0;
         const processedResults = [];
 
-        for (const doc of scoredDocuments) {
-          const docTokens = estimateTokenCount(doc.content);
+        for (const result of scoredDocuments) {
+          const docTokens = estimateTokenCount(result.content);
           const remainingTokens = contextLimit - totalTokens;
 
-          let processedContent = doc.content;
+          let processedContent = result.content;
           let wasTruncated = false;
-          let originalLength = doc.content.length;
+          let originalLength = result.content.length;
 
           // Check if we need to truncate this document
           if (
@@ -305,7 +363,7 @@ export const ragSearch = () =>
             remainingTokens > 0
           ) {
             const truncationResult = truncateContent(
-              doc.content,
+              result.content,
               remainingTokens,
             );
             processedContent = truncationResult.content;
@@ -315,23 +373,23 @@ export const ragSearch = () =>
             if (wasTruncated) {
               truncatedCount++;
               console.log(
-                `RAG Search: Truncated document "${doc.title}" from ${originalLength} to ${processedContent.length} characters`,
+                `RAG Search: Truncated document "${result.metadata?.title || result.id}" from ${originalLength} to ${processedContent.length} characters`,
               );
             }
           } else if (docTokens > remainingTokens && remainingTokens <= 0) {
             // Skip this document if we've exceeded the context limit
             console.log(
-              `RAG Search: Skipping document "${doc.title}" due to context limit`,
+              `RAG Search: Skipping document "${result.metadata?.title || result.id}" due to context limit`,
             );
             continue;
           }
 
           processedResults.push({
-            id: doc.id,
-            title: doc.title,
+            id: result.id,
+            title: result.metadata?.title || result.id,
             content: processedContent,
-            similarity: doc.similarity,
-            metadata: doc.metadata,
+            similarity: result.score,
+            metadata: result.metadata,
             truncated: wasTruncated,
             originalLength: originalLength,
             estimatedTokens: estimateTokenCount(processedContent),
@@ -360,8 +418,8 @@ export const ragSearch = () =>
 
         return {
           results: processedResults,
-          totalDocuments: documents.length,
-          filteredDocuments: filteredDocuments.length,
+          totalDocuments: totalDocuments,
+          filteredDocuments: searchResults.length, // Documents returned by Upstash after server-side filtering
           filteredCount: scoredDocuments.length,
           returnedCount: processedResults.length,
           contextInfo: {
@@ -372,9 +430,8 @@ export const ragSearch = () =>
             warnings,
           },
           appliedFilters: {
-            documentType,
-            fileName,
-            tags,
+            title,
+            filterString, // Include the actual filter string used
           },
         };
       } catch (error) {
@@ -385,22 +442,3 @@ export const ragSearch = () =>
       }
     },
   });
-
-// Utility function for cosine similarity calculation
-function cosineSimilarityLocal(vecA: number[], vecB: number[]): number {
-  if (vecA.length !== vecB.length) {
-    throw new Error('Vector dimensions must match');
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < vecA.length; i++) {
-    dotProduct += vecA[i] * vecB[i];
-    normA += vecA[i] * vecA[i];
-    normB += vecB[i] * vecB[i];
-  }
-
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}

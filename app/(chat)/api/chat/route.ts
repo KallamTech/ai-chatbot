@@ -5,6 +5,7 @@ import {
   smoothStream,
   stepCountIs,
   streamText,
+  tool,
 } from 'ai';
 import { auth, type UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
@@ -28,13 +29,16 @@ import { createAgent } from '@/lib/ai/tools/create-agent';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { generateImage } from '@/lib/ai/tools/generate-image';
+import { ragSearch } from '@/lib/ai/tools/rag-search';
+import { getDataPoolsByUserId } from '@/lib/db/queries';
+import { z } from 'zod';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
   postRequestBodySchemaGuest,
   postRequestBodySchemaAuthenticated,
   type PostRequestBodyGuest,
-  type PostRequestBodyAuthenticated
+  type PostRequestBodyAuthenticated,
 } from './schema';
 import { geolocation } from '@vercel/functions';
 import {
@@ -62,8 +66,11 @@ function filterMessagesBeforeLastError(messages: any[]): any[] {
     const message = messages[i];
     if (message.role === 'assistant' && message.parts) {
       // Check if any part contains the error text
-      const hasError = message.parts.some((part: any) =>
-        part.type === 'text' && part.text && part.text.includes('An error has occurred')
+      const hasError = message.parts.some(
+        (part: any) =>
+          part.type === 'text' &&
+          part.text &&
+          part.text.includes('An error has occurred'),
       );
 
       if (hasError) {
@@ -114,7 +121,7 @@ export async function POST(request: Request) {
     const session = await auth();
 
     if (session?.user?.type === 'guest') {
-       // User is not authenticated, use the guest schema
+      // User is not authenticated, use the guest schema
       requestBody = postRequestBodySchemaGuest.parse(json);
     } else {
       // User is authenticated, use the authenticated schema
@@ -131,12 +138,15 @@ export async function POST(request: Request) {
       message,
       selectedChatModel,
       selectedVisibilityType,
+      connectedDataPools,
     }: {
       id: string;
       message: ChatMessage;
       selectedChatModel: ChatModel['id'];
       selectedVisibilityType: VisibilityType;
+      connectedDataPools?: string[];
     } = requestBody;
+
 
     const session = await auth();
 
@@ -209,38 +219,120 @@ export async function POST(request: Request) {
     await createStreamId({ streamId, chatId: id });
 
     const stream = createUIMessageStream({
-      execute: ({ writer: dataStream }) => {
+      execute: async ({ writer: dataStream }) => {
+        // Get user's datapools for RAG search
+        const userDataPools = await getDataPoolsByUserId({
+          userId: session.user.id,
+        });
+
+        // Filter to only connected datapools (only use connected ones, not all user datapools)
+        const availableDataPools = connectedDataPools && connectedDataPools.length > 0
+          ? userDataPools.filter(dp => connectedDataPools.includes(dp.id))
+          : [];
+
+
+        // Create RAG search tool that can search across connected datapools
+        const createRagSearchTool = () => {
+          if (availableDataPools.length === 0) {
+            return null; // No datapools available
+          }
+
+          return tool({
+            description: 'Search through documents in your connected data pools using semantic similarity',
+            inputSchema: z.object({
+              query: z.string().describe('Search query'),
+              dataPoolId: z.string().describe(`ID of the data pool to search. Available data pools: ${availableDataPools.map(dp => `${dp.id} (${dp.name})`).join(', ')}`),
+              limit: z.number().optional().default(5).describe('Maximum number of results to return'),
+              threshold: z.number().optional().default(0.3).describe('Minimum similarity threshold (0.3 is more lenient)'),
+              title: z.string().optional().describe('Filter by document title (partial match)'),
+            }),
+            execute: async ({ query, dataPoolId, limit = 5, threshold = 0.3, title }: {
+              query: string;
+              dataPoolId: string;
+              limit?: number;
+              threshold?: number;
+              title?: string;
+            }) => {
+              try {
+                // Verify the datapool is available (connected and belongs to the user)
+                const targetDataPool = availableDataPools.find(dp => dp.id === dataPoolId);
+                if (!targetDataPool) {
+                  return {
+                    error: `Data pool with ID ${dataPoolId} not found or not connected to this chat`,
+                    availableDataPools: availableDataPools.map(dp => ({ id: dp.id, name: dp.name })),
+                  };
+                }
+
+                const ragSearchTool = ragSearch();
+                const result = await (ragSearchTool as any).execute({
+                  dataPoolId: targetDataPool.id,
+                  query,
+                  limit,
+                  threshold,
+                  ...(title && { title }),
+                  ...(selectedChatModel && { modelId: selectedChatModel }),
+                });
+
+                return {
+                  ...result,
+                  searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+                };
+              } catch (error) {
+                console.error('Error in RAG search:', error);
+                return {
+                  error: 'Failed to search documents',
+                };
+              }
+            },
+          });
+        };
+
+        const ragSearchTool = createRagSearchTool();
+        const tools: any = {
+          getWeather,
+          createDocument: createDocument({ session, dataStream }),
+          updateDocument: updateDocument({ session, dataStream }),
+          requestSuggestions: requestSuggestions({
+            session,
+            dataStream,
+          }),
+          createAgent: createAgent({ session, dataStream }),
+          webSearch: webSearch(),
+          newsSearch: newsSearch(),
+          deepResearch: deepResearch(),
+          generateImage: generateImage({ dataStream }),
+        };
+
+        const activeTools = [
+          'getWeather',
+          'createDocument',
+          'updateDocument',
+          'requestSuggestions',
+          'createAgent',
+          'webSearch',
+          'newsSearch',
+          'deepResearch',
+          'generateImage',
+        ];
+
+        // Add RAG search tool if user has datapools
+        if (ragSearchTool) {
+          tools.ragSearch = ragSearchTool;
+          activeTools.push('ragSearch');
+        }
+
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: systemPrompt({
+            selectedChatModel,
+            requestHints,
+            connectedDataPools: availableDataPools.map(dp => ({ id: dp.id, name: dp.name }))
+          }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
-          experimental_activeTools: [
-            'getWeather',
-            'createDocument',
-            'updateDocument',
-            'requestSuggestions',
-            'createAgent',
-            'webSearch',
-            'newsSearch',
-            'deepResearch',
-            'generateImage',
-          ],
+          experimental_activeTools: activeTools,
           experimental_transform: smoothStream({ chunking: 'word' }),
-          tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
-            createAgent: createAgent({ session, dataStream }),
-            webSearch: webSearch(),
-            newsSearch: newsSearch(),
-            deepResearch: deepResearch(),
-            generateImage: generateImage({ dataStream }),
-          },
+          tools,
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
             functionId: 'stream-text',
@@ -263,7 +355,12 @@ export async function POST(request: Request) {
             return {
               id: message.id,
               role: message.role,
-              parts: [{ type: 'text', text: 'An error has occurred, please try again noting that all previous messages will be removed from memory' }],
+              parts: [
+                {
+                  type: 'text',
+                  text: 'An error has occurred, please try again noting that all previous messages will be removed from memory',
+                },
+              ],
               createdAt: new Date(),
               attachments: [],
               chatId: id,
@@ -284,7 +381,7 @@ export async function POST(request: Request) {
         });
       },
       onError: (error) => {
-        console.log("Error detected", error);
+        console.log('Error detected', error);
         return 'Oops, an error occurred!';
       },
     });

@@ -19,8 +19,10 @@ import {
   saveMessages,
   getAgentById,
   getWorkflowNodesByAgentId,
-  getDataPoolByAgentId,
-  getDataPoolDocuments,
+  getDataPoolsByAgentId,
+  searchDataPoolDocumentsByTitle,
+  getDataPoolDocumentTitles,
+  getDocumentById,
 } from '@/lib/db/queries';
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
@@ -35,7 +37,7 @@ import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
   postRequestBodySchemaAuthenticated,
-  type PostRequestBodyAuthenticated
+  type PostRequestBodyAuthenticated,
 } from '@/app/(chat)/api/chat/schema';
 //import { geolocation } from '@vercel/functions';
 import {
@@ -63,8 +65,11 @@ function filterMessagesBeforeLastError(messages: any[]): any[] {
     const message = messages[i];
     if (message.role === 'assistant' && message.parts) {
       // Check if any part contains the error text
-      const hasError = message.parts.some((part: any) =>
-        part.type === 'text' && part.text && part.text.includes('An error has occurred')
+      const hasError = message.parts.some(
+        (part: any) =>
+          part.type === 'text' &&
+          part.text &&
+          part.text.includes('An error has occurred'),
       );
 
       if (hasError) {
@@ -159,17 +164,17 @@ export async function POST(
       return new ChatSDKError('not_found:agent').toResponse();
     }
 
-    // AGENT-SPECIFIC: Get agent's workflow nodes and data pool
-    const [workflowNodes, dataPool] = await Promise.all([
+    // AGENT-SPECIFIC: Get agent's workflow nodes and data pools
+    const [workflowNodes, dataPools] = await Promise.all([
       getWorkflowNodesByAgentId({ agentId }),
-      getDataPoolByAgentId({ agentId }),
+      getDataPoolsByAgentId({ agentId }),
     ]);
 
     console.log('Agent chat: Workflow nodes found:', workflowNodes.length);
-    console.log('Agent chat: Data pool found:', !!dataPool);
-    if (dataPool) {
-      console.log('Agent chat: Data pool ID:', dataPool.id);
-      console.log('Agent chat: Data pool name:', dataPool.name);
+    console.log('Agent chat: Data pools found:', dataPools.length);
+    if (dataPools.length > 0) {
+      console.log('Agent chat: Data pool IDs:', dataPools.map(dp => dp.id));
+      console.log('Agent chat: Data pool names:', dataPools.map(dp => dp.name));
     }
 
     const chat = await getChatById({ id });
@@ -222,7 +227,7 @@ export async function POST(
         // AGENT-SPECIFIC: Create agent system prompt and tools
         const agentTools = createAgentTools(
           workflowNodes,
-          dataPool,
+          dataPools,
           session,
           dataStream,
           selectedChatModel,
@@ -234,8 +239,8 @@ export async function POST(
         );
 
         console.log('Agent chat: Created tools:', Object.keys(agentTools));
-        console.log('Agent chat: Data pool exists:', !!dataPool);
-        console.log('Agent chat: Data pool ID:', dataPool?.id);
+        console.log('Agent chat: Data pools available:', dataPools.length);
+        console.log('Agent chat: Data pool IDs:', dataPools.map(dp => dp.id));
 
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
@@ -267,7 +272,12 @@ export async function POST(
             return {
               id: message.id,
               role: message.role,
-              parts: [{ type: 'text', text: 'An error has occurred, please try again noting that all previous messages will be removed from memory' }],
+              parts: [
+                {
+                  type: 'text',
+                  text: 'An error has occurred, please try again noting that all previous messages will be removed from memory',
+                },
+              ],
               createdAt: new Date(),
               attachments: [],
               chatId: id,
@@ -334,9 +344,10 @@ function createAgentSystemPrompt(
   const hasImageGeneration = 'generateImage' in agentTools;
 
   // Check for document-specific nodes
-  const hasDocumentNodes = workflowNodes.some(node =>
-    node.nodeType?.toLowerCase() === 'document' ||
-    node.nodeType?.toLowerCase() === 'documentupdate'
+  const hasDocumentNodes = workflowNodes.some(
+    (node) =>
+      node.nodeType?.toLowerCase() === 'document' ||
+      node.nodeType?.toLowerCase() === 'documentupdate',
   );
 
   const webSearchCapabilities =
@@ -389,35 +400,37 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 
 **Core Capabilities:**
 **Document Access & Search:**
-- searchDocuments: Semantic search across all documents in your data pool
-- searchImages: Find visual content with threshold 0.1 for best results
-- findDocumentByTitle: Locate specific documents by name/filename
+- searchDocuments: Semantic search across all documents in your connected data pools
+- searchImages: Find visual content with threshold 0.1 for best results across all data pools
+- findDocumentByTitle: Locate specific documents by name/filename across all data pools
 - getDocumentMetadata: Get detailed information about document structure
 - searchSpecificDocument: Search within a specific document for targeted content
 
 **Content Processing:**
-- Summarize, extract, and analyze information from your documents
-- Answer questions based on your data pool content
+- Summarize, extract, and analyze information from your documents across all connected data pools
+- Answer questions based on your data pool content from all connected sources
 - Provide insights and analysis from available documents${webSearchCapabilities ? `\n\n**Web Search Capabilities:**\n${webSearchCapabilities}` : ''}${documentCapabilities ? `\n\n**Document Creation:**\n${documentCapabilities}` : ''}${pythonCapabilities ? `\n\n**Python Code Generation:**\n${pythonCapabilities}` : ''}${imageGenerationCapabilities ? `\n\n**Image Generation:**\n${imageGenerationCapabilities}` : ''}
 
 **Operational Constraints:**
 - You can ONLY perform tasks related to your defined workflow nodes
-- You can ONLY access data from your assigned data pool
+- You can ONLY access data from your assigned data pools (you may have access to multiple data pools)
 - You cannot perform general tasks outside your specialized scope
 - Always clearly explain your capabilities and limitations when asked about out-of-scope tasks
 
 **Search Strategy:**
-1. **Specific Document Requests**: If user mentions a document name, use findDocumentByTitle first
+1. **Specific Document Requests**: If user mentions a document name, use findDocumentByTitle first (searches across all data pools)
 2. **Targeted Content**: Use searchSpecificDocument to find specific content within documents
-3. **Visual Content**: Use searchImages with threshold 0.1 for charts, graphs, diagrams
-4. **General Queries**: Use searchDocuments for broad semantic search
+3. **Visual Content**: Use searchImages with threshold 0.1 for charts, graphs, diagrams (searches across all data pools)
+4. **General Queries**: Use searchDocuments for broad semantic search (searches across all data pools)
 5. **Document Analysis**: Use getDocumentMetadata to understand document structure
+6. **Data Pool Specific**: Use the optional dataPoolId parameter to search within a specific data pool if needed
 
 **Image Search Best Practices:**
 - Use searchImages for visual content queries (charts, graphs, diagrams, photos)
 - Recommended threshold: 0.1 for comprehensive results
 - Images require lower similarity thresholds than text content
 - Always specify searchImages: true for visual queries
+- Search results will include which data pool each image was found in
 
 **Web Search Guidelines:**${
     hasWebSearch || hasNewsSearch || hasDeepResearch
@@ -441,22 +454,22 @@ Before proceeding with any task or response, you MUST ALWAYS create a clear plan
 
 function createAgentTools(
   workflowNodes: any[],
-  dataPool: any,
+  dataPools: any[],
   session: any,
   dataStream: any,
   selectedChatModel?: string,
 ) {
   const tools: any = {};
 
-  console.log('createAgentTools: Creating tools for data pool:', !!dataPool);
-  if (dataPool) {
-    console.log('createAgentTools: Data pool ID:', dataPool.id);
+  console.log('createAgentTools: Creating tools for data pools:', dataPools.length);
+  if (dataPools.length > 0) {
+    console.log('createAgentTools: Data pool IDs:', dataPools.map(dp => dp.id));
 
-    // Always provide document search if there's a data pool (regardless of workflow nodes)
-    // Create a bound RAG search tool with the specific data pool ID
+    // Always provide document search if there are data pools (regardless of workflow nodes)
+    // Create a bound RAG search tool that searches across all connected data pools
     tools.searchDocuments = tool({
       description:
-        'Search through documents in your data pool using semantic similarity',
+        'Search through documents in all your connected data pools using semantic similarity',
       inputSchema: z.object({
         query: z.string().describe('Search query'),
         limit: z
@@ -469,10 +482,19 @@ function createAgentTools(
           .optional()
           .default(false)
           .describe('Whether to prioritize image content in search'),
+        title: z
+          .string()
+          .optional()
+          .describe('Filter by document title (partial match)'),
+        dataPoolId: z
+          .string()
+          .optional()
+          .describe('Optional: Search in a specific data pool by ID'),
       }),
-      execute: async ({ query, limit, searchImages }) => {
+      execute: async ({ query, limit, searchImages, title, dataPoolId }) => {
         console.log('Agent chat: Searching documents with query:', query);
-        console.log('Agent chat: Data pool ID:', dataPool.id);
+        console.log('Agent chat: Available data pools:', dataPools.length);
+
         const defaultThreshold = 0.3;
         // Adjust threshold based on search type
         let adjustedThreshold = defaultThreshold;
@@ -485,28 +507,85 @@ function createAgentTools(
           );
         }
 
-        // Use the ragSearch tool but bind it to this specific data pool
+        // If a specific data pool is requested, search only that one
+        if (dataPoolId) {
+          const targetDataPool = dataPools.find(dp => dp.id === dataPoolId);
+          if (!targetDataPool) {
+            return {
+              error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
+              availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+            };
+          }
+
+          const ragSearchTool = ragSearch();
+          const result = await (ragSearchTool as any).execute({
+            dataPoolId: targetDataPool.id,
+            query,
+            limit,
+            threshold: adjustedThreshold,
+            ...(title && { title }),
+            ...(selectedChatModel && { modelId: selectedChatModel }),
+          });
+
+          console.log('Agent chat: Search result for specific data pool:', result);
+          return {
+            ...result,
+            searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+          };
+        }
+
+        // Search across all data pools and combine results
         const ragSearchTool = ragSearch();
-        const result = await (ragSearchTool as any).execute({
-          dataPoolId: dataPool.id,
-          query,
-          limit,
-          threshold: adjustedThreshold,
-          // Add image-specific filtering if requested
-          ...(searchImages && { documentType: 'extracted_image' }),
-          // Add model information for context management
-          ...(selectedChatModel && { modelId: selectedChatModel }),
+        const searchPromises = dataPools.map(async (dataPool) => {
+          try {
+            const result = await (ragSearchTool as any).execute({
+              dataPoolId: dataPool.id,
+              query,
+              limit: Math.ceil(limit / dataPools.length), // Distribute limit across pools
+              threshold: adjustedThreshold,
+              ...(title && { title }),
+              ...(selectedChatModel && { modelId: selectedChatModel }),
+            });
+
+            return {
+              dataPool: { id: dataPool.id, name: dataPool.name },
+              results: result,
+            };
+          } catch (error) {
+            console.error(`Error searching data pool ${dataPool.id}:`, error);
+            return {
+              dataPool: { id: dataPool.id, name: dataPool.name },
+              error: 'Search failed for this data pool',
+            };
+          }
         });
 
-        console.log('Agent chat: Search result:', result);
-        return result;
+        const searchResults = await Promise.all(searchPromises);
+
+        // Combine results from all data pools
+        const combinedResults = {
+          query,
+          totalResults: 0,
+          dataPools: searchResults,
+          searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+        };
+
+        // Count total results
+        searchResults.forEach(result => {
+          if (result.results && result.results.results) {
+            combinedResults.totalResults += result.results.results.length;
+          }
+        });
+
+        console.log('Agent chat: Combined search results:', combinedResults);
+        return combinedResults;
       },
     });
 
-    // Add tool for finding documents by title/filename
+    // Add tool for finding documents by title/filename across all data pools
     tools.findDocumentByTitle = tool({
       description:
-        'Find a specific document by its title, filename, or partial name match',
+        'Find a specific document by its title, filename, or partial name match across all connected data pools',
       inputSchema: z.object({
         title: z
           .string()
@@ -518,51 +597,131 @@ function createAgentTools(
           .describe(
             'Whether to require an exact match or allow partial matches',
           ),
+        dataPoolId: z
+          .string()
+          .optional()
+          .describe('Optional: Search in a specific data pool by ID'),
       }),
-      execute: async ({ title, exactMatch }) => {
+      execute: async ({ title, exactMatch, dataPoolId }) => {
         console.log('Agent chat: Finding document by title:', title);
 
         try {
-          // Get documents directly from database
-          const documents = await getDataPoolDocuments({
-            dataPoolId: dataPool.id,
-          });
+          // If a specific data pool is requested, search only that one
+          if (dataPoolId) {
+            const targetDataPool = dataPools.find(dp => dp.id === dataPoolId);
+            if (!targetDataPool) {
+              return {
+                found: false,
+                error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
+                availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+              };
+            }
 
-          // Search through documents
-          const matches = documents.filter((doc: any) => {
-            const searchTitle = title.toLowerCase();
-            const docTitle = doc.title.toLowerCase();
-            const fileName = doc.metadata?.fileName?.toLowerCase() || '';
-            const searchTags = doc.metadata?.searchTags || [];
+            const matches = await searchDataPoolDocumentsByTitle({
+              dataPoolId: targetDataPool.id,
+              title,
+              exactMatch,
+              limit: 50,
+            });
 
-            if (exactMatch) {
-              return docTitle === searchTitle || fileName === searchTitle;
-            } else {
-              return (
-                docTitle.includes(searchTitle) ||
-                fileName.includes(searchTitle) ||
-                searchTags.some((tag: string) => tag.includes(searchTitle))
-              );
+            if (matches.length === 0) {
+              const suggestions = await getDataPoolDocumentTitles({
+                dataPoolId: targetDataPool.id,
+                limit: 5,
+              });
+
+              return {
+                found: false,
+                message: `No documents found matching "${title}" in data pool "${targetDataPool.name}"`,
+                suggestions,
+                searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+              };
+            }
+
+            return {
+              found: true,
+              count: matches.length,
+              documents: matches.map((doc) => ({
+                id: doc.id,
+                title: doc.title,
+                metadata: doc.metadata,
+                createdAt: doc.createdAt,
+              })),
+              searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+            };
+          }
+
+          // Search across all data pools
+          const searchPromises = dataPools.map(async (dataPool) => {
+            try {
+              const matches = await searchDataPoolDocumentsByTitle({
+                dataPoolId: dataPool.id,
+                title,
+                exactMatch,
+                limit: 50,
+              });
+
+              return {
+                dataPool: { id: dataPool.id, name: dataPool.name },
+                matches,
+                count: matches.length,
+              };
+            } catch (error) {
+              console.error(`Error searching data pool ${dataPool.id}:`, error);
+              return {
+                dataPool: { id: dataPool.id, name: dataPool.name },
+                error: 'Search failed for this data pool',
+                matches: [],
+                count: 0,
+              };
             }
           });
 
-          if (matches.length === 0) {
+          const searchResults = await Promise.all(searchPromises);
+
+          // Combine all matches
+          const allMatches = searchResults.flatMap(result =>
+            result.matches.map(doc => ({
+              ...doc,
+              dataPool: result.dataPool,
+            }))
+          );
+
+          if (allMatches.length === 0) {
+            // Get suggestions from all data pools
+            const suggestionPromises = dataPools.map(async (dataPool) => {
+              try {
+                const suggestions = await getDataPoolDocumentTitles({
+                  dataPoolId: dataPool.id,
+                  limit: 3,
+                });
+                return { dataPool: { id: dataPool.id, name: dataPool.name }, suggestions };
+              } catch (error) {
+                return { dataPool: { id: dataPool.id, name: dataPool.name }, suggestions: [] };
+              }
+            });
+
+            const allSuggestions = await Promise.all(suggestionPromises);
+
             return {
               found: false,
-              message: `No documents found matching "${title}"`,
-              suggestions: documents.map((doc: any) => doc.title).slice(0, 5),
+              message: `No documents found matching "${title}" across all connected data pools`,
+              suggestions: allSuggestions,
+              searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
             };
           }
 
           return {
             found: true,
-            count: matches.length,
-            documents: matches.map((doc: any) => ({
+            count: allMatches.length,
+            documents: allMatches.map((doc) => ({
               id: doc.id,
               title: doc.title,
               metadata: doc.metadata,
               createdAt: doc.createdAt,
+              dataPool: doc.dataPool,
             })),
+            searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
           };
         } catch (error) {
           console.error('Error finding document by title:', error);
@@ -587,11 +746,8 @@ function createAgentTools(
         console.log('Agent chat: Getting metadata for document:', documentId);
 
         try {
-          // Get documents directly from database
-          const documents = await getDataPoolDocuments({
-            dataPoolId: dataPool.id,
-          });
-          const document = documents.find((doc: any) => doc.id === documentId);
+          // Get document directly by ID from database
+          const document = await getDocumentById({ id: documentId });
 
           if (!document) {
             return {
@@ -605,7 +761,8 @@ function createAgentTools(
             document: {
               id: document.id,
               title: document.title,
-              metadata: document.metadata,
+              content: document.content,
+              kind: document.kind,
               createdAt: document.createdAt,
             },
           };
@@ -619,10 +776,10 @@ function createAgentTools(
       },
     });
 
-    // Add tool for targeted document search
+    // Add tool for targeted document search across all data pools
     tools.searchSpecificDocument = tool({
       description:
-        'Search within a specific document by ID, useful when you know which document to analyze',
+        'Search within a specific document by ID across all connected data pools, useful when you know which document to analyze',
       inputSchema: z.object({
         documentId: z
           .string()
@@ -642,38 +799,68 @@ function createAgentTools(
         );
 
         try {
-          // First get the document metadata directly from database
-          const documents = await getDataPoolDocuments({
-            dataPoolId: dataPool.id,
-          });
-          const document = documents.find((doc: any) => doc.id === documentId);
+          // Search for the document across all connected data pools
+          let foundDocument = null;
+          let documentDataPool = null;
 
-          if (!document) {
+          // Search through all data pools to find the document
+          for (const dataPool of dataPools) {
+            try {
+              // Use the ragSearch tool to find the document by ID
+              const ragSearchTool = ragSearch();
+              const searchResult = await (ragSearchTool as any).execute({
+                dataPoolId: dataPool.id,
+                query: `document id: ${documentId}`,
+                limit: 1,
+                threshold: 0.1, // Very low threshold to find exact document
+              });
+
+              if (searchResult && searchResult.results && searchResult.results.length > 0) {
+                // Check if any result matches the document ID
+                const matchingResult = searchResult.results.find((result: any) =>
+                  result.metadata && result.metadata.id === documentId
+                );
+
+                if (matchingResult) {
+                  foundDocument = {
+                    id: documentId,
+                    title: matchingResult.metadata.title || 'Unknown Document',
+                  };
+                  documentDataPool = dataPool;
+                  break;
+                }
+              }
+            } catch (error) {
+              console.error(`Error searching for document in data pool ${dataPool.id}:`, error);
+              // Continue searching in other data pools
+            }
+          }
+
+          if (!foundDocument || !documentDataPool) {
             return {
               found: false,
-              message: `Document with ID ${documentId} not found`,
+              message: `Document with ID ${documentId} not found in any connected data pools`,
+              availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
             };
           }
 
-          // Now search within this specific document using RAG with metadata filtering
+          // Now search within this specific document using RAG
           const ragSearchTool = ragSearch();
           const result = await (ragSearchTool as any).execute({
-            dataPoolId: dataPool.id,
-            query: `${query} [document: ${document.title}]`,
+            dataPoolId: documentDataPool.id,
+            query: `${query} [document: ${foundDocument.title}]`,
             limit: 3,
             threshold: 0.2, // Lower threshold for specific document search
-            documentType: (document.metadata as any)?.documentType, // Filter by document type
-            fileName: (document.metadata as any)?.fileName, // Filter by filename
-            tags: (document.metadata as any)?.searchTags, // Filter by search tags
+            title: foundDocument.title, // Filter by specific document title
           });
 
           return {
             found: true,
             document: {
-              id: document.id,
-              title: document.title,
-              metadata: document.metadata,
+              id: foundDocument.id,
+              title: foundDocument.title,
             },
+            dataPool: { id: documentDataPool.id, name: documentDataPool.name },
             searchResults: result,
           };
         } catch (error) {
@@ -686,10 +873,10 @@ function createAgentTools(
       },
     });
 
-    // Add dedicated image search tool with appropriate thresholds
+    // Add dedicated image search tool with appropriate thresholds across all data pools
     tools.searchImages = tool({
       description:
-        'Search specifically for images and visual content in your data pool',
+        'Search specifically for images and visual content across all your connected data pools',
       inputSchema: z.object({
         query: z
           .string()
@@ -706,25 +893,88 @@ function createAgentTools(
           .optional()
           .default(0.1)
           .describe('Similarity threshold (0.1 recommended for images)'),
+        dataPoolId: z
+          .string()
+          .optional()
+          .describe('Optional: Search in a specific data pool by ID'),
       }),
-      execute: async ({ query, limit, threshold }) => {
+      execute: async ({ query, limit, threshold, dataPoolId }) => {
         console.log('Agent chat: Searching for images with query:', query);
 
         try {
+          // If a specific data pool is requested, search only that one
+          if (dataPoolId) {
+            const targetDataPool = dataPools.find(dp => dp.id === dataPoolId);
+            if (!targetDataPool) {
+              return {
+                error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
+                availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+                searchType: 'image_search',
+              };
+            }
+
+            const ragSearchTool = ragSearch();
+            const result = await (ragSearchTool as any).execute({
+              dataPoolId: targetDataPool.id,
+              query,
+              limit,
+              threshold: Math.max(threshold, 0.1), // Ensure minimum threshold for images
+              documentType: 'extracted_image', // Only search image documents
+            });
+
+            return {
+              ...result,
+              searchType: 'image_search',
+              recommendedThreshold: '0.1 for comprehensive image results',
+              searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+            };
+          }
+
+          // Search across all data pools for images
           const ragSearchTool = ragSearch();
-          const result = await (ragSearchTool as any).execute({
-            dataPoolId: dataPool.id,
-            query,
-            limit,
-            threshold: Math.max(threshold, 0.1), // Ensure minimum threshold for images
-            documentType: 'extracted_image', // Only search image documents
+          const searchPromises = dataPools.map(async (dataPool) => {
+            try {
+              const result = await (ragSearchTool as any).execute({
+                dataPoolId: dataPool.id,
+                query,
+                limit: Math.ceil(limit / dataPools.length), // Distribute limit across pools
+                threshold: Math.max(threshold, 0.1), // Ensure minimum threshold for images
+                documentType: 'extracted_image', // Only search image documents
+              });
+
+              return {
+                dataPool: { id: dataPool.id, name: dataPool.name },
+                results: result,
+              };
+            } catch (error) {
+              console.error(`Error searching images in data pool ${dataPool.id}:`, error);
+              return {
+                dataPool: { id: dataPool.id, name: dataPool.name },
+                error: 'Image search failed for this data pool',
+              };
+            }
           });
 
-          return {
-            ...result,
+          const searchResults = await Promise.all(searchPromises);
+
+          // Combine results from all data pools
+          const combinedResults = {
+            query,
+            totalResults: 0,
+            dataPools: searchResults,
+            searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
             searchType: 'image_search',
             recommendedThreshold: '0.1 for comprehensive image results',
           };
+
+          // Count total results
+          searchResults.forEach(result => {
+            if (result.results && result.results.results) {
+              combinedResults.totalResults += result.results.results.length;
+            }
+          });
+
+          return combinedResults;
         } catch (error) {
           console.error('Error searching images:', error);
           return {
@@ -736,11 +986,11 @@ function createAgentTools(
     });
 
     console.log(
-      'createAgentTools: Created searchDocuments and searchImages tools',
+      'createAgentTools: Created search tools for multiple data pools',
     );
   } else {
     console.log(
-      'createAgentTools: No data pool found, cannot create search tools',
+      'createAgentTools: No data pools found, cannot create search tools',
     );
   }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "DataPoolDocument" DROP COLUMN IF EXISTS "embedding";
