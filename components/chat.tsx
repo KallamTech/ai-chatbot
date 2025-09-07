@@ -131,25 +131,36 @@ export function Chat({
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
-      console.log("Error detected", error);
+      console.log('Error detected', error);
       if (error instanceof ChatSDKError || error instanceof Error) {
         toast({
           type: 'error',
           description: error.message,
         });
       }
-        // Replace the last empty assistant message with an error message
+      // Replace the last empty assistant message with an error message
       setMessages((messages) => {
         const newMessages = [...messages];
         const lastMessage = newMessages[newMessages.length - 1];
 
-        if (lastMessage && lastMessage.role === 'assistant' &&
-            (!lastMessage.parts || lastMessage.parts.length === 0 ||
-             (lastMessage.parts.length === 1 && lastMessage.parts[0].type === 'text' && !lastMessage.parts[0].text))) {
+        if (
+          lastMessage &&
+          lastMessage.role === 'assistant' &&
+          (!lastMessage.parts ||
+            lastMessage.parts.length === 0 ||
+            (lastMessage.parts.length === 1 &&
+              lastMessage.parts[0].type === 'text' &&
+              !lastMessage.parts[0].text))
+        ) {
           // Replace empty assistant message with error message
           newMessages[newMessages.length - 1] = {
             ...lastMessage,
-            parts: [{ type: 'text', text: `An error has occured: ${error.message}, please try again`}],
+            parts: [
+              {
+                type: 'text',
+                text: `An error has occured: ${error.message}, please try again`,
+              },
+            ],
           };
         }
 
@@ -229,7 +240,9 @@ export function Chat({
           isArtifactVisible={isArtifactVisible}
         />
 
-        <div className={`sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 z-[1] border-t-0 ${isArtifactVisible ? 'md:max-w-none' : 'md:max-w-7xl'}`}>
+        <div
+          className={`sticky bottom-0 flex gap-2 px-4 pb-4 mx-auto w-full bg-background md:pb-6 z-[1] border-t-0 ${isArtifactVisible ? 'md:max-w-none' : 'md:max-w-7xl'}`}
+        >
           {!isReadonly && (
             <MultimodalInput
               chatId={id}

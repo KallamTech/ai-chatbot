@@ -20,7 +20,9 @@ import {
   getAgentById,
   getWorkflowNodesByAgentId,
   getDataPoolByAgentId,
-  getDataPoolDocuments,
+  searchDataPoolDocumentsByTitle,
+  getDataPoolDocumentTitles,
+  getDocumentById,
 } from '@/lib/db/queries';
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
@@ -35,7 +37,7 @@ import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
   postRequestBodySchemaAuthenticated,
-  type PostRequestBodyAuthenticated
+  type PostRequestBodyAuthenticated,
 } from '@/app/(chat)/api/chat/schema';
 //import { geolocation } from '@vercel/functions';
 import {
@@ -63,8 +65,11 @@ function filterMessagesBeforeLastError(messages: any[]): any[] {
     const message = messages[i];
     if (message.role === 'assistant' && message.parts) {
       // Check if any part contains the error text
-      const hasError = message.parts.some((part: any) =>
-        part.type === 'text' && part.text && part.text.includes('An error has occurred')
+      const hasError = message.parts.some(
+        (part: any) =>
+          part.type === 'text' &&
+          part.text &&
+          part.text.includes('An error has occurred'),
       );
 
       if (hasError) {
@@ -267,7 +272,12 @@ export async function POST(
             return {
               id: message.id,
               role: message.role,
-              parts: [{ type: 'text', text: 'An error has occurred, please try again noting that all previous messages will be removed from memory' }],
+              parts: [
+                {
+                  type: 'text',
+                  text: 'An error has occurred, please try again noting that all previous messages will be removed from memory',
+                },
+              ],
               createdAt: new Date(),
               attachments: [],
               chatId: id,
@@ -334,9 +344,10 @@ function createAgentSystemPrompt(
   const hasImageGeneration = 'generateImage' in agentTools;
 
   // Check for document-specific nodes
-  const hasDocumentNodes = workflowNodes.some(node =>
-    node.nodeType?.toLowerCase() === 'document' ||
-    node.nodeType?.toLowerCase() === 'documentupdate'
+  const hasDocumentNodes = workflowNodes.some(
+    (node) =>
+      node.nodeType?.toLowerCase() === 'document' ||
+      node.nodeType?.toLowerCase() === 'documentupdate',
   );
 
   const webSearchCapabilities =
@@ -469,8 +480,12 @@ function createAgentTools(
           .optional()
           .default(false)
           .describe('Whether to prioritize image content in search'),
+        title: z
+          .string()
+          .optional()
+          .describe('Filter by document title (partial match)'),
       }),
-      execute: async ({ query, limit, searchImages }) => {
+      execute: async ({ query, limit, searchImages, title }) => {
         console.log('Agent chat: Searching documents with query:', query);
         console.log('Agent chat: Data pool ID:', dataPool.id);
         const defaultThreshold = 0.3;
@@ -492,8 +507,8 @@ function createAgentTools(
           query,
           limit,
           threshold: adjustedThreshold,
-          // Add image-specific filtering if requested
-          ...(searchImages && { documentType: 'extracted_image' }),
+          // Add title filtering if provided
+          ...(title && { title }),
           // Add model information for context management
           ...(selectedChatModel && { modelId: selectedChatModel }),
         });
@@ -523,41 +538,32 @@ function createAgentTools(
         console.log('Agent chat: Finding document by title:', title);
 
         try {
-          // Get documents directly from database
-          const documents = await getDataPoolDocuments({
+          // Search documents directly in SQL database
+          const matches = await searchDataPoolDocumentsByTitle({
             dataPoolId: dataPool.id,
-          });
-
-          // Search through documents
-          const matches = documents.filter((doc: any) => {
-            const searchTitle = title.toLowerCase();
-            const docTitle = doc.title.toLowerCase();
-            const fileName = doc.metadata?.fileName?.toLowerCase() || '';
-            const searchTags = doc.metadata?.searchTags || [];
-
-            if (exactMatch) {
-              return docTitle === searchTitle || fileName === searchTitle;
-            } else {
-              return (
-                docTitle.includes(searchTitle) ||
-                fileName.includes(searchTitle) ||
-                searchTags.some((tag: string) => tag.includes(searchTitle))
-              );
-            }
+            title,
+            exactMatch,
+            limit: 50,
           });
 
           if (matches.length === 0) {
+            // Get suggestions for when no matches are found
+            const suggestions = await getDataPoolDocumentTitles({
+              dataPoolId: dataPool.id,
+              limit: 5,
+            });
+
             return {
               found: false,
               message: `No documents found matching "${title}"`,
-              suggestions: documents.map((doc: any) => doc.title).slice(0, 5),
+              suggestions,
             };
           }
 
           return {
             found: true,
             count: matches.length,
-            documents: matches.map((doc: any) => ({
+            documents: matches.map((doc) => ({
               id: doc.id,
               title: doc.title,
               metadata: doc.metadata,
@@ -587,11 +593,8 @@ function createAgentTools(
         console.log('Agent chat: Getting metadata for document:', documentId);
 
         try {
-          // Get documents directly from database
-          const documents = await getDataPoolDocuments({
-            dataPoolId: dataPool.id,
-          });
-          const document = documents.find((doc: any) => doc.id === documentId);
+          // Get document directly by ID from database
+          const document = await getDocumentById({ id: documentId });
 
           if (!document) {
             return {
@@ -605,7 +608,8 @@ function createAgentTools(
             document: {
               id: document.id,
               title: document.title,
-              metadata: document.metadata,
+              content: document.content,
+              kind: document.kind,
               createdAt: document.createdAt,
             },
           };
@@ -643,10 +647,7 @@ function createAgentTools(
 
         try {
           // First get the document metadata directly from database
-          const documents = await getDataPoolDocuments({
-            dataPoolId: dataPool.id,
-          });
-          const document = documents.find((doc: any) => doc.id === documentId);
+          const document = await getDocumentById({ id: documentId });
 
           if (!document) {
             return {
@@ -655,16 +656,14 @@ function createAgentTools(
             };
           }
 
-          // Now search within this specific document using RAG with metadata filtering
+          // Now search within this specific document using RAG with document ID filtering only
           const ragSearchTool = ragSearch();
           const result = await (ragSearchTool as any).execute({
             dataPoolId: dataPool.id,
             query: `${query} [document: ${document.title}]`,
             limit: 3,
             threshold: 0.2, // Lower threshold for specific document search
-            documentType: (document.metadata as any)?.documentType, // Filter by document type
-            fileName: (document.metadata as any)?.fileName, // Filter by filename
-            tags: (document.metadata as any)?.searchTags, // Filter by search tags
+            title: document.title, // Filter by specific document ID only
           });
 
           return {
@@ -672,7 +671,6 @@ function createAgentTools(
             document: {
               id: document.id,
               title: document.title,
-              metadata: document.metadata,
             },
             searchResults: result,
           };

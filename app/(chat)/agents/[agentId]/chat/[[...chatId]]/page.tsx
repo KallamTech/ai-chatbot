@@ -25,8 +25,11 @@ function filterMessagesBeforeLastError(messages: any[]): any[] {
     const message = messages[i];
     if (message.role === 'assistant' && message.parts) {
       // Check if any part contains the error text
-      const hasError = message.parts.some((part: any) =>
-        part.type === 'text' && part.text && part.text.includes('An error has occurred')
+      const hasError = message.parts.some(
+        (part: any) =>
+          part.type === 'text' &&
+          part.text &&
+          part.text.includes('An error has occurred'),
       );
 
       if (hasError) {

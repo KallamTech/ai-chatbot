@@ -1,6 +1,5 @@
 import { auth } from '@/app/(auth)/auth';
 import {
-  getDataPoolDocuments,
   createDataPoolDocument,
   deleteDataPoolDocument,
   getDataPoolById,
@@ -48,24 +47,47 @@ export async function GET(
     if (!indexExists) {
       return NextResponse.json({
         documents: [],
+        pagination: {
+          hasMore: false,
+          nextCursor: undefined,
+        },
       });
     }
 
-    // Get documents from Upstash vector database
-    const vectorDocuments = await upstashVectorService.getAllDocuments(dataPoolId);
+    // Parse pagination parameters from query string
+    const url = new URL(request.url);
+    const cursor = Number.parseInt(url.searchParams.get('cursor') || '0', 10);
+    const limit = Math.min(
+      Number.parseInt(url.searchParams.get('limit') || '50', 10),
+      200,
+    ); // Max 200 per page
+
+    // Get documents from Upstash vector database with pagination
+    const result = await upstashVectorService.getAllDocuments(dataPoolId, {
+      cursor,
+      limit,
+      includeMetadata: true,
+      includeData: true,
+    });
 
     // Convert to the expected format
-    const documents = vectorDocuments.map((doc) => ({
+    const documents = result.data.map((doc) => ({
       id: doc.id,
       dataPoolId: dataPoolId,
       title: doc.metadata?.title || doc.id,
       content: doc.content,
       metadata: doc.metadata,
-      createdAt: doc.metadata?.createdAt ? new Date(doc.metadata.createdAt) : new Date(),
+      createdAt: doc.metadata?.createdAt
+        ? new Date(doc.metadata.createdAt)
+        : new Date(),
     }));
 
     return NextResponse.json({
       documents,
+      pagination: {
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor,
+      },
     });
   } catch (error) {
     if (error instanceof ChatSDKError) {

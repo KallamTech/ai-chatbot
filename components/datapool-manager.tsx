@@ -133,6 +133,13 @@ export function DataPoolManager({
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Infinite scroll state
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [nextCursor, setNextCursor] = useState<number | undefined>(undefined);
+  const [isInitialLoad, setIsInitialLoad] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const loadConnectedAgents = useCallback(async () => {
     try {
       const response = await fetch(`/api/datapools/${dataPool.id}/agents`);
@@ -155,20 +162,79 @@ export function DataPoolManager({
     loadConnectedAgents();
   }, [loadConnectedAgents]);
 
-  const loadDocuments = async () => {
+  // Initialize pagination state from initial documents
+  useEffect(() => {
+    // If we have initial documents, assume there might be more
+    if (initialDocuments.length > 0) {
+      setHasMore(initialDocuments.length >= 50); // If we got 50, there might be more
+      setNextCursor(initialDocuments.length);
+    } else {
+      // If no initial documents, load the first page
+      setIsInitialLoad(true);
+      loadDocuments().finally(() => setIsInitialLoad(false));
+    }
+  }, [initialDocuments]);
+
+  // Scroll detection for infinite loading
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 200; // 200px threshold
+
+      if (isNearBottom && hasMore && !isLoadingMore) {
+        loadMoreDocuments();
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [hasMore, isLoadingMore, nextCursor]);
+
+  const loadDocuments = async (cursor?: number, append = false) => {
     try {
-      const response = await fetch(`/api/datapools/${dataPool.id}/documents`);
+      const url = new URL(
+        `/api/datapools/${dataPool.id}/documents`,
+        window.location.origin,
+      );
+      if (cursor !== undefined) {
+        url.searchParams.set('cursor', cursor.toString());
+      }
+      url.searchParams.set('limit', '50'); // Load 50 documents per page
+
+      const response = await fetch(url.toString());
       if (!response.ok) {
         throw new Error('Failed to load documents');
       }
       const data = await response.json();
-      setDocuments(data.documents);
+
+      if (append) {
+        setDocuments((prev) => [...prev, ...data.documents]);
+      } else {
+        setDocuments(data.documents);
+      }
+
+      setHasMore(data.pagination?.hasMore ?? false);
+      setNextCursor(data.pagination?.nextCursor);
     } catch (error) {
       console.error('Error loading documents:', error);
       toast({
         type: 'error',
         description: 'Failed to load documents',
       });
+    }
+  };
+
+  const loadMoreDocuments = async () => {
+    if (isLoadingMore || !hasMore || nextCursor === undefined) return;
+
+    setIsLoadingMore(true);
+    try {
+      await loadDocuments(nextCursor, true);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -237,11 +303,15 @@ export function DataPoolManager({
           type: 'success',
           description: `Successfully uploaded ${successCount} document${successCount !== 1 ? 's' : ''}`,
         });
+        // Refresh documents list to show new uploads
+        await loadDocuments();
       } else if (successCount > 0) {
         toast({
           type: 'error',
           description: `Uploaded ${successCount} document${successCount !== 1 ? 's' : ''}, ${errorCount} failed`,
         });
+        // Refresh documents list to show successful uploads
+        await loadDocuments();
       } else {
         toast({
           type: 'error',
@@ -674,8 +744,20 @@ export function DataPoolManager({
         </Card>
 
         {/* Documents List */}
-        <div className="space-y-2">
-          {documents.length === 0 ? (
+        <div
+          ref={scrollContainerRef}
+          className="space-y-2 max-h-[600px] overflow-y-auto"
+        >
+          {isInitialLoad ? (
+            <Card className="p-8 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <div className="size-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-muted-foreground">
+                  Loading documents...
+                </span>
+              </div>
+            </Card>
+          ) : documents.length === 0 ? (
             <Card className="p-8 text-center">
               <FileTextIcon
                 size={48}
@@ -837,6 +919,27 @@ export function DataPoolManager({
                 </div>
               </Card>
             ))
+          )}
+
+          {/* Loading indicator for infinite scroll */}
+          {isLoadingMore && (
+            <Card className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <div className="size-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-muted-foreground">
+                  Loading more documents...
+                </span>
+              </div>
+            </Card>
+          )}
+
+          {/* End of list indicator */}
+          {!hasMore && documents.length > 0 && (
+            <Card className="p-4 text-center">
+              <div className="text-sm text-muted-foreground">
+                📄 All documents loaded ({documents.length} total)
+              </div>
+            </Card>
           )}
         </div>
       </div>

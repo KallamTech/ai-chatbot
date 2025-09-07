@@ -34,7 +34,7 @@ import {
   postRequestBodySchemaGuest,
   postRequestBodySchemaAuthenticated,
   type PostRequestBodyGuest,
-  type PostRequestBodyAuthenticated
+  type PostRequestBodyAuthenticated,
 } from './schema';
 import { geolocation } from '@vercel/functions';
 import {
@@ -62,8 +62,11 @@ function filterMessagesBeforeLastError(messages: any[]): any[] {
     const message = messages[i];
     if (message.role === 'assistant' && message.parts) {
       // Check if any part contains the error text
-      const hasError = message.parts.some((part: any) =>
-        part.type === 'text' && part.text && part.text.includes('An error has occurred')
+      const hasError = message.parts.some(
+        (part: any) =>
+          part.type === 'text' &&
+          part.text &&
+          part.text.includes('An error has occurred'),
       );
 
       if (hasError) {
@@ -114,7 +117,7 @@ export async function POST(request: Request) {
     const session = await auth();
 
     if (session?.user?.type === 'guest') {
-       // User is not authenticated, use the guest schema
+      // User is not authenticated, use the guest schema
       requestBody = postRequestBodySchemaGuest.parse(json);
     } else {
       // User is authenticated, use the authenticated schema
@@ -263,7 +266,12 @@ export async function POST(request: Request) {
             return {
               id: message.id,
               role: message.role,
-              parts: [{ type: 'text', text: 'An error has occurred, please try again noting that all previous messages will be removed from memory' }],
+              parts: [
+                {
+                  type: 'text',
+                  text: 'An error has occurred, please try again noting that all previous messages will be removed from memory',
+                },
+              ],
               createdAt: new Date(),
               attachments: [],
               chatId: id,
@@ -284,7 +292,7 @@ export async function POST(request: Request) {
         });
       },
       onError: (error) => {
-        console.log("Error detected", error);
+        console.log('Error detected', error);
         return 'Oops, an error occurred!';
       },
     });

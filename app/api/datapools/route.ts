@@ -60,7 +60,10 @@ export async function POST(request: Request) {
       await upstashVectorService.createIndex(dataPool.id);
       console.log(`Created Upstash index for datapool ${dataPool.id}`);
     } catch (error) {
-      console.error(`Failed to create Upstash index for datapool ${dataPool.id}:`, error);
+      console.error(
+        `Failed to create Upstash index for datapool ${dataPool.id}:`,
+        error,
+      );
       // Don't fail the request if index creation fails
     }
 

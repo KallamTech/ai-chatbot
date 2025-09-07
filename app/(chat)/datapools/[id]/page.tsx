@@ -1,10 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import { auth } from '@/app/(auth)/auth';
-import {
-  getDataPoolById,
-  getDataPoolDocuments,
-  getAgentsByUserId,
-} from '@/lib/db/queries';
+import { getDataPoolById, getAgentsByUserId } from '@/lib/db/queries';
 import { DataPoolManager } from '@/components/datapool-manager';
 
 export default async function DataPoolPage(props: {
@@ -33,16 +29,9 @@ export default async function DataPoolPage(props: {
     notFound();
   }
 
-  // Get documents in this data pool
-  const documentsRaw = await getDataPoolDocuments({
-    dataPoolId: dataPool.id,
-  });
-
-  // Cast metadata to the expected type
-  const documents = documentsRaw.map((doc) => ({
-    ...doc,
-    metadata: doc.metadata as any, // Type assertion since we know the shape
-  }));
+  // Start with empty documents array - infinite scroll will load them
+  // This improves initial page load performance for large datapools
+  const documents: any[] = [];
 
   // Get all user's agents for connection management
   const allAgents = await getAgentsByUserId({

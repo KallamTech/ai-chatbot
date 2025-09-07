@@ -17,9 +17,20 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
     inputSchema: z.object({
       prompt: z
         .string()
-        .describe('Detailed description of the image to generate. Be specific about style, composition, colors, objects, and any other visual elements.'),
+        .describe(
+          'Detailed description of the image to generate. Be specific about style, composition, colors, objects, and any other visual elements.',
+        ),
       style: z
-        .enum(['realistic', 'artistic', 'illustration', 'diagram', 'logo', 'abstract', 'cartoon', 'photographic'])
+        .enum([
+          'realistic',
+          'artistic',
+          'illustration',
+          'diagram',
+          'logo',
+          'abstract',
+          'cartoon',
+          'photographic',
+        ])
         .optional()
         .default('realistic')
         .describe('Visual style of the generated image'),
@@ -47,7 +58,9 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
         });
 
         const result = await generateText({
-          model: myProvider.languageModel(ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW),
+          model: myProvider.languageModel(
+            ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
+          ),
           providerOptions: {
             google: {
               responseModalities: ['TEXT', 'IMAGE'],
@@ -102,7 +115,8 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
 
           return {
             success: false,
-            message: 'No image was generated. Please try a different prompt or description.',
+            message:
+              'No image was generated. Please try a different prompt or description.',
             error: 'No image generated',
           };
         }
@@ -111,13 +125,17 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
 
         dataStream.write({
           type: 'data-image-generation-error',
-          data: { error: error instanceof Error ? error.message : 'Unknown error occurred' },
+          data: {
+            error:
+              error instanceof Error ? error.message : 'Unknown error occurred',
+          },
           transient: true,
         });
 
         return {
           success: false,
-          message: 'Failed to generate image. Please try again with a different prompt.',
+          message:
+            'Failed to generate image. Please try again with a different prompt.',
           error: error instanceof Error ? error.message : 'Unknown error',
         };
       }

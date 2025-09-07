@@ -11,6 +11,9 @@ import {
   inArray,
   lt,
   type SQL,
+  ilike,
+  or,
+  sql,
 } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -896,70 +899,6 @@ export async function createDataPoolDocument({
   }
 }
 
-export async function getDataPoolDocuments({
-  dataPoolId,
-}: {
-  dataPoolId: string;
-}): Promise<Array<DataPoolDocument>> {
-  try {
-    return await db
-      .select()
-      .from(dataPoolDocument)
-      .where(eq(dataPoolDocument.dataPoolId, dataPoolId))
-      .orderBy(desc(dataPoolDocument.createdAt));
-  } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get data pool documents',
-    );
-  }
-}
-
-// New function to get documents with vector information from Upstash
-export async function getDataPoolDocumentsWithVectors({
-  dataPoolId,
-}: {
-  dataPoolId: string;
-}): Promise<Array<DataPoolDocument & { hasVector: boolean }>> {
-  try {
-    // Get documents from SQL database
-    const sqlDocuments = await db
-      .select()
-      .from(dataPoolDocument)
-      .where(eq(dataPoolDocument.dataPoolId, dataPoolId))
-      .orderBy(desc(dataPoolDocument.createdAt));
-
-    // Check which documents have vectors in Upstash
-    const { upstashVectorService } = await import('@/lib/vector/upstash');
-    const indexExists = await upstashVectorService.indexExists(dataPoolId);
-
-    if (!indexExists) {
-      // If no index exists, return documents without vector info
-      return sqlDocuments.map(doc => ({ ...doc, hasVector: false }));
-    }
-
-    // Get all vector documents from Upstash
-    const vectorDocuments = await upstashVectorService.getAllDocuments(dataPoolId);
-    const vectorDocumentIds = new Set(vectorDocuments.map(doc => doc.id));
-
-    // Combine SQL documents with vector information
-    return sqlDocuments.map(doc => ({
-      ...doc,
-      hasVector: vectorDocumentIds.has(doc.id),
-    }));
-  } catch (error) {
-    console.error('Error getting documents with vectors:', error);
-    // Fallback to SQL-only approach
-    const sqlDocuments = await db
-      .select()
-      .from(dataPoolDocument)
-      .where(eq(dataPoolDocument.dataPoolId, dataPoolId))
-      .orderBy(desc(dataPoolDocument.createdAt));
-
-    return sqlDocuments.map(doc => ({ ...doc, hasVector: false }));
-  }
-}
-
 export async function deleteDataPoolDocument({
   id,
   dataPoolId,
@@ -1101,6 +1040,203 @@ export async function getWorkflowEdgesByAgentId({
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get workflow edges by agent ID',
+    );
+  }
+}
+
+/**
+ * Search documents in a datapool using SQL keyword search
+ */
+export async function searchDataPoolDocuments({
+  dataPoolId,
+  query,
+  limit = 50,
+  offset = 0,
+  title,
+}: {
+  dataPoolId: string;
+  query: string;
+  limit?: number;
+  offset?: number;
+  title?: string;
+}): Promise<Array<DataPoolDocument & { relevanceScore: number }>> {
+  try {
+    // Split query into individual terms for better matching
+    const searchTerms = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((term) => term.length > 2); // Filter out short terms
+
+    if (searchTerms.length === 0) {
+      return [];
+    }
+
+    // Create search conditions for title, content, and metadata
+    const titleConditions = searchTerms.map((term) =>
+      ilike(dataPoolDocument.title, `%${term}%`),
+    );
+    const contentConditions = searchTerms.map((term) =>
+      ilike(dataPoolDocument.content, `%${term}%`),
+    );
+    const metadataConditions = searchTerms.map(
+      (term) => sql`${dataPoolDocument.metadata}::text ILIKE ${`%${term}%`}`,
+    );
+
+    // Combine all conditions with OR
+    const allConditions = [
+      ...titleConditions,
+      ...contentConditions,
+      ...metadataConditions,
+    ];
+
+    // Build the main WHERE conditions
+    const whereConditions = [
+      eq(dataPoolDocument.dataPoolId, dataPoolId),
+      or(...allConditions),
+    ];
+
+    // Add title filter if provided
+    if (title) {
+      whereConditions.push(ilike(dataPoolDocument.title, `%${title}%`));
+    }
+
+    // Use a simpler approach with basic scoring
+    const results = await db
+      .select()
+      .from(dataPoolDocument)
+      .where(and(...whereConditions))
+      .orderBy(desc(dataPoolDocument.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Calculate simple relevance scores
+    const resultsWithScores = results.map((doc) => {
+      let score = 0;
+      const lowerQuery = query.toLowerCase();
+      const lowerTitle = doc.title.toLowerCase();
+      const lowerContent = doc.content.toLowerCase();
+      const lowerMetadata = JSON.stringify(doc.metadata || {}).toLowerCase();
+
+      // Title matches get highest weight
+      if (lowerTitle.includes(lowerQuery)) score += 10;
+      searchTerms.forEach((term) => {
+        if (lowerTitle.includes(term)) score += 5;
+      });
+
+      // Content matches get medium weight
+      if (lowerContent.includes(lowerQuery)) score += 3;
+      searchTerms.forEach((term) => {
+        if (lowerContent.includes(term)) score += 1;
+      });
+
+      // Metadata matches get lowest weight
+      if (lowerMetadata.includes(lowerQuery)) score += 2;
+      searchTerms.forEach((term) => {
+        if (lowerMetadata.includes(term)) score += 0.5;
+      });
+
+      return {
+        ...doc,
+        relevanceScore: score,
+      };
+    });
+
+    // Sort by relevance score
+    return resultsWithScores.sort(
+      (a, b) => b.relevanceScore - a.relevanceScore,
+    );
+  } catch (error) {
+    console.error('Error searching documents:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to search documents',
+    );
+  }
+}
+
+/**
+ * Search documents by title in a datapool using SQL
+ * Optimized version that performs filtering in the database instead of JavaScript
+ */
+export async function searchDataPoolDocumentsByTitle({
+  dataPoolId,
+  title,
+  exactMatch = false,
+  limit = 50,
+}: {
+  dataPoolId: string;
+  title: string;
+  exactMatch?: boolean;
+  limit?: number;
+}): Promise<Array<DataPoolDocument>> {
+  try {
+    const searchTitle = title.toLowerCase();
+
+    let whereCondition;
+
+    if (exactMatch) {
+      // Exact match on title (case-insensitive)
+      whereCondition = ilike(dataPoolDocument.title, searchTitle);
+    } else {
+      // Partial match on title, filename in metadata, and search tags
+      const titleCondition = ilike(dataPoolDocument.title, `%${searchTitle}%`);
+      const fileNameCondition = ilike(
+        dataPoolDocument.metadata,
+        `%"fileName":"%${searchTitle}%"%`,
+      );
+      const searchTagsCondition = ilike(
+        dataPoolDocument.metadata,
+        `%"searchTags":["%${searchTitle}%"%`,
+      );
+
+      whereCondition = or(
+        titleCondition,
+        fileNameCondition,
+        searchTagsCondition,
+      );
+    }
+
+    const results = await db
+      .select()
+      .from(dataPoolDocument)
+      .where(and(eq(dataPoolDocument.dataPoolId, dataPoolId), whereCondition))
+      .orderBy(desc(dataPoolDocument.createdAt))
+      .limit(limit);
+
+    return results;
+  } catch (error) {
+    console.error('Error searching documents by title:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to search documents by title',
+    );
+  }
+}
+
+/**
+ * Get document titles for suggestions (used when no matches found)
+ */
+export async function getDataPoolDocumentTitles({
+  dataPoolId,
+  limit = 5,
+}: {
+  dataPoolId: string;
+  limit?: number;
+}): Promise<Array<string>> {
+  try {
+    const results = await db
+      .select({ title: dataPoolDocument.title })
+      .from(dataPoolDocument)
+      .where(eq(dataPoolDocument.dataPoolId, dataPoolId))
+      .orderBy(desc(dataPoolDocument.createdAt))
+      .limit(limit);
+
+    return results.map((doc) => doc.title);
+  } catch (error) {
+    console.error('Error getting document titles:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get document titles',
     );
   }
 }

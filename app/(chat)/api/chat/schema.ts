@@ -21,7 +21,10 @@ const filePartSchema = z.object({
 });
 
 const partSchemaGuest = z.union([textPartSchemaGuest, filePartSchema]);
-const partSchemaAuthenticated = z.union([textPartSchemaAuthenticated, filePartSchema]);
+const partSchemaAuthenticated = z.union([
+  textPartSchemaAuthenticated,
+  filePartSchema,
+]);
 
 // Schema for unauthenticated users (guests)
 export const postRequestBodySchemaGuest = z.object({
@@ -102,4 +105,6 @@ export const postRequestBodySchema = z.union([
 
 export type PostRequestBody = z.infer<typeof postRequestBodySchema>;
 export type PostRequestBodyGuest = z.infer<typeof postRequestBodySchemaGuest>;
-export type PostRequestBodyAuthenticated = z.infer<typeof postRequestBodySchemaAuthenticated>;
+export type PostRequestBodyAuthenticated = z.infer<
+  typeof postRequestBodySchemaAuthenticated
+>;

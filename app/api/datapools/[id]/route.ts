@@ -40,7 +40,10 @@ export async function DELETE(
       await upstashVectorService.deleteIndex(id);
       console.log(`Deleted Upstash index for datapool ${id}`);
     } catch (error) {
-      console.error(`Failed to delete Upstash index for datapool ${id}:`, error);
+      console.error(
+        `Failed to delete Upstash index for datapool ${id}:`,
+        error,
+      );
       // Don't fail the request if index deletion fails
     }
 

@@ -9,10 +9,8 @@ const vector = new Index({
   token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
 });
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+// Initialize Redis
+const redis = Redis.fromEnv();
 
 export interface VectorDocument {
   id: string;
@@ -31,9 +29,48 @@ export interface SearchResult {
 export interface SearchOptions {
   limit?: number;
   threshold?: number;
-  filter?: Record<string, any>;
+  filter?: string; // SQL-like filter string as per Upstash documentation
   includeMetadata?: boolean;
   includeValues?: boolean;
+  includeData?: boolean;
+}
+
+export interface PaginationOptions {
+  cursor?: number;
+  limit?: number;
+  includeMetadata?: boolean;
+  includeValues?: boolean;
+  includeData?: boolean;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  nextCursor?: number;
+  hasMore: boolean;
+  total?: number;
+}
+
+export interface HybridSearchOptions {
+  limit?: number;
+  threshold?: number;
+  filter?: string;
+  includeMetadata?: boolean;
+  includeValues?: boolean;
+  includeData?: boolean;
+  // Hybrid search specific options
+  keywordWeight?: number; // Weight for keyword search results (0-1)
+  semanticWeight?: number; // Weight for semantic search results (0-1)
+  combineResults?: boolean; // Whether to combine or return separate results
+}
+
+export interface HybridSearchResult {
+  id: string;
+  score: number;
+  metadata: Record<string, any>;
+  content: string;
+  searchType: 'keyword' | 'semantic' | 'hybrid';
+  keywordScore?: number;
+  semanticScore?: number;
 }
 
 /**
@@ -57,7 +94,7 @@ export class UpstashVectorService {
     try {
       // Check if namespace already exists
       const existingNamespaces = await this.vector.listNamespaces();
-      const namespaceExists = existingNamespaces.some(ns => ns === namespace);
+      const namespaceExists = existingNamespaces.some((ns) => ns === namespace);
 
       if (namespaceExists) {
         console.log(`Namespace ${namespace} already exists`);
@@ -93,7 +130,7 @@ export class UpstashVectorService {
    */
   async upsertDocument(
     dataPoolId: string,
-    document: VectorDocument
+    document: VectorDocument,
   ): Promise<void> {
     const namespace = this.getNamespace(dataPoolId);
 
@@ -112,11 +149,11 @@ export class UpstashVectorService {
           vector: document.embedding,
           metadata: {
             ...document.metadata,
-            content: document.content,
             dataPoolId,
           },
+          data: document.content, // Store raw text in data field for efficiency
         },
-      ]);
+      ] as any); // Type assertion to handle Upstash API types
 
       console.log(`Upserted document ${document.id} to namespace ${namespace}`);
     } catch (error) {
@@ -151,75 +188,279 @@ export class UpstashVectorService {
   async searchDocuments(
     dataPoolId: string,
     queryEmbedding: number[],
-    options: SearchOptions = {}
+    options: SearchOptions = {},
   ): Promise<SearchResult[]> {
     const namespace = this.getNamespace(dataPoolId);
     const {
       limit = 5,
-      threshold = 0.3,
-      filter = {},
+      filter,
       includeMetadata = true,
       includeValues = false,
+      includeData = true,
+    } = options;
+
+    // Determine appropriate threshold based on document type
+    const getThresholdForDocument = (metadata: Record<string, any>): number => {
+      // Check if this is an image document
+      if (
+        metadata.type === 'extracted_image' ||
+        metadata.documentType === 'extracted_image' ||
+        metadata.hasExtractedImages ||
+        metadata.processedWithOCR
+      ) {
+        return 0.1; // Lower threshold for images
+      }
+      return 0.3; // Standard threshold for text documents
+    };
+
+    try {
+      // Get the namespaced vector client
+      const namespacedVector = this.vector.namespace(namespace);
+
+      const queryOptions: any = {
+        vector: queryEmbedding,
+        topK: limit,
+        includeMetadata,
+        includeVectors: includeValues,
+        includeData,
+      };
+
+      // Add filter if provided
+      if (filter) {
+        queryOptions.filter = filter;
+      }
+
+      const results = await namespacedVector.query(queryOptions);
+
+      // Filter by document-specific thresholds and format results
+      const filteredResults = results
+        .filter((result) => {
+          const docThreshold = getThresholdForDocument(result.metadata || {});
+          return result.score >= docThreshold;
+        })
+        .map((result) => ({
+          id: String(result.id),
+          score: result.score,
+          metadata: result.metadata || {},
+          content:
+            (result.data as string) ||
+            (result.metadata?.content as string) ||
+            '',
+        }));
+
+      console.log(
+        `Found ${filteredResults.length} documents above document-specific thresholds (0.1 for images, 0.3 for text)`,
+      );
+      return filteredResults;
+    } catch (error) {
+      console.error(
+        `Failed to search documents in namespace ${namespace}:`,
+        error,
+      );
+      throw new Error(`Failed to search documents in datapool ${dataPoolId}`);
+    }
+  }
+
+  /**
+   * Get all documents from a datapool namespace with pagination support
+   */
+  async getAllDocuments(
+    dataPoolId: string,
+    options: PaginationOptions = {},
+  ): Promise<PaginatedResult<SearchResult>> {
+    const namespace = this.getNamespace(dataPoolId);
+    const {
+      cursor = 0,
+      limit = 100,
+      includeMetadata = true,
+      includeValues = false,
+      includeData = true,
     } = options;
 
     try {
       // Get the namespaced vector client
       const namespacedVector = this.vector.namespace(namespace);
 
-      const results = await namespacedVector.query({
-        vector: queryEmbedding,
-        topK: limit,
+      // Use range to get documents with pagination
+      const results = await namespacedVector.range({
+        cursor,
+        limit,
         includeMetadata,
         includeVectors: includeValues,
-      });
-
-      // Filter by threshold and format results
-      const filteredResults = results
-        .filter(result => result.score >= threshold)
-        .map(result => ({
-          id: String(result.id),
-          score: result.score,
-          metadata: result.metadata || {},
-          content: (result.metadata?.content as string) || '',
-        }));
-
-      console.log(`Found ${filteredResults.length} documents above threshold ${threshold}`);
-      return filteredResults;
-    } catch (error) {
-      console.error(`Failed to search documents in namespace ${namespace}:`, error);
-      throw new Error(`Failed to search documents in datapool ${dataPoolId}`);
-    }
-  }
-
-  /**
-   * Get all documents from a datapool namespace
-   */
-  async getAllDocuments(dataPoolId: string): Promise<SearchResult[]> {
-    const namespace = this.getNamespace(dataPoolId);
-
-    try {
-      // Get the namespaced vector client
-      const namespacedVector = this.vector.namespace(namespace);
-
-      // Use range to get all documents
-      const results = await namespacedVector.range({
-        cursor: 0, // Start from the beginning
-        limit: 1000, // Adjust based on your needs
-        includeMetadata: true,
-        includeVectors: false,
+        includeData,
       });
 
       // Handle RangeResult structure - it might have a vectors property
       const vectors = (results as any).vectors || results;
-      return vectors.map((result: any) => ({
+      const documents = vectors.map((result: any) => ({
         id: String(result.id),
         score: 1, // Range results don't have scores
         metadata: result.metadata || {},
-        content: (result.metadata?.content as string) || '',
+        content:
+          (result.data as string) || (result.metadata?.content as string) || '',
       }));
+
+      // Determine if there are more documents
+      const hasMore = documents.length === limit;
+      const nextCursor = hasMore ? cursor + limit : undefined;
+
+      return {
+        data: documents,
+        nextCursor,
+        hasMore,
+      };
     } catch (error) {
-      console.error(`Failed to get all documents from namespace ${namespace}:`, error);
+      console.error(
+        `Failed to get documents from namespace ${namespace}:`,
+        error,
+      );
       throw new Error(`Failed to get documents from datapool ${dataPoolId}`);
+    }
+  }
+
+  /**
+   * Hybrid search combining SQL keyword search with vector semantic search
+   */
+  async hybridSearch(
+    dataPoolId: string,
+    query: string,
+    queryEmbedding: number[],
+    options: HybridSearchOptions = {},
+  ): Promise<HybridSearchResult[]> {
+    const {
+      limit = 10,
+      keywordWeight = 0.3,
+      semanticWeight = 0.7,
+      combineResults = true,
+      includeMetadata = true,
+      includeData = true,
+    } = options;
+
+    // Determine appropriate threshold based on document type
+    const getThresholdForDocument = (metadata: Record<string, any>): number => {
+      // Check if this is an image document
+      if (
+        metadata.type === 'extracted_image' ||
+        metadata.documentType === 'extracted_image' ||
+        metadata.hasExtractedImages ||
+        metadata.processedWithOCR
+      ) {
+        return 0.1; // Lower threshold for images
+      }
+      return 0.3; // Standard threshold for text documents
+    };
+
+    try {
+      // Import the SQL search function dynamically to avoid circular dependencies
+      const { searchDataPoolDocuments } = await import('@/lib/db/queries');
+
+      // Perform both searches in parallel
+      const [keywordResults, semanticResults] = await Promise.all([
+        // SQL keyword search
+        searchDataPoolDocuments({
+          dataPoolId,
+          query,
+          limit: Math.ceil(limit * 1.5), // Get more results to have better selection
+        }),
+        // Vector semantic search - use lower threshold to get more results for filtering
+        this.searchDocuments(dataPoolId, queryEmbedding, {
+          limit: Math.ceil(limit * 1.5),
+          threshold: 0.1, // Use lower threshold to capture both text and image results
+          includeMetadata,
+          includeData,
+        }),
+      ]);
+
+      if (!combineResults) {
+        // Return separate results
+        const keywordSearchResults: HybridSearchResult[] = keywordResults.map(
+          (doc) => ({
+            id: doc.id,
+            score: doc.relevanceScore / 10, // Normalize to 0-1 range
+            metadata: (doc.metadata as Record<string, any>) || {},
+            content: doc.content,
+            searchType: 'keyword' as const,
+            keywordScore: doc.relevanceScore / 10,
+          }),
+        );
+
+        const semanticSearchResults: HybridSearchResult[] = semanticResults
+          .filter((doc) => {
+            const docThreshold = getThresholdForDocument(doc.metadata);
+            return doc.score >= docThreshold;
+          })
+          .map((doc) => ({
+            id: doc.id,
+            score: doc.score,
+            metadata: doc.metadata,
+            content: doc.content,
+            searchType: 'semantic' as const,
+            semanticScore: doc.score,
+          }));
+
+        return [...keywordSearchResults, ...semanticSearchResults]
+          .sort((a, b) => b.score - a.score)
+          .slice(0, limit);
+      }
+
+      // Combine results using weighted scoring
+      const combinedResults = new Map<string, HybridSearchResult>();
+
+      // Add keyword search results
+      keywordResults.forEach((doc) => {
+        const normalizedScore = Math.min(doc.relevanceScore / 10, 1); // Normalize to 0-1
+        combinedResults.set(doc.id, {
+          id: doc.id,
+          score: normalizedScore * keywordWeight,
+          metadata: (doc.metadata as Record<string, any>) || {},
+          content: doc.content,
+          searchType: 'hybrid' as const,
+          keywordScore: normalizedScore,
+        });
+      });
+
+      // Add or update with semantic search results (apply document-specific thresholds)
+      semanticResults
+        .filter((doc) => {
+          const docThreshold = getThresholdForDocument(doc.metadata);
+          return doc.score >= docThreshold;
+        })
+        .forEach((doc) => {
+          const existing = combinedResults.get(doc.id);
+          if (existing) {
+            // Combine scores
+            existing.score += doc.score * semanticWeight;
+            existing.semanticScore = doc.score;
+          } else {
+            // Add new result
+            combinedResults.set(doc.id, {
+              id: doc.id,
+              score: doc.score * semanticWeight,
+              metadata: doc.metadata,
+              content: doc.content,
+              searchType: 'hybrid' as const,
+              semanticScore: doc.score,
+            });
+          }
+        });
+
+      // Convert to array and sort by combined score
+      const finalResults = Array.from(combinedResults.values())
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+      console.log(
+        `Hybrid search found ${finalResults.length} results (${keywordResults.length} keyword, ${semanticResults.length} semantic)`,
+      );
+      return finalResults;
+    } catch (error) {
+      console.error(
+        `Failed to perform hybrid search in datapool ${dataPoolId}:`,
+        error,
+      );
+      throw new Error(
+        `Failed to perform hybrid search in datapool ${dataPoolId}`,
+      );
     }
   }
 
@@ -245,7 +486,10 @@ export class UpstashVectorService {
       const vectors = (results as any).vectors || results;
       return Array.isArray(vectors) ? vectors.length : 0;
     } catch (error) {
-      console.error(`Failed to get document count for namespace ${namespace}:`, error);
+      console.error(
+        `Failed to get document count for namespace ${namespace}:`,
+        error,
+      );
       return 0;
     }
   }
@@ -258,7 +502,7 @@ export class UpstashVectorService {
 
     try {
       const namespaces = await this.vector.listNamespaces();
-      return namespaces.some(ns => ns === namespace);
+      return namespaces.some((ns) => ns === namespace);
     } catch (error) {
       console.error(`Failed to check if namespace ${namespace} exists:`, error);
       return false;
@@ -280,7 +524,9 @@ export class UpstashVectorService {
       };
     } catch (error) {
       console.error(`Failed to get namespace info for ${namespace}:`, error);
-      throw new Error(`Failed to get namespace info for datapool ${dataPoolId}`);
+      throw new Error(
+        `Failed to get namespace info for datapool ${dataPoolId}`,
+      );
     }
   }
 
@@ -294,14 +540,21 @@ export class UpstashVectorService {
   /**
    * Store additional metadata in Redis for faster access
    */
-  async storeMetadata(dataPoolId: string, documentId: string, metadata: Record<string, any>): Promise<void> {
+  async storeMetadata(
+    dataPoolId: string,
+    documentId: string,
+    metadata: Record<string, any>,
+  ): Promise<void> {
     const key = `datapool:${dataPoolId}:doc:${documentId}:metadata`;
 
     try {
       await this.redis.hset(key, metadata);
       await this.redis.expire(key, 86400 * 30); // 30 days TTL
     } catch (error) {
-      console.error(`Failed to store metadata for document ${documentId}:`, error);
+      console.error(
+        `Failed to store metadata for document ${documentId}:`,
+        error,
+      );
       // Don't throw error as this is supplementary data
     }
   }
@@ -309,14 +562,20 @@ export class UpstashVectorService {
   /**
    * Get metadata from Redis
    */
-  async getMetadata(dataPoolId: string, documentId: string): Promise<Record<string, any> | null> {
+  async getMetadata(
+    dataPoolId: string,
+    documentId: string,
+  ): Promise<Record<string, any> | null> {
     const key = `datapool:${dataPoolId}:doc:${documentId}:metadata`;
 
     try {
       const metadata = await this.redis.hgetall(key);
       return metadata && Object.keys(metadata).length > 0 ? metadata : null;
     } catch (error) {
-      console.error(`Failed to get metadata for document ${documentId}:`, error);
+      console.error(
+        `Failed to get metadata for document ${documentId}:`,
+        error,
+      );
       return null;
     }
   }
@@ -330,7 +589,10 @@ export class UpstashVectorService {
     try {
       await this.redis.del(key);
     } catch (error) {
-      console.error(`Failed to delete metadata for document ${documentId}:`, error);
+      console.error(
+        `Failed to delete metadata for document ${documentId}:`,
+        error,
+      );
       // Don't throw error as this is supplementary data
     }
   }

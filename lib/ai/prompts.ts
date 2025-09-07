@@ -102,10 +102,7 @@ export const sheetPrompt = `
 You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt. The spreadsheet should contain meaningful column headers and data.
 `;
 
-export const createDocumentPrompt = (
-  title: string,
-  type: ArtifactKind,
-) =>
+export const createDocumentPrompt = (title: string, type: ArtifactKind) =>
   type === 'text'
     ? `\
 You are creating a text document. Follow the user's specific instructions precisely. Create content that exactly matches what they requested, including:

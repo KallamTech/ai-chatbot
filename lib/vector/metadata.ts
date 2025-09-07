@@ -12,13 +12,20 @@ export class VectorMetadataManager {
   static async syncDocumentMetadata(
     dataPoolId: string,
     documentId: string,
-    metadata: Record<string, any>
+    metadata: Record<string, any>,
   ): Promise<void> {
     try {
       // Store metadata in Redis for fast access
-      await upstashVectorService.storeMetadata(dataPoolId, documentId, metadata);
+      await upstashVectorService.storeMetadata(
+        dataPoolId,
+        documentId,
+        metadata,
+      );
     } catch (error) {
-      console.error(`Failed to sync metadata for document ${documentId}:`, error);
+      console.error(
+        `Failed to sync metadata for document ${documentId}:`,
+        error,
+      );
       // Don't throw error as this is supplementary data
     }
   }
@@ -28,12 +35,15 @@ export class VectorMetadataManager {
    */
   static async getDocumentMetadata(
     dataPoolId: string,
-    documentId: string
+    documentId: string,
   ): Promise<Record<string, any> | null> {
     try {
       return await upstashVectorService.getMetadata(dataPoolId, documentId);
     } catch (error) {
-      console.error(`Failed to get metadata for document ${documentId}:`, error);
+      console.error(
+        `Failed to get metadata for document ${documentId}:`,
+        error,
+      );
       return null;
     }
   }
@@ -43,12 +53,15 @@ export class VectorMetadataManager {
    */
   static async deleteDocumentMetadata(
     dataPoolId: string,
-    documentId: string
+    documentId: string,
   ): Promise<void> {
     try {
       await upstashVectorService.deleteMetadata(dataPoolId, documentId);
     } catch (error) {
-      console.error(`Failed to delete metadata for document ${documentId}:`, error);
+      console.error(
+        `Failed to delete metadata for document ${documentId}:`,
+        error,
+      );
       // Don't throw error as this is supplementary data
     }
   }
@@ -68,13 +81,15 @@ export class VectorMetadataManager {
 
       if (Array.isArray(value)) {
         // Ensure arrays are properly formatted
-        normalized[key] = value.filter(item => item !== null && item !== undefined);
+        normalized[key] = value.filter(
+          (item) => item !== null && item !== undefined,
+        );
       } else if (typeof value === 'object') {
         // Handle nested objects
-        normalized[key] = this.normalizeMetadata(value);
+        normalized[key] = VectorMetadataManager.normalizeMetadata(value);
       } else if (typeof value === 'string' && value.length > 1000) {
         // Truncate very long strings to avoid Upstash limits
-        normalized[key] = value.substring(0, 1000) + '...';
+        normalized[key] = `${value.substring(0, 1000)}...`;
       } else {
         normalized[key] = value;
       }
@@ -97,7 +112,9 @@ export class VectorMetadataManager {
     if (metadata.fileName) {
       tags.push(metadata.fileName.toLowerCase());
       // Add filename without extension
-      const nameWithoutExt = metadata.fileName.toLowerCase().replace(/\.[^/.]+$/, '');
+      const nameWithoutExt = metadata.fileName
+        .toLowerCase()
+        .replace(/\.[^/.]+$/, '');
       if (nameWithoutExt !== metadata.fileName.toLowerCase()) {
         tags.push(nameWithoutExt);
       }
@@ -164,7 +181,7 @@ export class VectorMetadataManager {
     }
 
     // Remove duplicates and filter out empty strings
-    return [...new Set(tags.filter(tag => tag && tag.trim().length > 0))];
+    return [...new Set(tags.filter((tag) => tag && tag.trim().length > 0))];
   }
 
   /**
@@ -242,7 +259,10 @@ export class VectorMetadataManager {
         };
       }
 
-      const vectorDocuments = await upstashVectorService.getAllDocuments(dataPoolId);
+      const result = await upstashVectorService.getAllDocuments(dataPoolId, {
+        limit: 1000,
+      });
+      const vectorDocuments = result.data;
 
       let totalWords = 0;
       const documentTypes: Record<string, number> = {};
@@ -256,7 +276,8 @@ export class VectorMetadataManager {
         }
 
         if (metadata.documentType) {
-          documentTypes[metadata.documentType] = (documentTypes[metadata.documentType] || 0) + 1;
+          documentTypes[metadata.documentType] =
+            (documentTypes[metadata.documentType] || 0) + 1;
         }
 
         if (metadata.createdAt) {
@@ -267,7 +288,8 @@ export class VectorMetadataManager {
         }
       }
 
-      const averageWordCount = vectorDocuments.length > 0 ? totalWords / vectorDocuments.length : 0;
+      const averageWordCount =
+        vectorDocuments.length > 0 ? totalWords / vectorDocuments.length : 0;
 
       return {
         totalDocuments: vectorDocuments.length,

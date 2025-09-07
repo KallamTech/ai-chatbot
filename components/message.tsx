@@ -1029,7 +1029,8 @@ const PurePreviewMessage = ({
                                 </div>
                                 <div className="text-sm">
                                   <strong>Prompt:</strong>{' '}
-                                  {(part as any).output.imageData?.prompt || (part as any).output.message}
+                                  {(part as any).output.imageData?.prompt ||
+                                    (part as any).output.message}
                                 </div>
                                 {(part as any).output.imageData && (
                                   <>
@@ -1039,7 +1040,10 @@ const PurePreviewMessage = ({
                                     </div>
                                     <div className="text-sm">
                                       <strong>Aspect Ratio:</strong>{' '}
-                                      {(part as any).output.imageData.aspectRatio}
+                                      {
+                                        (part as any).output.imageData
+                                          .aspectRatio
+                                      }
                                     </div>
                                     <div className="text-sm">
                                       <strong>Quality:</strong>{' '}
@@ -1054,7 +1058,8 @@ const PurePreviewMessage = ({
                                       />
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                      Generated using Gemini 2.5 Flash Image Preview
+                                      Generated using Gemini 2.5 Flash Image
+                                      Preview
                                     </div>
                                   </>
                                 )}
