@@ -934,6 +934,112 @@ const PurePreviewMessage = ({
                 );
               }
 
+              if (type === 'tool-ragSearch') {
+                const { toolCallId, state } = part;
+
+                return (
+                  <Tool key={toolCallId} defaultOpen={true}>
+                    <ToolHeader type="tool-ragSearch" state={state} />
+                    <ToolContent>
+                      {state === 'input-available' && (
+                        <>
+                          <ToolInput input={(part as any).input} />
+                          <ToolLoadingState toolType="tool-ragSearch" />
+                        </>
+                      )}
+                      {state === 'output-available' && (
+                        <ToolOutput
+                          output={
+                            'error' in (part as any).output ? (
+                              <div className="p-2 text-red-500 rounded border">
+                                Error: {String((part as any).output.error)}
+                              </div>
+                            ) : (
+                              <div className="p-3 space-y-2">
+                                <div className="text-sm font-medium text-purple-600">
+                                  🔍 RAG Search Results
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Query:</strong>{' '}
+                                  {(part as any).input?.query || 'N/A'}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Data Pool:</strong>{' '}
+                                  {(part as any).input?.dataPoolId || 'N/A'}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>Search Type:</strong>{' '}
+                                  {(part as any).input?.searchType || 'hybrid'}
+                                </div>
+                                {(part as any).output.results?.length > 0 ? (
+                                  <div className="space-y-3">
+                                    <div className="text-sm text-gray-600">
+                                      Found {(part as any).output.returnedCount || 0} of {(part as any).output.filteredCount || 0} results
+                                      {(part as any).output.totalDocuments && (
+                                        <span> from {(part as any).output.totalDocuments} total documents</span>
+                                      )}
+                                    </div>
+                                    {(part as any).output.contextInfo?.warnings?.length > 0 && (
+                                      <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                                        <div className="font-medium text-yellow-800">⚠️ Context Warnings:</div>
+                                        <ul className="mt-1 space-y-1">
+                                          {(part as any).output.contextInfo.warnings.map((warning: string, index: number) => (
+                                            <li key={index} className="text-yellow-700">• {warning}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    <div className="space-y-2">
+                                      {(part as any).output.results.map((result: any, index: number) => (
+                                        <div
+                                          key={index}
+                                          className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800"
+                                        >
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="font-medium text-sm">
+                                              {result.title || `Document ${result.id}`}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                              Similarity: {(result.similarity * 100).toFixed(1)}%
+                                            </div>
+                                          </div>
+                                          {result.truncated && (
+                                            <div className="text-xs text-orange-600 mb-2">
+                                              ⚠️ Content truncated (original: {result.originalLength} chars)
+                                            </div>
+                                          )}
+                                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                            {result.content}
+                                          </div>
+                                          {result.metadata && Object.keys(result.metadata).length > 0 && (
+                                            <div className="mt-2 text-xs text-gray-500">
+                                              <strong>Metadata:</strong>{' '}
+                                              {Object.entries(result.metadata)
+                                                .filter(([key]) => key !== 'title')
+                                                .map(([key, value]) => `${key}: ${value}`)
+                                                .join(', ')}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-gray-600">
+                                    {(part as any).output.message || 'No results found'}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          errorText={undefined}
+                        />
+                      )}
+                    </ToolContent>
+                  </Tool>
+                );
+              }
+
               if (type === 'tool-searchImages') {
                 const { toolCallId, state } = part;
 
