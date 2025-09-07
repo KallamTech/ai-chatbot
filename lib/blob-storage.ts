@@ -33,10 +33,14 @@ export async function storeBlob(
     // Convert Uint8Array to Buffer for Vercel Blob API
     const buffer = Buffer.from(data);
 
-    const blob = await put(`images/${Date.now()}-${Math.random().toString(36).substring(2)}.${getFileExtension(mediaType)}`, buffer, {
-      access: 'public',
-      contentType: mediaType,
-    });
+    const blob = await put(
+      `images/${Date.now()}-${Math.random().toString(36).substring(2)}.${getFileExtension(mediaType)}`,
+      buffer,
+      {
+        access: 'public',
+        contentType: mediaType,
+      },
+    );
 
     return {
       url: blob.url,
@@ -53,7 +57,9 @@ export async function storeBlob(
 /**
  * Get blob metadata without loading the full data
  */
-export async function getBlobMetadata(url: string): Promise<BlobReference | null> {
+export async function getBlobMetadata(
+  url: string,
+): Promise<BlobReference | null> {
   try {
     const blob = await head(url);
 

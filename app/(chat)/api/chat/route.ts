@@ -93,7 +93,10 @@ function filterMessagesBeforeLastError(messages: any[]): any[] {
     }
 
     const processedParts = message.parts.map((part: any) => {
-      if (part.type === 'tool-generateImage' && part.output?.imageData?.base64) {
+      if (
+        part.type === 'tool-generateImage' &&
+        part.output?.imageData?.base64
+      ) {
         return {
           ...part,
           output: {
@@ -175,7 +178,6 @@ export async function POST(request: Request) {
       connectedDataPools?: string[];
     } = requestBody;
 
-
     const session = await auth();
 
     // For now, we still require authentication to proceed with chat
@@ -254,10 +256,10 @@ export async function POST(request: Request) {
         });
 
         // Filter to only connected datapools (only use connected ones, not all user datapools)
-        const availableDataPools = connectedDataPools && connectedDataPools.length > 0
-          ? userDataPools.filter(dp => connectedDataPools.includes(dp.id))
-          : [];
-
+        const availableDataPools =
+          connectedDataPools && connectedDataPools.length > 0
+            ? userDataPools.filter((dp) => connectedDataPools.includes(dp.id))
+            : [];
 
         // Create RAG search tool that can search across connected datapools
         const createRagSearchTool = () => {
@@ -266,15 +268,37 @@ export async function POST(request: Request) {
           }
 
           return tool({
-            description: 'Search through documents in your connected data pools using semantic similarity',
+            description:
+              'Search through documents in your connected data pools using semantic similarity',
             inputSchema: z.object({
               query: z.string().describe('Search query'),
-              dataPoolId: z.string().describe(`ID of the data pool to search. Available data pools: ${availableDataPools.map(dp => `${dp.id} (${dp.name})`).join(', ')}`),
-              limit: z.number().optional().default(5).describe('Maximum number of results to return'),
-              threshold: z.number().optional().default(0.3).describe('Minimum similarity threshold (0.3 is more lenient)'),
-              title: z.string().optional().describe('Filter by document title (partial match)'),
+              dataPoolId: z
+                .string()
+                .describe(
+                  `ID of the data pool to search. Available data pools: ${availableDataPools.map((dp) => `${dp.id} (${dp.name})`).join(', ')}`,
+                ),
+              limit: z
+                .number()
+                .optional()
+                .default(5)
+                .describe('Maximum number of results to return'),
+              threshold: z
+                .number()
+                .optional()
+                .default(0.3)
+                .describe('Minimum similarity threshold (0.3 is more lenient)'),
+              title: z
+                .string()
+                .optional()
+                .describe('Filter by document title (partial match)'),
             }),
-            execute: async ({ query, dataPoolId, limit = 5, threshold = 0.3, title }: {
+            execute: async ({
+              query,
+              dataPoolId,
+              limit = 5,
+              threshold = 0.3,
+              title,
+            }: {
               query: string;
               dataPoolId: string;
               limit?: number;
@@ -283,11 +307,16 @@ export async function POST(request: Request) {
             }) => {
               try {
                 // Verify the datapool is available (connected and belongs to the user)
-                const targetDataPool = availableDataPools.find(dp => dp.id === dataPoolId);
+                const targetDataPool = availableDataPools.find(
+                  (dp) => dp.id === dataPoolId,
+                );
                 if (!targetDataPool) {
                   return {
                     error: `Data pool with ID ${dataPoolId} not found or not connected to this chat`,
-                    availableDataPools: availableDataPools.map(dp => ({ id: dp.id, name: dp.name })),
+                    availableDataPools: availableDataPools.map((dp) => ({
+                      id: dp.id,
+                      name: dp.name,
+                    })),
                   };
                 }
 
@@ -303,7 +332,10 @@ export async function POST(request: Request) {
 
                 return {
                   ...result,
-                  searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+                  searchedDataPool: {
+                    id: targetDataPool.id,
+                    name: targetDataPool.name,
+                  },
                 };
               } catch (error) {
                 console.error('Error in RAG search:', error);
@@ -354,7 +386,10 @@ export async function POST(request: Request) {
           system: systemPrompt({
             selectedChatModel,
             requestHints,
-            connectedDataPools: availableDataPools.map(dp => ({ id: dp.id, name: dp.name }))
+            connectedDataPools: availableDataPools.map((dp) => ({
+              id: dp.id,
+              name: dp.name,
+            })),
           }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),

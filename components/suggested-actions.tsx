@@ -20,7 +20,7 @@ function PureSuggestedActions({
 }: SuggestedActionsProps) {
   const suggestedActions = [
     'Generate an image of a cat drinking milk',
-    "Write code to demonstrate the Fibonacci sequence",
+    'Write code to demonstrate the Fibonacci sequence',
     'Write an essay about the latest AI trends in 2025',
     'What is the weather in Zurich?',
   ];

@@ -120,7 +120,9 @@ export function Chat({
             message: messages.at(-1),
             selectedChatModel: selectedModelIdRef.current,
             selectedVisibilityType: visibilityType,
-            connectedDataPools: agentIdRef.current ? undefined : connectedDataPoolsRef.current,
+            connectedDataPools: agentIdRef.current
+              ? undefined
+              : connectedDataPoolsRef.current,
             ...body,
           },
         };
@@ -171,27 +173,31 @@ export function Chat({
   });
 
   // Handler for connecting datapools
-  const handleConnectDataPool = useCallback((dataPoolId: string) => {
-
-    // Add the datapool to the connected list if not already connected
-    setConnectedDataPools(prev => {
-      if (!prev.includes(dataPoolId)) {
-        const newConnected = [...prev, dataPoolId];
-        return newConnected;
-      }
-      return prev;
-    });
-  }, [connectedDataPools]);
+  const handleConnectDataPool = useCallback(
+    (dataPoolId: string) => {
+      // Add the datapool to the connected list if not already connected
+      setConnectedDataPools((prev) => {
+        if (!prev.includes(dataPoolId)) {
+          const newConnected = [...prev, dataPoolId];
+          return newConnected;
+        }
+        return prev;
+      });
+    },
+    [connectedDataPools],
+  );
 
   // Handler for disconnecting datapools
-  const handleDisconnectDataPool = useCallback((dataPoolId: string) => {
-
-    // Remove the datapool from the connected list
-    setConnectedDataPools(prev => {
-      const newConnected = prev.filter(id => id !== dataPoolId);
-      return newConnected;
-    });
-  }, [connectedDataPools]);
+  const handleDisconnectDataPool = useCallback(
+    (dataPoolId: string) => {
+      // Remove the datapool from the connected list
+      setConnectedDataPools((prev) => {
+        const newConnected = prev.filter((id) => id !== dataPoolId);
+        return newConnected;
+      });
+    },
+    [connectedDataPools],
+  );
 
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
@@ -281,8 +287,12 @@ export function Chat({
               sendMessage={sendMessage}
               selectedVisibilityType={visibilityType}
               session={session}
-              onConnectDataPool={effectiveAgentId ? undefined : handleConnectDataPool}
-              onDisconnectDataPool={effectiveAgentId ? undefined : handleDisconnectDataPool}
+              onConnectDataPool={
+                effectiveAgentId ? undefined : handleConnectDataPool
+              }
+              onDisconnectDataPool={
+                effectiveAgentId ? undefined : handleDisconnectDataPool
+              }
               connectedDataPools={effectiveAgentId ? [] : connectedDataPools}
               agentId={effectiveAgentId}
             />

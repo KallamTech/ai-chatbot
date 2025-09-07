@@ -349,7 +349,9 @@ function PureMultimodalInput({
                 <span>🤖</span>
                 <span>Agent-managed datapools</span>
                 <span className="text-muted-foreground">•</span>
-                <span className="text-muted-foreground">Configure in agent details</span>
+                <span className="text-muted-foreground">
+                  Configure in agent details
+                </span>
               </div>
             ) : (
               // Main chat: Show datapool connection controls
@@ -368,7 +370,10 @@ function PureMultimodalInput({
                 {connectedDataPools && connectedDataPools.length > 0 && (
                   <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                     <span>📚</span>
-                    <span>{connectedDataPools.length} datapool{connectedDataPools.length > 1 ? 's' : ''} connected</span>
+                    <span>
+                      {connectedDataPools.length} datapool
+                      {connectedDataPools.length > 1 ? 's' : ''} connected
+                    </span>
                   </div>
                 )}
               </>

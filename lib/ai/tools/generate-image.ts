@@ -79,7 +79,10 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
           const imageFile = imageFiles[0];
 
           // Store image as blob and get reference
-          const blobRef = await storeBlob(imageFile.uint8Array, imageFile.mediaType || 'image/png');
+          const blobRef = await storeBlob(
+            imageFile.uint8Array,
+            imageFile.mediaType || 'image/png',
+          );
 
           // Stream the generated image with blob reference
           dataStream.write({

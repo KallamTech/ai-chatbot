@@ -2,7 +2,10 @@ import { cn } from '@/lib/utils';
 import NextImage from 'next/image';
 import type { Experimental_GeneratedImage } from 'ai';
 
-export type ImageProps = (Experimental_GeneratedImage | { blobUrl: string; mediaType: string }) & {
+export type ImageProps = (
+  | Experimental_GeneratedImage
+  | { blobUrl: string; mediaType: string }
+) & {
   className?: string;
   alt?: string;
 };
@@ -13,13 +16,17 @@ export const Image = ({
   mediaType,
   blobUrl,
   ...props
-}: ImageProps & { base64?: string; uint8Array?: Uint8Array; blobUrl?: string }) => {
+}: ImageProps & {
+  base64?: string;
+  uint8Array?: Uint8Array;
+  blobUrl?: string;
+}) => {
   // Determine the image source based on available data
   const imageSrc = blobUrl
     ? blobUrl
-    : (base64 && mediaType)
-    ? `data:${mediaType};base64,${base64}`
-    : '';
+    : base64 && mediaType
+      ? `data:${mediaType};base64,${base64}`
+      : '';
 
   return (
     <NextImage

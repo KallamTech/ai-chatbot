@@ -18,9 +18,7 @@ export function ImageEditor({
 }: ImageEditorProps) {
   // Determine if content is a URL or base64 data
   const isUrl = content.startsWith('http') || content.startsWith('blob:');
-  const imageSrc = isUrl
-    ? content
-    : `data:image/png;base64,${content}`;
+  const imageSrc = isUrl ? content : `data:image/png;base64,${content}`;
 
   return (
     <div

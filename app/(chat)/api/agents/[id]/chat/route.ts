@@ -173,8 +173,14 @@ export async function POST(
     console.log('Agent chat: Workflow nodes found:', workflowNodes.length);
     console.log('Agent chat: Data pools found:', dataPools.length);
     if (dataPools.length > 0) {
-      console.log('Agent chat: Data pool IDs:', dataPools.map(dp => dp.id));
-      console.log('Agent chat: Data pool names:', dataPools.map(dp => dp.name));
+      console.log(
+        'Agent chat: Data pool IDs:',
+        dataPools.map((dp) => dp.id),
+      );
+      console.log(
+        'Agent chat: Data pool names:',
+        dataPools.map((dp) => dp.name),
+      );
     }
 
     const chat = await getChatById({ id });
@@ -240,7 +246,10 @@ export async function POST(
 
         console.log('Agent chat: Created tools:', Object.keys(agentTools));
         console.log('Agent chat: Data pools available:', dataPools.length);
-        console.log('Agent chat: Data pool IDs:', dataPools.map(dp => dp.id));
+        console.log(
+          'Agent chat: Data pool IDs:',
+          dataPools.map((dp) => dp.id),
+        );
 
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
@@ -461,9 +470,15 @@ function createAgentTools(
 ) {
   const tools: any = {};
 
-  console.log('createAgentTools: Creating tools for data pools:', dataPools.length);
+  console.log(
+    'createAgentTools: Creating tools for data pools:',
+    dataPools.length,
+  );
   if (dataPools.length > 0) {
-    console.log('createAgentTools: Data pool IDs:', dataPools.map(dp => dp.id));
+    console.log(
+      'createAgentTools: Data pool IDs:',
+      dataPools.map((dp) => dp.id),
+    );
 
     // Always provide document search if there are data pools (regardless of workflow nodes)
     // Create a bound RAG search tool that searches across all connected data pools
@@ -509,11 +524,14 @@ function createAgentTools(
 
         // If a specific data pool is requested, search only that one
         if (dataPoolId) {
-          const targetDataPool = dataPools.find(dp => dp.id === dataPoolId);
+          const targetDataPool = dataPools.find((dp) => dp.id === dataPoolId);
           if (!targetDataPool) {
             return {
               error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
-              availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+              availableDataPools: dataPools.map((dp) => ({
+                id: dp.id,
+                name: dp.name,
+              })),
             };
           }
 
@@ -527,10 +545,16 @@ function createAgentTools(
             ...(selectedChatModel && { modelId: selectedChatModel }),
           });
 
-          console.log('Agent chat: Search result for specific data pool:', result);
+          console.log(
+            'Agent chat: Search result for specific data pool:',
+            result,
+          );
           return {
             ...result,
-            searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+            searchedDataPool: {
+              id: targetDataPool.id,
+              name: targetDataPool.name,
+            },
           };
         }
 
@@ -567,11 +591,14 @@ function createAgentTools(
           query,
           totalResults: 0,
           dataPools: searchResults,
-          searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+          searchedDataPools: dataPools.map((dp) => ({
+            id: dp.id,
+            name: dp.name,
+          })),
         };
 
         // Count total results
-        searchResults.forEach(result => {
+        searchResults.forEach((result) => {
           if (result.results && result.results.results) {
             combinedResults.totalResults += result.results.results.length;
           }
@@ -608,12 +635,15 @@ function createAgentTools(
         try {
           // If a specific data pool is requested, search only that one
           if (dataPoolId) {
-            const targetDataPool = dataPools.find(dp => dp.id === dataPoolId);
+            const targetDataPool = dataPools.find((dp) => dp.id === dataPoolId);
             if (!targetDataPool) {
               return {
                 found: false,
                 error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
-                availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+                availableDataPools: dataPools.map((dp) => ({
+                  id: dp.id,
+                  name: dp.name,
+                })),
               };
             }
 
@@ -634,7 +664,10 @@ function createAgentTools(
                 found: false,
                 message: `No documents found matching "${title}" in data pool "${targetDataPool.name}"`,
                 suggestions,
-                searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+                searchedDataPool: {
+                  id: targetDataPool.id,
+                  name: targetDataPool.name,
+                },
               };
             }
 
@@ -647,7 +680,10 @@ function createAgentTools(
                 metadata: doc.metadata,
                 createdAt: doc.createdAt,
               })),
-              searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+              searchedDataPool: {
+                id: targetDataPool.id,
+                name: targetDataPool.name,
+              },
             };
           }
 
@@ -680,11 +716,11 @@ function createAgentTools(
           const searchResults = await Promise.all(searchPromises);
 
           // Combine all matches
-          const allMatches = searchResults.flatMap(result =>
-            result.matches.map(doc => ({
+          const allMatches = searchResults.flatMap((result) =>
+            result.matches.map((doc) => ({
               ...doc,
               dataPool: result.dataPool,
-            }))
+            })),
           );
 
           if (allMatches.length === 0) {
@@ -695,9 +731,15 @@ function createAgentTools(
                   dataPoolId: dataPool.id,
                   limit: 3,
                 });
-                return { dataPool: { id: dataPool.id, name: dataPool.name }, suggestions };
+                return {
+                  dataPool: { id: dataPool.id, name: dataPool.name },
+                  suggestions,
+                };
               } catch (error) {
-                return { dataPool: { id: dataPool.id, name: dataPool.name }, suggestions: [] };
+                return {
+                  dataPool: { id: dataPool.id, name: dataPool.name },
+                  suggestions: [],
+                };
               }
             });
 
@@ -707,7 +749,10 @@ function createAgentTools(
               found: false,
               message: `No documents found matching "${title}" across all connected data pools`,
               suggestions: allSuggestions,
-              searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+              searchedDataPools: dataPools.map((dp) => ({
+                id: dp.id,
+                name: dp.name,
+              })),
             };
           }
 
@@ -721,7 +766,10 @@ function createAgentTools(
               createdAt: doc.createdAt,
               dataPool: doc.dataPool,
             })),
-            searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+            searchedDataPools: dataPools.map((dp) => ({
+              id: dp.id,
+              name: dp.name,
+            })),
           };
         } catch (error) {
           console.error('Error finding document by title:', error);
@@ -815,10 +863,15 @@ function createAgentTools(
                 threshold: 0.1, // Very low threshold to find exact document
               });
 
-              if (searchResult && searchResult.results && searchResult.results.length > 0) {
+              if (
+                searchResult &&
+                searchResult.results &&
+                searchResult.results.length > 0
+              ) {
                 // Check if any result matches the document ID
-                const matchingResult = searchResult.results.find((result: any) =>
-                  result.metadata && result.metadata.id === documentId
+                const matchingResult = searchResult.results.find(
+                  (result: any) =>
+                    result.metadata && result.metadata.id === documentId,
                 );
 
                 if (matchingResult) {
@@ -831,7 +884,10 @@ function createAgentTools(
                 }
               }
             } catch (error) {
-              console.error(`Error searching for document in data pool ${dataPool.id}:`, error);
+              console.error(
+                `Error searching for document in data pool ${dataPool.id}:`,
+                error,
+              );
               // Continue searching in other data pools
             }
           }
@@ -840,7 +896,10 @@ function createAgentTools(
             return {
               found: false,
               message: `Document with ID ${documentId} not found in any connected data pools`,
-              availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+              availableDataPools: dataPools.map((dp) => ({
+                id: dp.id,
+                name: dp.name,
+              })),
             };
           }
 
@@ -904,11 +963,14 @@ function createAgentTools(
         try {
           // If a specific data pool is requested, search only that one
           if (dataPoolId) {
-            const targetDataPool = dataPools.find(dp => dp.id === dataPoolId);
+            const targetDataPool = dataPools.find((dp) => dp.id === dataPoolId);
             if (!targetDataPool) {
               return {
                 error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
-                availableDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+                availableDataPools: dataPools.map((dp) => ({
+                  id: dp.id,
+                  name: dp.name,
+                })),
                 searchType: 'image_search',
               };
             }
@@ -926,7 +988,10 @@ function createAgentTools(
               ...result,
               searchType: 'image_search',
               recommendedThreshold: '0.1 for comprehensive image results',
-              searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+              searchedDataPool: {
+                id: targetDataPool.id,
+                name: targetDataPool.name,
+              },
             };
           }
 
@@ -947,7 +1012,10 @@ function createAgentTools(
                 results: result,
               };
             } catch (error) {
-              console.error(`Error searching images in data pool ${dataPool.id}:`, error);
+              console.error(
+                `Error searching images in data pool ${dataPool.id}:`,
+                error,
+              );
               return {
                 dataPool: { id: dataPool.id, name: dataPool.name },
                 error: 'Image search failed for this data pool',
@@ -962,13 +1030,16 @@ function createAgentTools(
             query,
             totalResults: 0,
             dataPools: searchResults,
-            searchedDataPools: dataPools.map(dp => ({ id: dp.id, name: dp.name })),
+            searchedDataPools: dataPools.map((dp) => ({
+              id: dp.id,
+              name: dp.name,
+            })),
             searchType: 'image_search',
             recommendedThreshold: '0.1 for comprehensive image results',
           };
 
           // Count total results
-          searchResults.forEach(result => {
+          searchResults.forEach((result) => {
             if (result.results && result.results.results) {
               combinedResults.totalResults += result.results.results.length;
             }

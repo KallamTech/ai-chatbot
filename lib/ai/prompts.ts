@@ -68,9 +68,10 @@ export const systemPrompt = ({
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
   // Add RAG search information if datapools are connected
-  const ragPrompt = connectedDataPools && connectedDataPools.length > 0
-    ? `\n\nYou have access to a document search tool (ragSearch) that can search through the user's connected data pools using semantic similarity. When users ask questions that might be answered by documents in their data pools, proactively use the ragSearch tool to find relevant information before responding. This is especially useful for questions about specific topics, facts, or content that might be in the user's documents. Available data pools: ${connectedDataPools.map(dp => dp.name).join(', ')}.`
-    : '';
+  const ragPrompt =
+    connectedDataPools && connectedDataPools.length > 0
+      ? `\n\nYou have access to a document search tool (ragSearch) that can search through the user's connected data pools using semantic similarity. When users ask questions that might be answered by documents in their data pools, proactively use the ragSearch tool to find relevant information before responding. This is especially useful for questions about specific topics, facts, or content that might be in the user's documents. Available data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
+      : '';
 
   return `${regularPrompt}${ragPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
 };

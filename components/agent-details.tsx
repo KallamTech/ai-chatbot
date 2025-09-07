@@ -56,7 +56,9 @@ export function AgentDetails({
   const [disconnectingPoolId, setDisconnectingPoolId] = useState<string | null>(
     null,
   );
-  const [disconnectDataPool, setDisconnectDataPool] = useState<DataPool | null>(null);
+  const [disconnectDataPool, setDisconnectDataPool] = useState<DataPool | null>(
+    null,
+  );
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const loadDataPools = useCallback(async () => {
@@ -136,7 +138,7 @@ export function AgentDetails({
   };
 
   const handleDisconnectDataPool = async (dataPoolId: string) => {
-    const dataPool = connectedDataPools.find(dp => dp.id === dataPoolId);
+    const dataPool = connectedDataPools.find((dp) => dp.id === dataPoolId);
     if (dataPool) {
       setDisconnectDataPool(dataPool);
     }
@@ -409,12 +411,15 @@ export function AgentDetails({
           <AlertDialogHeader>
             <AlertDialogTitle>Disconnect Data Pool</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to disconnect &quot;{disconnectDataPool?.name}&quot; from this agent?
-              This will remove the data pool&apos;s knowledge from the agent&apos;s context.
+              Are you sure you want to disconnect &quot;
+              {disconnectDataPool?.name}&quot; from this agent? This will remove
+              the data pool&apos;s knowledge from the agent&apos;s context.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDisconnecting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDisconnecting}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDisconnectDataPool}
               disabled={isDisconnecting}

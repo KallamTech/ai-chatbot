@@ -974,59 +974,102 @@ const PurePreviewMessage = ({
                                 {(part as any).output.results?.length > 0 ? (
                                   <div className="space-y-3">
                                     <div className="text-sm text-gray-600">
-                                      Found {(part as any).output.returnedCount || 0} of {(part as any).output.filteredCount || 0} results
+                                      Found{' '}
+                                      {(part as any).output.returnedCount || 0}{' '}
+                                      of{' '}
+                                      {(part as any).output.filteredCount || 0}{' '}
+                                      results
                                       {(part as any).output.totalDocuments && (
-                                        <span> from {(part as any).output.totalDocuments} total documents</span>
+                                        <span>
+                                          {' '}
+                                          from{' '}
+                                          {(part as any).output.totalDocuments}{' '}
+                                          total documents
+                                        </span>
                                       )}
                                     </div>
-                                    {(part as any).output.contextInfo?.warnings?.length > 0 && (
+                                    {(part as any).output.contextInfo?.warnings
+                                      ?.length > 0 && (
                                       <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                                        <div className="font-medium text-yellow-800">⚠️ Context Warnings:</div>
+                                        <div className="font-medium text-yellow-800">
+                                          ⚠️ Context Warnings:
+                                        </div>
                                         <ul className="mt-1 space-y-1">
-                                          {(part as any).output.contextInfo.warnings.map((warning: string, index: number) => (
-                                            <li key={index} className="text-yellow-700">• {warning}</li>
-                                          ))}
+                                          {(
+                                            part as any
+                                          ).output.contextInfo.warnings.map(
+                                            (
+                                              warning: string,
+                                              index: number,
+                                            ) => (
+                                              <li
+                                                key={index}
+                                                className="text-yellow-700"
+                                              >
+                                                • {warning}
+                                              </li>
+                                            ),
+                                          )}
                                         </ul>
                                       </div>
                                     )}
                                     <div className="space-y-2">
-                                      {(part as any).output.results.map((result: any, index: number) => (
-                                        <div
-                                          key={index}
-                                          className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800"
-                                        >
-                                          <div className="flex items-center justify-between mb-2">
-                                            <div className="font-medium text-sm">
-                                              {result.title || `Document ${result.id}`}
+                                      {(part as any).output.results.map(
+                                        (result: any, index: number) => (
+                                          <div
+                                            key={index}
+                                            className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800"
+                                          >
+                                            <div className="flex items-center justify-between mb-2">
+                                              <div className="font-medium text-sm">
+                                                {result.title ||
+                                                  `Document ${result.id}`}
+                                              </div>
+                                              <div className="text-xs text-gray-500">
+                                                Similarity:{' '}
+                                                {(
+                                                  result.similarity * 100
+                                                ).toFixed(1)}
+                                                %
+                                              </div>
                                             </div>
-                                            <div className="text-xs text-gray-500">
-                                              Similarity: {(result.similarity * 100).toFixed(1)}%
+                                            {result.truncated && (
+                                              <div className="text-xs text-orange-600 mb-2">
+                                                ⚠️ Content truncated (original:{' '}
+                                                {result.originalLength} chars)
+                                              </div>
+                                            )}
+                                            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                              {result.content}
                                             </div>
+                                            {result.metadata &&
+                                              Object.keys(result.metadata)
+                                                .length > 0 && (
+                                                <div className="mt-2 text-xs text-gray-500">
+                                                  <strong>Metadata:</strong>{' '}
+                                                  {Object.entries(
+                                                    result.metadata,
+                                                  )
+                                                    .filter(
+                                                      ([key]) =>
+                                                        key !== 'title',
+                                                    )
+                                                    .map(
+                                                      ([key, value]) =>
+                                                        `${key}: ${value}`,
+                                                    )
+                                                    .join(', ')}
+                                                </div>
+                                              )}
                                           </div>
-                                          {result.truncated && (
-                                            <div className="text-xs text-orange-600 mb-2">
-                                              ⚠️ Content truncated (original: {result.originalLength} chars)
-                                            </div>
-                                          )}
-                                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                            {result.content}
-                                          </div>
-                                          {result.metadata && Object.keys(result.metadata).length > 0 && (
-                                            <div className="mt-2 text-xs text-gray-500">
-                                              <strong>Metadata:</strong>{' '}
-                                              {Object.entries(result.metadata)
-                                                .filter(([key]) => key !== 'title')
-                                                .map(([key, value]) => `${key}: ${value}`)
-                                                .join(', ')}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ))}
+                                        ),
+                                      )}
                                     </div>
                                   </div>
                                 ) : (
                                   <div className="text-sm text-gray-600">
-                                    {(part as any).output.message || 'No results found'}
+                                    {(part as any).output.message ||
+                                      'No results found'}
                                   </div>
                                 )}
                               </div>
@@ -1157,7 +1200,9 @@ const PurePreviewMessage = ({
                                     </div>
                                     <div className="mt-3">
                                       <img
-                                        src={(part as any).output.imageData.blobUrl}
+                                        src={
+                                          (part as any).output.imageData.blobUrl
+                                        }
                                         alt="Generated image"
                                         className="max-w-full h-auto rounded-lg border shadow-sm"
                                         style={{ maxHeight: '500px' }}

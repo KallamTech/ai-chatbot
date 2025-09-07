@@ -29,12 +29,16 @@ interface RagSearchButtonProps {
   connectedDataPools: string[];
 }
 
-export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPool, connectedDataPools }: RagSearchButtonProps) {
+export function RagSearchButton({
+  status,
+  onConnectDataPool,
+  onDisconnectDataPool,
+  connectedDataPools,
+}: RagSearchButtonProps) {
   const [dataPools, setDataPools] = useState<DataPool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = useSession();
-
 
   const loadDataPools = useCallback(async () => {
     if (dataPools.length > 0) return; // Already loaded
@@ -56,9 +60,8 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
     }
   }, [dataPools.length]);
 
-
   const handleDataPoolSelect = (dataPoolId: string) => {
-    const dataPool = dataPools.find(dp => dp.id === dataPoolId);
+    const dataPool = dataPools.find((dp) => dp.id === dataPoolId);
     if (!dataPool) return;
 
     const isConnected = connectedDataPools.includes(dataPoolId);
@@ -70,7 +73,9 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
     } else {
       // Connect the datapool to the chat session
       onConnectDataPool(dataPoolId);
-      toast.success(`Connected "${dataPool.name}" to this chat. You can now ask questions about your documents!`);
+      toast.success(
+        `Connected "${dataPool.name}" to this chat. You can now ask questions about your documents!`,
+      );
     }
 
     // Keep dropdown open for a moment to see the change, then close it
@@ -100,7 +105,11 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
           }`}
           disabled={status !== 'ready'}
           variant="ghost"
-          title={connectedDataPools.length > 0 ? `Connected to ${connectedDataPools.length} datapool(s)` : "Search Data Pools"}
+          title={
+            connectedDataPools.length > 0
+              ? `Connected to ${connectedDataPools.length} datapool(s)`
+              : 'Search Data Pools'
+          }
         >
           <PlusIcon size={14} />
           {connectedDataPools.length > 0 && (
@@ -114,9 +123,7 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
         <DropdownMenuLabel>Search Data Pools</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isLoading ? (
-          <DropdownMenuItem disabled>
-            Loading data pools...
-          </DropdownMenuItem>
+          <DropdownMenuItem disabled>Loading data pools...</DropdownMenuItem>
         ) : dataPools.length === 0 ? (
           <>
             <DropdownMenuItem disabled>
@@ -134,7 +141,9 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
               }}
               className="text-blue-600 dark:text-blue-400"
             >
-              {session?.user?.type === 'guest' ? 'Log in to create a data pool →' : 'Create a data pool →'}
+              {session?.user?.type === 'guest'
+                ? 'Log in to create a data pool →'
+                : 'Create a data pool →'}
             </DropdownMenuItem>
           </>
         ) : (
@@ -148,7 +157,9 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
               >
                 <div className="font-medium flex items-center gap-2">
                   {dataPool.name}
-                  {isConnected && <span className="text-xs text-green-600">✓ Connected</span>}
+                  {isConnected && (
+                    <span className="text-xs text-green-600">✓ Connected</span>
+                  )}
                 </div>
                 {dataPool.description && (
                   <div className="text-xs text-muted-foreground">
