@@ -3,6 +3,7 @@ import 'server-only';
 import { tool, generateText } from 'ai';
 import { z } from 'zod';
 import { myProvider, ModelId } from '../providers';
+import { storeBlob } from '@/lib/blob-storage';
 import type { UIMessageStreamWriter } from 'ai';
 import type { ChatMessage } from '@/lib/types';
 
@@ -76,15 +77,16 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
 
         if (imageFiles.length > 0) {
           const imageFile = imageFiles[0];
-          // Convert uint8Array to base64
-          const base64 = Buffer.from(imageFile.uint8Array).toString('base64');
 
-          // Stream the generated image
+          // Store image as blob and get reference
+          const blobRef = await storeBlob(imageFile.uint8Array, imageFile.mediaType || 'image/png');
+
+          // Stream the generated image with blob reference
           dataStream.write({
             type: 'data-image-generated',
             data: {
-              base64,
-              mediaType: imageFile.mediaType,
+              blobUrl: blobRef.url,
+              mediaType: blobRef.mediaType,
               prompt: enhancedPrompt,
               style,
               aspectRatio,
@@ -97,8 +99,8 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
             success: true,
             message: `Successfully generated a ${style} image with ${aspectRatio} aspect ratio.`,
             imageData: {
-              base64,
-              mediaType: imageFile.mediaType,
+              blobUrl: blobRef.url,
+              mediaType: blobRef.mediaType,
               prompt: enhancedPrompt,
               style,
               aspectRatio,

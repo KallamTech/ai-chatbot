@@ -51,7 +51,8 @@ export const imageArtifact = new Artifact({
       description: 'Copy image to clipboard',
       onClick: ({ content }) => {
         const img = new Image();
-        img.src = `data:image/png;base64,${content}`;
+        // Content is now a direct URL from Vercel Blob
+        img.src = content;
 
         img.onload = () => {
           const canvas = document.createElement('canvas');

@@ -254,7 +254,7 @@ export type CustomUIDataTypes = {
     quality: string;
   };
   'image-generated': {
-    base64: string;
+    blobUrl: string;
     mediaType: string;
     prompt: string;
     style: string;

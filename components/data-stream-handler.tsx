@@ -93,7 +93,7 @@ export function DataStreamHandler({ chatId }: { chatId: string }) {
               imageGeneration: {
                 ...draftArtifact.imageGeneration,
                 status: 'completed',
-                base64: delta.data.base64,
+                blobUrl: delta.data.blobUrl,
                 mediaType: delta.data.mediaType,
                 prompt: delta.data.prompt,
                 style: delta.data.style,

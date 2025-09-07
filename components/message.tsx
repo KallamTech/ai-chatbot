@@ -1157,7 +1157,7 @@ const PurePreviewMessage = ({
                                     </div>
                                     <div className="mt-3">
                                       <img
-                                        src={`data:${(part as any).output.imageData.mediaType};base64,${(part as any).output.imageData.base64}`}
+                                        src={(part as any).output.imageData.blobUrl}
                                         alt="Generated image"
                                         className="max-w-full h-auto rounded-lg border shadow-sm"
                                         style={{ maxHeight: '500px' }}

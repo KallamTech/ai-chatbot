@@ -16,6 +16,12 @@ export function ImageEditor({
   status,
   isInline,
 }: ImageEditorProps) {
+  // Determine if content is a URL or base64 data
+  const isUrl = content.startsWith('http') || content.startsWith('blob:');
+  const imageSrc = isUrl
+    ? content
+    : `data:image/png;base64,${content}`;
+
   return (
     <div
       className={cn('flex flex-row items-center justify-center w-full', {
@@ -38,7 +44,7 @@ export function ImageEditor({
             className={cn('w-full h-fit max-w-[800px]', {
               'p-0 md:p-20': !isInline,
             })}
-            src={`data:image/png;base64,${content}`}
+            src={imageSrc}
             alt={title}
           />
         </picture>
