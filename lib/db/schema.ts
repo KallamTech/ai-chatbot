@@ -225,7 +225,6 @@ export const dataPoolDocument = pgTable('DataPoolDocument', {
     .references(() => dataPool.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   content: text('content').notNull(),
-  embedding: json('embedding'), // Store the vector embedding
   metadata: json('metadata'), // Store additional metadata like file type, size, etc.
   createdAt: timestamp('createdAt').notNull(),
 });

@@ -866,13 +866,11 @@ export async function createDataPoolDocument({
   dataPoolId,
   title,
   content,
-  embedding,
   metadata,
 }: {
   dataPoolId: string;
   title: string;
   content: string;
-  embedding?: number[];
   metadata?: Record<string, any>;
 }): Promise<DataPoolDocument> {
   try {
@@ -883,7 +881,6 @@ export async function createDataPoolDocument({
         dataPoolId,
         title,
         content,
-        embedding: embedding || null,
         metadata: metadata || null,
         createdAt: new Date(),
       })
@@ -915,6 +912,51 @@ export async function getDataPoolDocuments({
       'bad_request:database',
       'Failed to get data pool documents',
     );
+  }
+}
+
+// New function to get documents with vector information from Upstash
+export async function getDataPoolDocumentsWithVectors({
+  dataPoolId,
+}: {
+  dataPoolId: string;
+}): Promise<Array<DataPoolDocument & { hasVector: boolean }>> {
+  try {
+    // Get documents from SQL database
+    const sqlDocuments = await db
+      .select()
+      .from(dataPoolDocument)
+      .where(eq(dataPoolDocument.dataPoolId, dataPoolId))
+      .orderBy(desc(dataPoolDocument.createdAt));
+
+    // Check which documents have vectors in Upstash
+    const { upstashVectorService } = await import('@/lib/vector/upstash');
+    const indexExists = await upstashVectorService.indexExists(dataPoolId);
+
+    if (!indexExists) {
+      // If no index exists, return documents without vector info
+      return sqlDocuments.map(doc => ({ ...doc, hasVector: false }));
+    }
+
+    // Get all vector documents from Upstash
+    const vectorDocuments = await upstashVectorService.getAllDocuments(dataPoolId);
+    const vectorDocumentIds = new Set(vectorDocuments.map(doc => doc.id));
+
+    // Combine SQL documents with vector information
+    return sqlDocuments.map(doc => ({
+      ...doc,
+      hasVector: vectorDocumentIds.has(doc.id),
+    }));
+  } catch (error) {
+    console.error('Error getting documents with vectors:', error);
+    // Fallback to SQL-only approach
+    const sqlDocuments = await db
+      .select()
+      .from(dataPoolDocument)
+      .where(eq(dataPoolDocument.dataPoolId, dataPoolId))
+      .orderBy(desc(dataPoolDocument.createdAt));
+
+    return sqlDocuments.map(doc => ({ ...doc, hasVector: false }));
   }
 }
 

@@ -6,6 +6,7 @@ import {
   getDataPoolById,
 } from '@/lib/db/queries';
 import { generateDocumentEmbedding } from '@/lib/utils';
+import { upstashVectorService } from '@/lib/vector/upstash';
 import { ChatSDKError } from '@/lib/errors';
 import { NextResponse } from 'next/server';
 import {
@@ -41,17 +42,30 @@ export async function GET(
       return new ChatSDKError('not_found:database').toResponse();
     }
 
-    const documents = await getDataPoolDocuments({
-      dataPoolId,
-    });
+    // Check if the index exists for this datapool
+    const indexExists = await upstashVectorService.indexExists(dataPoolId);
 
-    const documentsWithoutEmbeddings = documents.map((doc) => ({
-      ...doc,
-      embedding: undefined, // Don't send embeddings to client
+    if (!indexExists) {
+      return NextResponse.json({
+        documents: [],
+      });
+    }
+
+    // Get documents from Upstash vector database
+    const vectorDocuments = await upstashVectorService.getAllDocuments(dataPoolId);
+
+    // Convert to the expected format
+    const documents = vectorDocuments.map((doc) => ({
+      id: doc.id,
+      dataPoolId: dataPoolId,
+      title: doc.metadata?.title || doc.id,
+      content: doc.content,
+      metadata: doc.metadata,
+      createdAt: doc.metadata?.createdAt ? new Date(doc.metadata.createdAt) : new Date(),
     }));
 
     return NextResponse.json({
-      documents: documentsWithoutEmbeddings,
+      documents,
     });
   } catch (error) {
     if (error instanceof ChatSDKError) {
@@ -226,115 +240,138 @@ export async function POST(
       isPdfFile(file) ? pdfResult : undefined,
     );
 
-    // Create the main document
+    // Ensure the index exists for this datapool
+    const indexExists = await upstashVectorService.indexExists(dataPool.id);
+    if (!indexExists) {
+      await upstashVectorService.createIndex(dataPool.id);
+    }
+
+    // Generate a unique document ID
+    const documentId = crypto.randomUUID();
+
+    // Prepare metadata for the document
+    const documentMetadata = {
+      // File information
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type || 'text/plain',
+      uploadedAt: new Date().toISOString(),
+      title: title,
+      createdAt: new Date().toISOString(),
+
+      // Basic content metrics
+      contentLength: documentAnalysis.contentLength,
+      wordCount: documentAnalysis.wordCount,
+      characterCount: documentAnalysis.characterCount,
+      lineCount: documentAnalysis.lineCount,
+      paragraphCount: documentAnalysis.paragraphCount,
+      sentenceCount: documentAnalysis.sentenceCount,
+      estimatedPages: documentAnalysis.estimatedPages,
+
+      // Document structure
+      hasHeadings: documentAnalysis.hasHeadings,
+      headingCount: documentAnalysis.headingCount,
+      headingLevels: documentAnalysis.headingLevels,
+      hasLists: documentAnalysis.hasLists,
+      listCount: documentAnalysis.listCount,
+      hasTables: documentAnalysis.hasTables,
+      tableCount: documentAnalysis.tableCount,
+      hasCodeBlocks: documentAnalysis.hasCodeBlocks,
+      codeBlockCount: documentAnalysis.codeBlockCount,
+
+      // Content analysis
+      documentType: documentAnalysis.documentType,
+      language: documentAnalysis.language,
+      readabilityScore: documentAnalysis.readabilityScore,
+      averageWordsPerSentence: documentAnalysis.averageWordsPerSentence,
+      averageSyllablesPerWord: documentAnalysis.averageSyllablesPerWord,
+
+      // Entity extraction
+      dates: documentAnalysis.dates,
+      emails: documentAnalysis.emails,
+      urls: documentAnalysis.urls,
+      phoneNumbers: documentAnalysis.phoneNumbers,
+      organizations: documentAnalysis.organizations,
+      people: documentAnalysis.people,
+      locations: documentAnalysis.locations,
+
+      // Topics and keywords
+      topics: documentAnalysis.topics,
+      keywords: documentAnalysis.keywords,
+      keyPhrases: documentAnalysis.keyPhrases,
+
+      // File-specific metadata
+      hasImages: documentAnalysis.hasImages,
+      imageCount: documentAnalysis.imageCount,
+      hasFootnotes: documentAnalysis.hasFootnotes,
+      footnoteCount: documentAnalysis.footnoteCount,
+
+      // Document type and processing info
+      processingStatus: 'completed',
+
+      // OCR processing info (for PDFs)
+      ...(isPdfFile(file) && {
+        processedWithOCR: true,
+        ocrProvider: 'mistral',
+        hasExtractedImages: extractedImages && extractedImages.length > 0,
+        extractedImagesCount: extractedImages?.length || 0,
+        ocrMetadata: documentAnalysis.ocrMetadata,
+      }),
+
+      // Extracted images info
+      ...(extractedImages &&
+        extractedImages.length > 0 && {
+          extractedImages: extractedImages.map((img) => ({
+            description: img.description,
+            hasEmbedding: !!img.embedding,
+          })),
+        }),
+
+      // Enhanced searchable tags for better retrieval
+      searchTags: [
+        title.toLowerCase(),
+        file.name
+          .toLowerCase()
+          .replace(/\.[^/.]+$/, ''), // filename without extension
+        file.type || 'text',
+        documentAnalysis.documentType,
+        documentAnalysis.language,
+        ...(isPdfFile(file) ? ['pdf', 'ocr-processed'] : []),
+        ...(extractedImages && extractedImages.length > 0
+          ? ['contains-images']
+          : []),
+        ...(documentAnalysis.hasHeadings ? ['has-headings'] : []),
+        ...(documentAnalysis.hasTables ? ['has-tables'] : []),
+        ...(documentAnalysis.hasLists ? ['has-lists'] : []),
+        ...(documentAnalysis.hasCodeBlocks ? ['has-code'] : []),
+        ...(documentAnalysis.hasFootnotes ? ['has-footnotes'] : []),
+        ...documentAnalysis.topics,
+        ...documentAnalysis.organizations.slice(0, 5), // Top 5 organizations
+        ...documentAnalysis.people.slice(0, 5), // Top 5 people
+        ...documentAnalysis.locations.slice(0, 5), // Top 5 locations
+        ...documentAnalysis.keywords.slice(0, 10), // Top 10 keywords
+        `~${documentAnalysis.wordCount} words`,
+        `~${documentAnalysis.estimatedPages} pages`,
+        `readability-${Math.round(documentAnalysis.readabilityScore / 20)}`, // Rough readability category
+      ],
+    };
+
+    // Store the document in Upstash vector database
+    if (embedding) {
+      await upstashVectorService.upsertDocument(dataPool.id, {
+        id: documentId,
+        content: content,
+        embedding: embedding,
+        metadata: documentMetadata,
+      });
+    }
+
+    // Also store in SQL database for metadata and non-vector operations
     const document = await createDataPoolDocument({
       dataPoolId: dataPool.id,
       title,
       content,
-      embedding,
-      metadata: {
-        // File information
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type || 'text/plain',
-        uploadedAt: new Date().toISOString(),
-
-        // Basic content metrics
-        contentLength: documentAnalysis.contentLength,
-        wordCount: documentAnalysis.wordCount,
-        characterCount: documentAnalysis.characterCount,
-        lineCount: documentAnalysis.lineCount,
-        paragraphCount: documentAnalysis.paragraphCount,
-        sentenceCount: documentAnalysis.sentenceCount,
-        estimatedPages: documentAnalysis.estimatedPages,
-
-        // Document structure
-        hasHeadings: documentAnalysis.hasHeadings,
-        headingCount: documentAnalysis.headingCount,
-        headingLevels: documentAnalysis.headingLevels,
-        hasLists: documentAnalysis.hasLists,
-        listCount: documentAnalysis.listCount,
-        hasTables: documentAnalysis.hasTables,
-        tableCount: documentAnalysis.tableCount,
-        hasCodeBlocks: documentAnalysis.hasCodeBlocks,
-        codeBlockCount: documentAnalysis.codeBlockCount,
-
-        // Content analysis
-        documentType: documentAnalysis.documentType,
-        language: documentAnalysis.language,
-        readabilityScore: documentAnalysis.readabilityScore,
-        averageWordsPerSentence: documentAnalysis.averageWordsPerSentence,
-        averageSyllablesPerWord: documentAnalysis.averageSyllablesPerWord,
-
-        // Entity extraction
-        dates: documentAnalysis.dates,
-        emails: documentAnalysis.emails,
-        urls: documentAnalysis.urls,
-        phoneNumbers: documentAnalysis.phoneNumbers,
-        organizations: documentAnalysis.organizations,
-        people: documentAnalysis.people,
-        locations: documentAnalysis.locations,
-
-        // Topics and keywords
-        topics: documentAnalysis.topics,
-        keywords: documentAnalysis.keywords,
-        keyPhrases: documentAnalysis.keyPhrases,
-
-        // File-specific metadata
-        hasImages: documentAnalysis.hasImages,
-        imageCount: documentAnalysis.imageCount,
-        hasFootnotes: documentAnalysis.hasFootnotes,
-        footnoteCount: documentAnalysis.footnoteCount,
-
-        // Document type and processing info
-        processingStatus: 'completed',
-
-        // OCR processing info (for PDFs)
-        ...(isPdfFile(file) && {
-          processedWithOCR: true,
-          ocrProvider: 'mistral',
-          hasExtractedImages: extractedImages && extractedImages.length > 0,
-          extractedImagesCount: extractedImages?.length || 0,
-          ocrMetadata: documentAnalysis.ocrMetadata,
-        }),
-
-        // Extracted images info
-        ...(extractedImages &&
-          extractedImages.length > 0 && {
-            extractedImages: extractedImages.map((img) => ({
-              description: img.description,
-              hasEmbedding: !!img.embedding,
-            })),
-          }),
-
-        // Enhanced searchable tags for better retrieval
-        searchTags: [
-          title.toLowerCase(),
-          file.name
-            .toLowerCase()
-            .replace(/\.[^/.]+$/, ''), // filename without extension
-          file.type || 'text',
-          documentAnalysis.documentType,
-          documentAnalysis.language,
-          ...(isPdfFile(file) ? ['pdf', 'ocr-processed'] : []),
-          ...(extractedImages && extractedImages.length > 0
-            ? ['contains-images']
-            : []),
-          ...(documentAnalysis.hasHeadings ? ['has-headings'] : []),
-          ...(documentAnalysis.hasTables ? ['has-tables'] : []),
-          ...(documentAnalysis.hasLists ? ['has-lists'] : []),
-          ...(documentAnalysis.hasCodeBlocks ? ['has-code'] : []),
-          ...(documentAnalysis.hasFootnotes ? ['has-footnotes'] : []),
-          ...documentAnalysis.topics,
-          ...documentAnalysis.organizations.slice(0, 5), // Top 5 organizations
-          ...documentAnalysis.people.slice(0, 5), // Top 5 people
-          ...documentAnalysis.locations.slice(0, 5), // Top 5 locations
-          ...documentAnalysis.keywords.slice(0, 10), // Top 10 keywords
-          `~${documentAnalysis.wordCount} words`,
-          `~${documentAnalysis.estimatedPages} pages`,
-          `readability-${Math.round(documentAnalysis.readabilityScore / 20)}`, // Rough readability category
-        ],
-      },
+      metadata: documentMetadata,
     });
 
     // Create separate documents for each extracted image so they can be individually searched
@@ -347,39 +384,52 @@ export async function POST(
             const imageTitle = `${title} - Image ${i + 1}${image.description ? `: ${image.description}` : ''}`;
             const imageContent =
               image.description || `Image extracted from ${title}`;
+            const imageDocumentId = crypto.randomUUID();
 
+            const imageMetadata = {
+              // Image identification
+              type: 'extracted_image',
+              documentType: 'extracted_image',
+              processingStatus: 'completed',
+
+              // Source document reference
+              sourceDocument: documentId,
+              sourceDocumentTitle: title,
+              imageIndex: i,
+
+              // Image content
+              description: image.description,
+              hasEmbedding: true,
+              extractedAt: new Date().toISOString(),
+              title: imageTitle,
+              createdAt: new Date().toISOString(),
+
+              // Searchable tags
+              searchTags: [
+                'image',
+                'extracted',
+                'from-pdf',
+                image.description?.toLowerCase() || 'no-description',
+                title.toLowerCase(),
+                `image-${i + 1}`,
+                'visual-content',
+              ],
+            };
+
+            // Store image document in Upstash vector database
+            await upstashVectorService.upsertDocument(dataPool.id, {
+              id: imageDocumentId,
+              content: imageContent,
+              embedding: image.embedding,
+              metadata: imageMetadata,
+            });
+
+            // Also store in SQL database for metadata
             const imageDocument = await createDataPoolDocument({
               dataPoolId: dataPool.id,
               title: imageTitle,
               content: imageContent,
-              embedding: image.embedding,
-              metadata: {
-                // Image identification
-                type: 'extracted_image',
-                documentType: 'extracted_image',
-                processingStatus: 'completed',
-
-                // Source document reference
-                sourceDocument: document.id,
-                sourceDocumentTitle: title,
-                imageIndex: i,
-
-                // Image content
-                description: image.description,
-                hasEmbedding: true,
-                extractedAt: new Date().toISOString(),
-
-                // Searchable tags
-                searchTags: [
-                  'image',
-                  'extracted',
-                  'from-pdf',
-                  image.description?.toLowerCase() || 'no-description',
-                  title.toLowerCase(),
-                  `image-${i + 1}`,
-                  'visual-content',
-                ],
-              },
+              metadata: imageMetadata,
             });
 
             imageDocuments.push(imageDocument);
@@ -450,10 +500,19 @@ export async function DELETE(
       return new ChatSDKError('not_found:database').toResponse();
     }
 
+    // Delete from SQL database
     await deleteDataPoolDocument({
       id: documentId,
       dataPoolId,
     });
+
+    // Also delete from Upstash vector database
+    try {
+      await upstashVectorService.deleteDocument(dataPoolId, documentId);
+    } catch (error) {
+      console.error('Failed to delete document from Upstash:', error);
+      // Don't fail the request if Upstash deletion fails
+    }
 
     return NextResponse.json({
       success: true,
