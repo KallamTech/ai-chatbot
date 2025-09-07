@@ -18,6 +18,7 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { SuggestedActions } from './suggested-actions';
+import { RagSearchButton } from './rag-search-button';
 import {
   PromptInput,
   PromptInputTextarea,
@@ -48,6 +49,10 @@ function PureMultimodalInput({
   className,
   selectedVisibilityType,
   session,
+  onConnectDataPool,
+  onDisconnectDataPool,
+  connectedDataPools,
+  agentId,
 }: {
   chatId: string;
   input: string;
@@ -62,6 +67,10 @@ function PureMultimodalInput({
   className?: string;
   selectedVisibilityType: VisibilityType;
   session: Session;
+  onConnectDataPool?: (dataPoolId: string) => void;
+  onDisconnectDataPool?: (dataPoolId: string) => void;
+  connectedDataPools?: string[];
+  agentId?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -331,6 +340,39 @@ function PureMultimodalInput({
         <PromptInputToolbar className="px-4 py-2 !border-t-0 !border-top-0 shadow-none dark:!border-transparent dark:border-0">
           <PromptInputTools className="gap-2">
             <AttachmentsButton fileInputRef={fileInputRef} status={status} />
+            {agentId ? (
+              // Agent chat: Show agent-managed datapools info
+              <div
+                className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 cursor-help"
+                title="This agent has its own datapools configured. To add or remove datapools, go to the agent details page."
+              >
+                <span>🤖</span>
+                <span>Agent-managed datapools</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-muted-foreground">Configure in agent details</span>
+              </div>
+            ) : (
+              // Main chat: Show datapool connection controls
+              <>
+                {onConnectDataPool && (
+                  <>
+                    <RagSearchButton
+                      key={`rag-search-${(connectedDataPools || []).join('-')}`}
+                      status={status}
+                      onConnectDataPool={onConnectDataPool}
+                      onDisconnectDataPool={onDisconnectDataPool || (() => {})}
+                      connectedDataPools={connectedDataPools || []}
+                    />
+                  </>
+                )}
+                {connectedDataPools && connectedDataPools.length > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <span>📚</span>
+                    <span>{connectedDataPools.length} datapool{connectedDataPools.length > 1 ? 's' : ''} connected</span>
+                  </div>
+                )}
+              </>
+            )}
             <div
               className={`text-xs transition-colors ${
                 isOverLimit
@@ -371,6 +413,9 @@ export const MultimodalInput = memo(
       return false;
     if (prevProps.session?.user?.type !== nextProps.session?.user?.type)
       return false;
+    if (!equal(prevProps.connectedDataPools, nextProps.connectedDataPools))
+      return false;
+    if (prevProps.agentId !== nextProps.agentId) return false;
 
     return true;
   },

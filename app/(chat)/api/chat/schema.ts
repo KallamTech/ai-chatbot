@@ -95,6 +95,7 @@ export const postRequestBodySchemaAuthenticated = z.object({
     ModelId.DEEPRESEARCH_MODEL,
   ]),
   selectedVisibilityType: z.enum(['public', 'private']),
+  connectedDataPools: z.array(z.string()).optional(),
 });
 
 // Union type for both schemas
