@@ -12,6 +12,7 @@ import {
   DropdownMenuLabel,
 } from './ui/dropdown-menu';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessage } from '@/lib/types';
 
@@ -32,6 +33,7 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
   const [dataPools, setDataPools] = useState<DataPool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
 
 
   const loadDataPools = useCallback(async () => {
@@ -123,12 +125,16 @@ export function RagSearchButton({ status, onConnectDataPool, onDisconnectDataPoo
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                window.open('/datapools', '_blank');
+                if (session?.user?.type === 'guest') {
+                  window.open('/login', '_blank');
+                } else {
+                  window.open('/datapools', '_blank');
+                }
                 setIsOpen(false);
               }}
               className="text-blue-600 dark:text-blue-400"
             >
-              Create a data pool →
+              {session?.user?.type === 'guest' ? 'Log in to create a data pool →' : 'Create a data pool →'}
             </DropdownMenuItem>
           </>
         ) : (
