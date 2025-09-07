@@ -268,6 +268,7 @@ export function Chat({
           sendMessage={sendMessage}
           isReadonly={isReadonly}
           isArtifactVisible={isArtifactVisible}
+          session={session}
         />
 
         <div

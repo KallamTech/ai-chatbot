@@ -13,6 +13,7 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from './elements/conversation';
+import type { Session } from 'next-auth';
 
 interface MessagesProps {
   chatId: string;
@@ -24,6 +25,7 @@ interface MessagesProps {
   sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
   isReadonly: boolean;
   isArtifactVisible: boolean;
+  session: Session;
 }
 
 function PureMessages({
@@ -36,6 +38,7 @@ function PureMessages({
   sendMessage,
   isReadonly,
   isArtifactVisible,
+  session,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -57,7 +60,7 @@ function PureMessages({
           <div
             className={`w-full ${isArtifactVisible ? 'max-w-none' : 'max-w-5xl mx-auto'}`}
           >
-            {messages.length === 0 && <Greeting />}
+            {messages.length === 0 && <Greeting session={session} />}
             {messages.map((message, index) => (
               <PreviewMessage
                 key={message.id}

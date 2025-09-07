@@ -1,6 +1,14 @@
 import { motion } from 'framer-motion';
+import type { Session } from 'next-auth';
+import Link from 'next/link';
 
-export const Greeting = () => {
+interface GreetingProps {
+  session: Session;
+}
+
+export const Greeting = ({ session }: GreetingProps) => {
+  // Hide the message if user is signed in (not a guest)
+  const isGuest = session?.user?.type === 'guest';
   return (
     <div
       key="overview"
@@ -13,7 +21,7 @@ export const Greeting = () => {
         transition={{ delay: 0.5 }}
         className="text-xl font-semibold mb-1"
       >
-        Welcome to tAI Platform
+        One Platform, Limitless Intelligence
       </motion.div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -22,8 +30,26 @@ export const Greeting = () => {
         transition={{ delay: 0.6 }}
         className="text-sm text-zinc-500 mb-4"
       >
-        How can I help you today?
+        Go beyond chat. Harness the power of best-in-class AI to build powerful
+        custom agents in simple, natural language
       </motion.div>
+
+      {isGuest && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ delay: 0.65 }}
+          className="text-center mb-6"
+        >
+          <Link
+            href="/register"
+            className="text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 rounded-lg px-6 py-3 inline-block shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 cursor-pointer"
+          >
+            Sign up for free & start building your first agent
+          </Link>
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -51,18 +77,16 @@ export const Greeting = () => {
               </svg>
             </div>
             <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-              AI Models
+              The AI Toolkit
             </h3>
           </div>
           <p className="text-xs text-blue-700 dark:text-blue-300 mb-1.5">
-            25+ models: GPT-4, Claude, Gemini, DeepSeek, Grok with reasoning.
+            Equip your agents with over 25+ models. This collection is built to
+            collaborate on advanced reasoning and execute diverse tasks
           </p>
           <div className="flex flex-wrap gap-1">
             <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-              25+ Models
-            </span>
-            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-              GPT-4/5
+              GPT
             </span>
             <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
               Claude
@@ -75,6 +99,24 @@ export const Greeting = () => {
             </span>
             <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
               Grok
+            </span>
+            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+              Mistral
+            </span>
+            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+              Perplexity
+            </span>
+            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+              Llama
+            </span>
+            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+              Qwen
+            </span>
+            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+              Kimi
+            </span>
+            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+              Cohere
             </span>
           </div>
         </div>
@@ -98,25 +140,25 @@ export const Greeting = () => {
               </svg>
             </div>
             <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-100">
-              Smart Agents
+              Your Agents
             </h3>
           </div>
           <p className="text-xs text-purple-700 dark:text-purple-300 mb-1.5">
-            Custom workflows. Perplexity web search, Grok coding, Python
-            runtime.
+            Create agents that can search the web, write code, analyze data, and
+            execute complex workflows runtime.
           </p>
           <div className="flex flex-wrap gap-1">
             <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-              Perplexity
+              Web Search
             </span>
             <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-              Grok Coding
+              Data Analysis
             </span>
             <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-              Python
+              Code Generation
             </span>
             <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-              Analysis
+              Workflow Automation
             </span>
           </div>
         </div>
@@ -140,25 +182,25 @@ export const Greeting = () => {
               </svg>
             </div>
             <h3 className="text-sm font-semibold text-green-900 dark:text-green-100">
-              Data Pools
+              Connect Your Data
             </h3>
           </div>
           <p className="text-xs text-green-700 dark:text-green-300 mb-1.5">
-            Cohere V4 embeddings, vision capabilities, Mistral OCR for document
-            processing.
+            Ground your agents in your knowledge. Upload documents, connect data
+            sources, and enable vision or OCR
           </p>
           <div className="flex flex-wrap gap-1">
             <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-              Cohere V4
+              Document Upload
             </span>
             <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-              Mistral OCR
+              Web Data
             </span>
             <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-              Vision
+              Vision & OCR
             </span>
             <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-              Semantic
+              Hybrid Search
             </span>
           </div>
         </div>
@@ -182,25 +224,25 @@ export const Greeting = () => {
               </svg>
             </div>
             <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-100">
-              Artifacts & Tools
+              Workspace & Tools
             </h3>
           </div>
           <p className="text-xs text-orange-700 dark:text-orange-300 mb-1.5">
-            Create/edit docs, code, images, sheets. Gemini Image Preview
-            (Nano-Banana) for generation.
+            Generate and edit documents, code, images, and data sheets. All the
+            output from your agents lives here
           </p>
           <div className="flex flex-wrap gap-1">
             <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded-full">
-              Gemini Image
+              Image Generation
             </span>
             <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded-full">
               Code Editor
             </span>
             <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded-full">
-              Text Editor
+              Doc Editor
             </span>
             <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded-full">
-              Sheets
+              Spreadsheets
             </span>
           </div>
         </div>

@@ -34,7 +34,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 className="text-lg font-semibold px-2 hover:text-primary cursor-pointer"
                 onClick={() => setOpenMobile(false)}
               >
-                tAI Platform
+                Nexus
               </Link>
               <Tooltip>
                 <TooltipTrigger asChild>
