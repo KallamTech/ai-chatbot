@@ -155,6 +155,7 @@ export default async function AgentChatPage(props: {
         autoResume={autoResume}
         agentId={agentId}
         chatData={{ agentId }}
+        agentTitle={agent.title}
       />
       <DataStreamHandler chatId={finalChatId} />
     </>

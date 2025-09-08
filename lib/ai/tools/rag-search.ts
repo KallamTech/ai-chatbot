@@ -14,8 +14,8 @@ const CONTEXT_LIMITS = {
   'o4-mini': 120000, // ~128k tokens
   'claude-3-5-sonnet': 180000, // ~200k tokens
   'claude-sonnet-4': 180000, // ~200k tokens
-  'gemini-2.5-flash': 100000, // ~1M tokens (conservative)
-  'gemini-2.5-pro': 100000, // ~1M tokens (conservative)
+  'gemini-2.5-flash': 900000, // ~1M tokens (conservative)
+  'gemini-2.5-pro': 900000, // ~1M tokens (conservative)
   'deepseek-v3.1': 120000, // ~128k tokens
   'grok-4': 120000, // ~128k tokens
   'llama-3.2-90b': 120000, // ~128k tokens

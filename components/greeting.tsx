@@ -46,7 +46,7 @@ export const Greeting = ({ session }: GreetingProps) => {
             href="/register"
             className="text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 rounded-lg px-6 py-3 inline-block shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 cursor-pointer"
           >
-            Sign up for free & start building your first agent
+            Sign up for free to unlock unlimited messages & data pools
           </Link>
         </motion.div>
       )}

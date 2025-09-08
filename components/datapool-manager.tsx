@@ -25,6 +25,7 @@ import {
 import type { DataPool, DataPoolDocument, Agent } from '@/lib/db/schema';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import type { Session } from 'next-auth';
 
 interface DocumentMetadata {
   // File information
@@ -110,12 +111,14 @@ interface DataPoolManagerProps {
   dataPool: DataPool;
   documents: ExtendedDataPoolDocument[];
   allAgents: Agent[];
+  session: Session;
 }
 
 export function DataPoolManager({
   dataPool,
   documents: initialDocuments,
   allAgents,
+  session,
 }: DataPoolManagerProps) {
   const [documents, setDocuments] =
     useState<ExtendedDataPoolDocument[]>(initialDocuments);
@@ -132,6 +135,9 @@ export function DataPoolManager({
   >(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Guest user file upload limit
+  const isGuest = session?.user?.type === 'guest';
 
   // Infinite scroll state
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -239,6 +245,20 @@ export function DataPoolManager({
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Block all file uploads for guest users
+    if (isGuest) {
+      toast({
+        type: 'error',
+        description: 'Please login to upload files to datapools.',
+      });
+      // Reset the input
+      if (event.target) {
+        event.target.value = '';
+      }
+      setSelectedFiles(null);
+      return;
+    }
+
     const files = event.target.files;
     setSelectedFiles(files);
   };
@@ -610,14 +630,32 @@ export function DataPoolManager({
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">Add Documents</h3>
             <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="bg-primary hover:bg-primary/90"
+              onClick={() => {
+                if (isGuest) {
+                  toast({
+                    type: 'error',
+                    description: 'Please login to upload files to datapools.',
+                  });
+                  return;
+                }
+                fileInputRef.current?.click();
+              }}
+              disabled={isUploading || isGuest}
+              className={
+                isGuest
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-primary hover:bg-primary/90'
+              }
             >
               {isUploading ? (
                 <>
                   <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   Uploading...
+                </>
+              ) : isGuest ? (
+                <>
+                  <UploadIcon size={16} className="mr-2" />
+                  Login to Add Documents
                 </>
               ) : (
                 <>
@@ -633,11 +671,37 @@ export function DataPoolManager({
             type="file"
             ref={fileInputRef}
             accept=".txt,.md,.csv,.json,.html,.css,.js,.xml,.log,.pdf"
-            disabled={isUploading}
+            disabled={isUploading || isGuest}
             onChange={handleFileChange}
             multiple
             className="hidden"
           />
+
+          {isGuest && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-yellow-800">
+                  <div className="size-5 rounded-full bg-yellow-200 flex items-center justify-center">
+                    <span className="text-xs font-bold">!</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Login Required</p>
+                    <p className="text-sm text-yellow-700">
+                      Please login to upload files to datapools.
+                    </p>
+                  </div>
+                </div>
+                <Link href="/login">
+                  <Button
+                    size="sm"
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  >
+                    Login
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
             {selectedFiles && selectedFiles.length > 0 ? (
@@ -666,13 +730,22 @@ export function DataPoolManager({
                 <div className="flex gap-2">
                   <Button
                     onClick={handleUpload}
-                    disabled={isUploading}
-                    className="bg-green-600 hover:bg-green-700"
+                    disabled={isUploading || isGuest}
+                    className={
+                      isGuest
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700'
+                    }
                   >
                     {isUploading ? (
                       <>
                         <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                         Uploading...
+                      </>
+                    ) : isGuest ? (
+                      <>
+                        <UploadIcon size={16} className="mr-2" />
+                        Login to Upload
                       </>
                     ) : (
                       <>

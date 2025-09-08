@@ -77,7 +77,7 @@ function PureMultimodalInput({
 
   // Character limits based on user type
   const GUEST_CHAR_LIMIT = 2000;
-  const AUTHENTICATED_CHAR_LIMIT = 100000;
+  const AUTHENTICATED_CHAR_LIMIT = 1000000;
 
   const isGuest = session?.user?.type === 'guest';
   const charLimit = isGuest ? GUEST_CHAR_LIMIT : AUTHENTICATED_CHAR_LIMIT;

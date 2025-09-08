@@ -33,6 +33,7 @@ export function Chat({
   autoResume,
   agentId: propAgentId,
   chatData,
+  agentTitle,
 }: {
   id: string;
   initialMessages: ChatMessage[];
@@ -43,6 +44,7 @@ export function Chat({
   autoResume: boolean;
   agentId?: string;
   chatData?: { agentId?: string | null };
+  agentTitle?: string;
 }) {
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -256,6 +258,8 @@ export function Chat({
           isReadonly={isReadonly}
           session={session}
           onModelChange={handleModelChange}
+          agentId={effectiveAgentId}
+          agentTitle={agentTitle}
         />
 
         <Messages
