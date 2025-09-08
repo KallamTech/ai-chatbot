@@ -10,7 +10,7 @@ const textPartSchemaGuest = z.object({
 // Extended text part schema for authenticated users (longer limit)
 const textPartSchemaAuthenticated = z.object({
   type: z.enum(['text']),
-  text: z.string().min(1).max(100000),
+  text: z.string().min(1).max(1000000),
 });
 
 const filePartSchema = z.object({

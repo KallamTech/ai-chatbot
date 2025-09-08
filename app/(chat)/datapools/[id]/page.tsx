@@ -44,6 +44,7 @@ export default async function DataPoolPage(props: {
         dataPool={dataPool}
         documents={documents}
         allAgents={allAgents}
+        session={session}
       />
     </div>
   );

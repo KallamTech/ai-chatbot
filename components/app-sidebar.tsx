@@ -54,7 +54,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <TooltipContent align="end">New Chat</TooltipContent>
               </Tooltip>
             </div>
-            {user?.type !== 'guest' && (
+            {
               <div className="flex flex-row gap-1">
                 <Link
                   href="/agents"
@@ -73,7 +73,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   Data Pools
                 </Link>
               </div>
-            )}
+            }
           </div>
         </SidebarMenu>
       </SidebarHeader>

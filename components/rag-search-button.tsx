@@ -132,18 +132,12 @@ export function RagSearchButton({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                if (session?.user?.type === 'guest') {
-                  window.open('/login', '_blank');
-                } else {
-                  window.open('/datapools', '_blank');
-                }
+                window.open('/datapools', '_blank');
                 setIsOpen(false);
               }}
               className="text-blue-600 dark:text-blue-400"
             >
-              {session?.user?.type === 'guest'
-                ? 'Log in to create a data pool →'
-                : 'Create a data pool →'}
+              Create a data pool →
             </DropdownMenuItem>
           </>
         ) : (
