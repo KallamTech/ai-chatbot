@@ -21,7 +21,7 @@ const CONTEXT_LIMITS = {
   'llama-3.2-90b': 120000, // ~128k tokens
   'llama-4-scout': 120000, // ~128k tokens
   'llama-4-maverick': 120000, // ~128k tokens
-  default: 100000, // Conservative default
+  default: 1000000, // Conservative default
 } as const;
 
 // Rough token estimation (1 token ≈ 4 characters for English text)
