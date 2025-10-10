@@ -26,14 +26,14 @@ export enum ModelId {
   O4_MINI_REASONING = 'openai/o4-mini-reasoning',
   GEMINI_2_5_FLASH_LITE = 'google/gemini-2.5-flash-lite',
   GEMINI_2_5_FLASH = 'google/gemini-2.5-flash',
-  DEEPSEEK_V3_1 = 'deepseek/deepseek-v3.1',
-  DEEPSEEK_V3_1_THINKING = 'deepseek/deepseek-v3.1-thinking',
+  DEEPSEEK_V3_2 = 'deepseek/deepseek-v3.2-exp',
+  DEEPSEEK_V3_2_THINKING = 'deepseek/deepseek-v3.2-exp-thinking',
   GROK_CODE_FAST_1 = 'xai/grok-code-fast-1',
   GROK_3_MINI = 'xai/grok-3-mini',
   GROK_4 = 'xai/grok-4',
-  CLAUDE_SONNET_3_7 = 'anthropic/claude-3-5-sonnet-20241022',
   CLAUDE_SONNET_4 = 'anthropic/claude-sonnet-4',
-  CLAUDE_SONNET_4_REASONING = 'anthropic/claude-sonnet-4-reasoning',
+  CLAUDE_SONNET_4_5 = 'anthropic/claude-sonnet-4.5',
+  CLAUDE_SONNET_4_5_REASONING = 'anthropic/claude-sonnet-4.5-reasoning',
   GEMINI_2_5_PRO_REASONING = 'google/gemini-2.5-pro-reasoning',
   GEMINI_2_5_FLASH_IMAGE_PREVIEW = 'google/gemini-2.5-flash-image-preview',
   PERPLEXITY_SONAR_PRO = 'perplexity/sonar-pro',
@@ -49,7 +49,7 @@ export enum ModelId {
   QWEN_3_235B = 'alibaba/qwen-3-235b',
   QWEN3_CODER = 'alibaba/qwen3-coder',
   GPT_OSS_120B = 'openai/gpt-oss-120b',
-  GLM_4_5 = 'zai/glm-4.5',
+  GLM_4_6 = 'zai/glm-4.6',
   TITLE_MODEL = 'title-model',
   ARTIFACT_MODEL = 'artifact-model',
   CODE_MODEL = 'code-model',
@@ -69,14 +69,14 @@ export const myProvider =
           [ModelId.O4_MINI_REASONING]: testModels.reasoningModel,
           [ModelId.GEMINI_2_5_FLASH_LITE]: testModels.chatModel,
           [ModelId.GEMINI_2_5_FLASH]: testModels.chatModel,
-          [ModelId.DEEPSEEK_V3_1]: testModels.chatModel,
-          [ModelId.DEEPSEEK_V3_1_THINKING]: testModels.reasoningModel,
+          [ModelId.DEEPSEEK_V3_2]: testModels.chatModel,
+          [ModelId.DEEPSEEK_V3_2_THINKING]: testModels.reasoningModel,
           [ModelId.GROK_CODE_FAST_1]: testModels.chatModel,
           [ModelId.GROK_4]: testModels.chatModel,
           [ModelId.GROK_3_MINI]: testModels.reasoningModel,
-          [ModelId.CLAUDE_SONNET_3_7]: testModels.chatModel,
           [ModelId.CLAUDE_SONNET_4]: testModels.chatModel,
-          [ModelId.CLAUDE_SONNET_4_REASONING]: testModels.reasoningModel,
+          [ModelId.CLAUDE_SONNET_4_5]: testModels.chatModel,
+          [ModelId.CLAUDE_SONNET_4_5_REASONING]: testModels.reasoningModel,
           [ModelId.GEMINI_2_5_PRO_REASONING]: testModels.reasoningModel,
           [ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW]: testModels.chatModel,
           [ModelId.PERPLEXITY_SONAR_PRO]: testModels.chatModel,
@@ -93,7 +93,7 @@ export const myProvider =
           [ModelId.QWEN_3_235B]: testModels.chatModel,
           [ModelId.QWEN3_CODER]: testModels.chatModel,
           [ModelId.GPT_OSS_120B]: testModels.chatModel,
-          [ModelId.GLM_4_5]: testModels.chatModel,
+          [ModelId.GLM_4_6]: testModels.chatModel,
           [ModelId.TITLE_MODEL]: testModels.titleModel,
           [ModelId.ARTIFACT_MODEL]: testModels.artifactModel,
           [ModelId.CODE_MODEL]: testModels.artifactModel,
@@ -119,17 +119,17 @@ export const myProvider =
           [ModelId.GEMINI_2_5_FLASH]: gateway.languageModel(
             ModelId.GEMINI_2_5_FLASH,
           ),
-          [ModelId.DEEPSEEK_V3_1]: gateway.languageModel(ModelId.DEEPSEEK_V3_1),
+          [ModelId.DEEPSEEK_V3_2]: gateway.languageModel(ModelId.DEEPSEEK_V3_2),
           [ModelId.GROK_CODE_FAST_1]: gateway.languageModel(
             ModelId.GROK_CODE_FAST_1,
           ),
           [ModelId.GROK_4]: gateway.languageModel(ModelId.GROK_4),
           [ModelId.GROK_3_MINI]: gateway.languageModel(ModelId.GROK_3_MINI),
-          [ModelId.CLAUDE_SONNET_3_7]: gateway.languageModel(
-            ModelId.CLAUDE_SONNET_3_7,
-          ),
           [ModelId.CLAUDE_SONNET_4]: gateway.languageModel(
             ModelId.CLAUDE_SONNET_4,
+          ),
+          [ModelId.CLAUDE_SONNET_4_5]: gateway.languageModel(
+            ModelId.CLAUDE_SONNET_4_5,
           ),
           [ModelId.LLAMA_3_2_90B]: gateway.languageModel(ModelId.LLAMA_3_2_90B),
           [ModelId.LLAMA_4_SCOUT]: gateway.languageModel(ModelId.LLAMA_4_SCOUT),
@@ -143,7 +143,7 @@ export const myProvider =
           [ModelId.QWEN_3_235B]: gateway.languageModel(ModelId.QWEN_3_235B),
           [ModelId.QWEN3_CODER]: gateway.languageModel(ModelId.QWEN3_CODER),
           [ModelId.GPT_OSS_120B]: gateway.languageModel(ModelId.GPT_OSS_120B),
-          [ModelId.GLM_4_5]: gateway.languageModel(ModelId.GLM_4_5),
+          [ModelId.GLM_4_6]: gateway.languageModel(ModelId.GLM_4_6),
           [ModelId.O4_MINI_REASONING]: wrapLanguageModel({
             model: gateway.languageModel(ModelId.O4_MINI),
             middleware: [
@@ -160,13 +160,13 @@ export const myProvider =
               extractReasoningMiddleware({ tagName: 'think' }),
             ],
           }),
-          [ModelId.DEEPSEEK_V3_1_THINKING]: wrapLanguageModel({
-            model: gateway.languageModel(ModelId.DEEPSEEK_V3_1_THINKING),
+          [ModelId.DEEPSEEK_V3_2_THINKING]: wrapLanguageModel({
+            model: gateway.languageModel(ModelId.DEEPSEEK_V3_2_THINKING),
             middleware: [extractReasoningMiddleware({ tagName: 'think' })],
           }),
 
-          [ModelId.CLAUDE_SONNET_4_REASONING]: wrapLanguageModel({
-            model: gateway.languageModel(ModelId.CLAUDE_SONNET_4),
+          [ModelId.CLAUDE_SONNET_4_5_REASONING]: wrapLanguageModel({
+            model: gateway.languageModel(ModelId.CLAUDE_SONNET_4_5),
             middleware: [
               defaultSettingsMiddleware({
                 settings: {
