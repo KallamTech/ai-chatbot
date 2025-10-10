@@ -82,9 +82,9 @@ export const chatModels: Array<ChatModel> = [
     provider: 'xAI',
   },
   {
-    id: ModelId.GROK_3_MINI,
-    name: 'Grok 3 Mini',
-    description: 'xAI compact and efficient reasoning model',
+    id: ModelId.GROK_4_FAST_NON_REASONING,
+    name: 'Grok 4 Fast Non Reasoning',
+    description: 'xAI compact and efficient non reasoning model',
     provider: 'xAI',
     hasReasoning: true,
   },

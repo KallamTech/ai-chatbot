@@ -69,7 +69,7 @@ export const postRequestBodySchemaAuthenticated = z.object({
     ModelId.DEEPSEEK_V3_2,
     ModelId.DEEPSEEK_V3_2_THINKING,
     ModelId.GROK_CODE_FAST_1,
-    ModelId.GROK_3_MINI,
+    ModelId.GROK_4_FAST_NON_REASONING,
     ModelId.GROK_4,
     ModelId.CLAUDE_SONNET_4,
     ModelId.CLAUDE_SONNET_4_5,

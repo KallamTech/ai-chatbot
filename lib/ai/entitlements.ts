@@ -33,7 +33,7 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
       ModelId.DEEPSEEK_V3_2_THINKING,
       ModelId.GROK_CODE_FAST_1,
       ModelId.GROK_4,
-      ModelId.GROK_3_MINI,
+      ModelId.GROK_4_FAST_NON_REASONING,
       ModelId.CLAUDE_SONNET_4,
       ModelId.CLAUDE_SONNET_4_5,
       ModelId.CLAUDE_SONNET_4_5_REASONING,
