@@ -32,12 +32,18 @@ function estimateTokenCount(text: string): number {
 // Build SQL-like filter string for Upstash vector search
 function buildFilterString(filters: {
   title?: string;
+  fileName?: string;
 }): string | undefined {
   const conditions: string[] = [];
 
   if (filters.title) {
     // Filter by document title in metadata
     conditions.push(`title = '${filters.title}'`);
+  }
+
+  if (filters.fileName) {
+    // Filter by document file name in metadata
+    conditions.push(`fileName = '${filters.fileName}'`);
   }
 
   return conditions.length > 0 ? conditions.join(' AND ') : undefined;
@@ -125,6 +131,10 @@ export const ragSearch = () =>
         .optional()
         .default(0.3)
         .describe('Minimum similarity threshold (0.3 is more lenient)'),
+      fileName: z
+        .string()
+        .optional()
+        .describe('Filter by document file name (partial match)'),
       title: z
         .string()
         .optional()
@@ -171,6 +181,7 @@ export const ragSearch = () =>
       query,
       limit,
       threshold,
+      fileName,
       title,
       maxContextTokens,
       modelId,
@@ -227,6 +238,7 @@ export const ragSearch = () =>
         // Build SQL-like filter string for Upstash vector search
         const filterString = buildFilterString({
           title,
+          fileName,
         });
 
         let searchResults: any[] = [];
@@ -288,7 +300,7 @@ export const ragSearch = () =>
             query,
             queryEmbedding!,
             {
-              limit: limit * 2,
+              limit: limit,
               filter: filterString,
               keywordWeight,
               semanticWeight,
