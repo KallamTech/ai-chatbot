@@ -70,7 +70,7 @@ export const systemPrompt = ({
   // Add RAG search information if datapools are connected
   const ragPrompt =
     connectedDataPools && connectedDataPools.length > 0
-      ? `\n\nYou have access to a document search tool (ragSearch) that can search through the user's connected data pools using semantic similarity. When users ask questions that might be answered by documents in their data pools, proactively use the ragSearch tool to find relevant information before responding. This is especially useful for questions about specific topics, facts, or content that might be in the user's documents. Available data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
+      ? `\n\nYou have access to document tools across the user's connected data pools: (1) ragSearch for semantic similarity search, and (2) datapoolFetch for directly fetching documents from a specific data pool using SQL-backed filters on title or fileName.\n\nWhen users ask questions that might be answered by their documents, proactively use ragSearch first to find relevant information before responding. For requests about a specific known file or title (e.g., "summarize Acme-Q3-Report.pdf"), use datapoolFetch to retrieve the exact document(s) and optionally include content. Available data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
       : '';
 
   return `${regularPrompt}${ragPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
@@ -170,47 +170,53 @@ export const updateDocumentPrompt = (
 ) =>
   type === 'text'
     ? `\
-You are updating a text document. You must return the COMPLETE updated document content, not instructions or partial changes.
+You are updating a text document. Follow the user's specific instructions precisely and return the COMPLETE updated document content.
 
 CRITICAL RULES:
-1. Return the ENTIRE document with ONLY the requested changes applied
-2. Do NOT include meta-instructions like "add the following" or "insert here"
-3. Do NOT rewrite the entire document unless explicitly asked
-4. Preserve all existing content, structure, and formatting
-5. Make ONLY the specific changes requested by the user
+1. Follow the user's instructions EXACTLY as requested
+2. Return the ENTIRE document with ONLY the requested changes applied
+3. Do NOT include meta-instructions like "add the following" or "insert here"
+4. Do NOT rewrite the entire document unless explicitly asked
+5. Preserve all existing content, structure, and formatting unless the user requests changes
+6. Make ONLY the specific changes requested by the user
+7. Pay attention to the user's specific requirements, style, tone, and formatting requests
 
 Current document content:
 ${currentContent}
 
-IMPORTANT: Return the complete updated document content. Do not include any instructions or meta-text.`
+IMPORTANT: Return the complete updated document content following the user's exact instructions. Do not include any instructions or meta-text.`
     : type === 'code'
       ? `\
-You are updating a code document. You must return the COMPLETE updated code, not instructions or partial changes.
+You are updating a code document. Follow the user's specific instructions precisely and return the COMPLETE updated code.
 
 CRITICAL RULES:
-1. Return the ENTIRE code with ONLY the requested changes applied
-2. Do NOT include meta-instructions like "add the following" or "insert here"
-3. Do NOT rewrite the entire code unless explicitly asked
-4. Preserve all existing code structure, comments, and logic
-5. Make ONLY the specific changes requested by the user
+1. Follow the user's instructions EXACTLY as requested
+2. Return the ENTIRE code with ONLY the requested changes applied
+3. Do NOT include meta-instructions like "add the following" or "insert here"
+4. Do NOT rewrite the entire code unless explicitly asked
+5. Preserve all existing code structure, comments, and logic unless the user requests changes
+6. Make ONLY the specific changes requested by the user
+7. Pay attention to the user's specific requirements for functionality, style, and structure
 
 Current code:
 ${currentContent}
 
-IMPORTANT: Return the complete updated code. Do not include any instructions or meta-text.`
+IMPORTANT: Return the complete updated code following the user's exact instructions. Do not include any instructions or meta-text.`
       : type === 'sheet'
         ? `\
-You are updating a spreadsheet document. You must return the COMPLETE updated spreadsheet, not instructions or partial changes.
+You are updating a spreadsheet document. Follow the user's specific instructions precisely and return the COMPLETE updated spreadsheet.
 
 CRITICAL RULES:
-1. Return the ENTIRE spreadsheet with ONLY the requested changes applied
-2. Do NOT include meta-instructions like "add the following" or "insert here"
-3. Do NOT rewrite the entire spreadsheet unless explicitly asked
-4. Preserve all existing data, structure, and formatting
-5. Make ONLY the specific changes requested by the user
+1. Follow the user's instructions EXACTLY as requested
+2. Return the ENTIRE spreadsheet with ONLY the requested changes applied
+3. Do NOT include meta-instructions like "add the following" or "insert here"
+4. Do NOT rewrite the entire spreadsheet unless explicitly asked
+5. Preserve all existing data, structure, and formatting unless the user requests changes
+6. Make ONLY the specific changes requested by the user
+7. Pay attention to the user's specific requirements for data structure, formatting, and organization
 
 Current spreadsheet:
 ${currentContent}
 
-IMPORTANT: Return the complete updated spreadsheet. Do not include any instructions or meta-text.`
+IMPORTANT: Return the complete updated spreadsheet following the user's exact instructions. Do not include any instructions or meta-text.`
         : '';

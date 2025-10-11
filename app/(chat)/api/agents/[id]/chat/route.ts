@@ -27,6 +27,7 @@ import {
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
+import { datapoolFetch } from '@/lib/ai/tools/datapool-fetch';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -606,6 +607,63 @@ function createAgentTools(
 
         console.log('Agent chat: Combined search results:', combinedResults);
         return combinedResults;
+      },
+    });
+
+    // Add direct SQL-backed fetch tool for high-level retrieval by title/filename
+    tools.datapoolFetch = tool({
+      description:
+        'Fetch documents directly from connected data pools using SQL filters on title and metadata.fileName. Ideal for tasks like summarizing a specific PDF by name.',
+      inputSchema: z.object({
+        dataPoolId: z
+          .string()
+          .describe(
+            `ID of the data pool. Available: ${dataPools.map((dp: any) => `${dp.id} (${dp.name})`).join(', ')}`,
+          ),
+        title: z.string().optional(),
+        fileName: z.string().optional(),
+        limit: z.number().optional().default(20),
+        offset: z.number().optional().default(0),
+        includeContent: z.boolean().optional().default(true),
+      }),
+      execute: async ({
+        dataPoolId,
+        title,
+        fileName,
+        limit = 20,
+        offset = 0,
+        includeContent = true,
+      }) => {
+        const targetDataPool = dataPools.find(
+          (dp: any) => dp.id === dataPoolId,
+        );
+        if (!targetDataPool) {
+          return {
+            error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
+            availableDataPools: dataPools.map((dp: any) => ({
+              id: dp.id,
+              name: dp.name,
+            })),
+          };
+        }
+
+        const dpFetchTool = datapoolFetch();
+        const result = await (dpFetchTool as any).execute({
+          dataPoolId: targetDataPool.id,
+          title,
+          fileName,
+          limit,
+          offset,
+          includeContent,
+        });
+
+        return {
+          ...result,
+          searchedDataPool: {
+            id: targetDataPool.id,
+            name: targetDataPool.name,
+          },
+        };
       },
     });
 

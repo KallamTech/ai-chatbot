@@ -5,14 +5,14 @@ import { updateDocumentPrompt, createDocumentPrompt } from '@/lib/ai/prompts';
 
 export const textDocumentHandler = createDocumentHandler<'text'>({
   kind: 'text',
-  onCreateDocument: async ({ title, dataStream }) => {
+  onCreateDocument: async ({ title, userInstructions, dataStream }) => {
     let draftContent = '';
 
     const { fullStream } = streamText({
       model: myProvider.languageModel(ModelId.ARTIFACT_MODEL),
       system: createDocumentPrompt(title, 'text'),
       experimental_transform: smoothStream({ chunking: 'word' }),
-      prompt: title,
+      prompt: userInstructions,
     });
 
     for await (const delta of fullStream) {

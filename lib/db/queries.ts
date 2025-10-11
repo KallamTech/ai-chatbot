@@ -1180,14 +1180,8 @@ export async function searchDataPoolDocumentsByTitle({
     } else {
       // Partial match on title, filename in metadata, and search tags
       const titleCondition = ilike(dataPoolDocument.title, `%${searchTitle}%`);
-      const fileNameCondition = ilike(
-        dataPoolDocument.metadata,
-        `%"fileName":"%${searchTitle}%"%`,
-      );
-      const searchTagsCondition = ilike(
-        dataPoolDocument.metadata,
-        `%"searchTags":["%${searchTitle}%"%`,
-      );
+      const fileNameCondition = sql`(${dataPoolDocument.metadata}>>'fileName' ILIKE ${`%${searchTitle}%`})`;
+      const searchTagsCondition = sql`(${dataPoolDocument.metadata}>>'searchTags' ILIKE ${`%${searchTitle}%`})`;
 
       whereCondition = or(
         titleCondition,
@@ -1237,6 +1231,56 @@ export async function getDataPoolDocumentTitles({
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get document titles',
+    );
+  }
+}
+
+/**
+ * Fetch datapool documents with SQL filtering on title and metadata.fileName
+ */
+export async function getDataPoolDocumentsFiltered({
+  dataPoolId,
+  title,
+  fileName,
+  limit = 50,
+  offset = 0,
+}: {
+  dataPoolId: string;
+  title?: string;
+  fileName?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Array<DataPoolDocument>> {
+  try {
+    const whereConditions: SQL<any>[] = [
+      eq(dataPoolDocument.dataPoolId, dataPoolId),
+    ];
+
+    if (title && title.trim().length > 0) {
+      whereConditions.push(ilike(dataPoolDocument.title, `%${title}%`));
+    }
+
+    if (fileName && fileName.trim().length > 0) {
+      // Match JSON metadata containing a fileName with partial match
+      whereConditions.push(
+        sql`(${dataPoolDocument.metadata}->>'fileName' ILIKE ${`%${fileName}%`})`,
+      );
+    }
+
+    const results = await db
+      .select()
+      .from(dataPoolDocument)
+      .where(and(...whereConditions))
+      .orderBy(desc(dataPoolDocument.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return results;
+  } catch (error) {
+    console.error('Error fetching datapool documents with filters:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to fetch datapool documents',
     );
   }
 }
