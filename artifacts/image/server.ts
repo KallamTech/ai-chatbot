@@ -5,7 +5,7 @@ import { createDocumentPrompt } from '@/lib/ai/prompts';
 
 export const imageDocumentHandler = createDocumentHandler<'image'>({
   kind: 'image',
-  onCreateDocument: async ({ title, dataStream }) => {
+  onCreateDocument: async ({ title, userInstructions, dataStream }) => {
     let draftContent = '';
 
     const result = await generateText({
@@ -14,7 +14,7 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
       providerOptions: {
         google: { responseModalities: ['TEXT', 'IMAGE'] },
       },
-      prompt: title,
+      prompt: userInstructions,
     });
 
     // Get the first image file from the result

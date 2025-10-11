@@ -170,47 +170,53 @@ export const updateDocumentPrompt = (
 ) =>
   type === 'text'
     ? `\
-You are updating a text document. You must return the COMPLETE updated document content, not instructions or partial changes.
+You are updating a text document. Follow the user's specific instructions precisely and return the COMPLETE updated document content.
 
 CRITICAL RULES:
-1. Return the ENTIRE document with ONLY the requested changes applied
-2. Do NOT include meta-instructions like "add the following" or "insert here"
-3. Do NOT rewrite the entire document unless explicitly asked
-4. Preserve all existing content, structure, and formatting
-5. Make ONLY the specific changes requested by the user
+1. Follow the user's instructions EXACTLY as requested
+2. Return the ENTIRE document with ONLY the requested changes applied
+3. Do NOT include meta-instructions like "add the following" or "insert here"
+4. Do NOT rewrite the entire document unless explicitly asked
+5. Preserve all existing content, structure, and formatting unless the user requests changes
+6. Make ONLY the specific changes requested by the user
+7. Pay attention to the user's specific requirements, style, tone, and formatting requests
 
 Current document content:
 ${currentContent}
 
-IMPORTANT: Return the complete updated document content. Do not include any instructions or meta-text.`
+IMPORTANT: Return the complete updated document content following the user's exact instructions. Do not include any instructions or meta-text.`
     : type === 'code'
       ? `\
-You are updating a code document. You must return the COMPLETE updated code, not instructions or partial changes.
+You are updating a code document. Follow the user's specific instructions precisely and return the COMPLETE updated code.
 
 CRITICAL RULES:
-1. Return the ENTIRE code with ONLY the requested changes applied
-2. Do NOT include meta-instructions like "add the following" or "insert here"
-3. Do NOT rewrite the entire code unless explicitly asked
-4. Preserve all existing code structure, comments, and logic
-5. Make ONLY the specific changes requested by the user
+1. Follow the user's instructions EXACTLY as requested
+2. Return the ENTIRE code with ONLY the requested changes applied
+3. Do NOT include meta-instructions like "add the following" or "insert here"
+4. Do NOT rewrite the entire code unless explicitly asked
+5. Preserve all existing code structure, comments, and logic unless the user requests changes
+6. Make ONLY the specific changes requested by the user
+7. Pay attention to the user's specific requirements for functionality, style, and structure
 
 Current code:
 ${currentContent}
 
-IMPORTANT: Return the complete updated code. Do not include any instructions or meta-text.`
+IMPORTANT: Return the complete updated code following the user's exact instructions. Do not include any instructions or meta-text.`
       : type === 'sheet'
         ? `\
-You are updating a spreadsheet document. You must return the COMPLETE updated spreadsheet, not instructions or partial changes.
+You are updating a spreadsheet document. Follow the user's specific instructions precisely and return the COMPLETE updated spreadsheet.
 
 CRITICAL RULES:
-1. Return the ENTIRE spreadsheet with ONLY the requested changes applied
-2. Do NOT include meta-instructions like "add the following" or "insert here"
-3. Do NOT rewrite the entire spreadsheet unless explicitly asked
-4. Preserve all existing data, structure, and formatting
-5. Make ONLY the specific changes requested by the user
+1. Follow the user's instructions EXACTLY as requested
+2. Return the ENTIRE spreadsheet with ONLY the requested changes applied
+3. Do NOT include meta-instructions like "add the following" or "insert here"
+4. Do NOT rewrite the entire spreadsheet unless explicitly asked
+5. Preserve all existing data, structure, and formatting unless the user requests changes
+6. Make ONLY the specific changes requested by the user
+7. Pay attention to the user's specific requirements for data structure, formatting, and organization
 
 Current spreadsheet:
 ${currentContent}
 
-IMPORTANT: Return the complete updated spreadsheet. Do not include any instructions or meta-text.`
+IMPORTANT: Return the complete updated spreadsheet following the user's exact instructions. Do not include any instructions or meta-text.`
         : '';

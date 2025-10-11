@@ -16,7 +16,7 @@ interface CreateDocumentProps {
 export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
   tool({
     description:
-      "Create a document following the user's specific instructions and requirements. Generate content that precisely matches what the user requested, including format, style, structure, and any specific details mentioned.",
+      "Create a document following the user's specific instructions and requirements. Generate content that precisely matches what the user requested, including format, style, structure, and any specific details mentioned. The userInstructions parameter contains the full context of what the user wants created.",
     inputSchema: z.object({
       title: z
         .string()
@@ -28,8 +28,13 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
         .describe(
           "The type of document to create: text, code, image, or sheet. Choose based on user's specific needs.",
         ),
+      userInstructions: z
+        .string()
+        .describe(
+          "The user's original instructions and requirements for the document. This provides the full context of what the user wants created.",
+        ),
     }),
-    execute: async ({ title, kind }) => {
+    execute: async ({ title, kind, userInstructions }) => {
       const id = generateUUID();
 
       dataStream.write({
@@ -68,6 +73,7 @@ export const createDocument = ({ session, dataStream }: CreateDocumentProps) =>
       await documentHandler.onCreateDocument({
         id,
         title,
+        userInstructions,
         dataStream,
         session,
       });
