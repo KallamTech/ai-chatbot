@@ -1252,7 +1252,9 @@ export async function getDataPoolDocumentsFiltered({
   offset?: number;
 }): Promise<Array<DataPoolDocument>> {
   try {
-    const whereConditions: SQL<any>[] = [eq(dataPoolDocument.dataPoolId, dataPoolId)];
+    const whereConditions: SQL<any>[] = [
+      eq(dataPoolDocument.dataPoolId, dataPoolId),
+    ];
 
     if (title && title.trim().length > 0) {
       whereConditions.push(ilike(dataPoolDocument.title, `%${title}%`));

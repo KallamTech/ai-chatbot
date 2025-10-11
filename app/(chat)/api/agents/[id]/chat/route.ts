@@ -634,11 +634,16 @@ function createAgentTools(
         offset = 0,
         includeContent = true,
       }) => {
-        const targetDataPool = dataPools.find((dp: any) => dp.id === dataPoolId);
+        const targetDataPool = dataPools.find(
+          (dp: any) => dp.id === dataPoolId,
+        );
         if (!targetDataPool) {
           return {
             error: `Data pool with ID ${dataPoolId} not found in connected data pools`,
-            availableDataPools: dataPools.map((dp: any) => ({ id: dp.id, name: dp.name })),
+            availableDataPools: dataPools.map((dp: any) => ({
+              id: dp.id,
+              name: dp.name,
+            })),
           };
         }
 
@@ -654,7 +659,10 @@ function createAgentTools(
 
         return {
           ...result,
-          searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name },
+          searchedDataPool: {
+            id: targetDataPool.id,
+            name: targetDataPool.name,
+          },
         };
       },
     });

@@ -124,7 +124,9 @@ export const myProvider =
             ModelId.GROK_CODE_FAST_1,
           ),
           [ModelId.GROK_4]: gateway.languageModel(ModelId.GROK_4),
-          [ModelId.GROK_4_FAST_NON_REASONING]: gateway.languageModel(ModelId.GROK_4_FAST_NON_REASONING),
+          [ModelId.GROK_4_FAST_NON_REASONING]: gateway.languageModel(
+            ModelId.GROK_4_FAST_NON_REASONING,
+          ),
           [ModelId.CLAUDE_SONNET_4]: gateway.languageModel(
             ModelId.CLAUDE_SONNET_4,
           ),

@@ -58,7 +58,7 @@ function PureMessages({
       <Conversation className="flex flex-col min-w-0 gap-6 pt-4 pb-32">
         <ConversationContent className="flex flex-col gap-6">
           <div
-            className={`w-full ${isArtifactVisible ? 'max-w-none' : 'max-w-5xl mx-auto'}`}
+            className={`w-full ${isArtifactVisible ? 'max-w-none min-w-0' : 'max-w-5xl mx-auto'}`}
           >
             {messages.length === 0 && <Greeting session={session} />}
             {messages.map((message, index) => (

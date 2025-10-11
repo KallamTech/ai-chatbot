@@ -76,5 +76,3 @@ export const datapoolFetch = () =>
       }
     },
   });
-
-

@@ -382,11 +382,16 @@ export async function POST(request: Request) {
               offset = 0,
               includeContent = true,
             }) => {
-              const targetDataPool = availableDataPools.find((dp) => dp.id === dataPoolId);
+              const targetDataPool = availableDataPools.find(
+                (dp) => dp.id === dataPoolId,
+              );
               if (!targetDataPool) {
                 return {
                   error: `Data pool with ID ${dataPoolId} not found or not connected to this chat`,
-                  availableDataPools: availableDataPools.map((dp) => ({ id: dp.id, name: dp.name })),
+                  availableDataPools: availableDataPools.map((dp) => ({
+                    id: dp.id,
+                    name: dp.name,
+                  })),
                 };
               }
 
@@ -399,7 +404,13 @@ export async function POST(request: Request) {
                 offset,
                 includeContent,
               });
-              return { ...result, searchedDataPool: { id: targetDataPool.id, name: targetDataPool.name } };
+              return {
+                ...result,
+                searchedDataPool: {
+                  id: targetDataPool.id,
+                  name: targetDataPool.name,
+                },
+              };
             },
           });
         };

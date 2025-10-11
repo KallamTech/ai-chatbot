@@ -105,7 +105,7 @@ const PurePreviewMessage = ({
           )}
 
           <div
-            className={cn('flex flex-col gap-4 w-full', {
+            className={cn('flex flex-col gap-4 w-full min-w-0 max-w-full', {
               'min-h-96': message.role === 'assistant' && requiresScrollPadding,
             })}
           >
