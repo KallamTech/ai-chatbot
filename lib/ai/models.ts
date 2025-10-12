@@ -63,8 +63,8 @@ export const chatModels: Array<ChatModel> = [
   },
   {
     id: ModelId.DEEPSEEK_V3_2_THINKING,
-    name: 'DeepSeek V3.1 Thinking',
-    description: 'DeepSeek V3.1 with enhanced thinking capabilities',
+    name: 'DeepSeek V3.2 Thinking',
+    description: 'DeepSeek V3.2 with enhanced thinking capabilities',
     provider: 'DeepSeek',
     hasReasoning: true,
   },
