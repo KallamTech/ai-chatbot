@@ -199,7 +199,7 @@ export const chatModels: Array<ChatModel> = [
   {
     id: ModelId.GLM_4_6,
     name: 'GLM 4.6',
-    description: 'Zhipu AI advanced language model with enhanced reasoning',
-    provider: 'Zhipu AI',
+    description: 'Z.AI advanced language model with enhanced reasoning',
+    provider: 'Z.AI',
   },
 ];
