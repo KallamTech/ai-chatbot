@@ -264,6 +264,9 @@ export type CustomUIDataTypes = {
   'image-generation-error': {
     error: string;
   };
+  tagged_document: {
+    document: string;
+  };
 };
 
 export type ChatMessage = UIMessage<

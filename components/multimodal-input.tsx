@@ -34,6 +34,7 @@ import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
 import type { Attachment, ChatMessage } from '@/lib/types';
 import type { Session } from 'next-auth';
+import { DocumentTagging } from './document-tagging';
 
 function PureMultimodalInput({
   chatId,
@@ -78,6 +79,9 @@ function PureMultimodalInput({
   // Character limits based on user type
   const GUEST_CHAR_LIMIT = 2000;
   const AUTHENTICATED_CHAR_LIMIT = 1000000;
+
+  const [showDocTagging, setShowDocTagging] = useState(false);
+  const [taggedDocument, setTaggedDocument] = useState<string | null>(null);
 
   const isGuest = session?.user?.type === 'guest';
   const charLimit = isGuest ? GUEST_CHAR_LIMIT : AUTHENTICATED_CHAR_LIMIT;
@@ -124,7 +128,13 @@ function PureMultimodalInput({
   }, [input, adjustTextareaHeight]);
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(event.target.value);
+    const { value } = event.target;
+    setInput(value);
+    if (value.endsWith('@')) {
+      setShowDocTagging(true);
+    } else {
+      setShowDocTagging(false);
+    }
     adjustTextareaHeight();
   };
 
@@ -134,20 +144,29 @@ function PureMultimodalInput({
   const submitForm = useCallback(() => {
     window.history.replaceState({}, '', `/chat/${chatId}`);
 
+    const messageParts: any[] = [
+      ...attachments.map((attachment) => ({
+        type: 'file' as const,
+        url: attachment.url,
+        name: attachment.name,
+        mediaType: attachment.contentType,
+      })),
+      {
+        type: 'text',
+        text: input,
+      },
+    ];
+
+    if (taggedDocument) {
+      messageParts.push({
+        type: 'tagged_document',
+        document: taggedDocument,
+      });
+    }
+
     sendMessage({
       role: 'user',
-      parts: [
-        ...attachments.map((attachment) => ({
-          type: 'file' as const,
-          url: attachment.url,
-          name: attachment.name,
-          mediaType: attachment.contentType,
-        })),
-        {
-          type: 'text',
-          text: input,
-        },
-      ],
+      parts: messageParts,
     });
 
     setAttachments([]);
@@ -229,8 +248,15 @@ function PureMultimodalInput({
     }
   }, [status, scrollToBottom]);
 
+  const handleSelectDocument = (documentName: string) => {
+    setTaggedDocument(documentName);
+    setInput((prev) => prev.slice(0, -1) + ` @${documentName} `);
+    setShowDocTagging(false);
+  };
+
   return (
     <div className="flex relative flex-col gap-4 w-full">
+      {showDocTagging && <DocumentTagging onSelect={handleSelectDocument} />}
       <AnimatePresence>
         {!isAtBottom && (
           <motion.div

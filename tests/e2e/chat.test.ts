@@ -169,4 +169,23 @@ test.describe('Chat activity', () => {
     await chatPage.waitForScrollToBottom();
     await expect(chatPage.scrollToBottomButton).not.toBeVisible();
   });
+
+  test('Tag a document using "@" symbol', async () => {
+    await chatPage.sendUserMessage('What is the summary of @');
+    await chatPage.isElementVisible('document-tagging');
+
+    const documentToSelect = 'Monet';
+    await chatPage.selectDocumentFromTaggingList(documentToSelect);
+
+    await chatPage.isElementNotVisible('document-tagging');
+
+    const inputValue = await chatPage.getInputValue();
+    expect(inputValue).toContain(`@${documentToSelect}`);
+
+    await chatPage.sendUserMessage('');
+
+    const userMessage = await chatPage.getRecentUserMessage();
+    expect(userMessage.content).toContain(`@${documentToSelect}`);
+    expect(userMessage.taggedDocument).toBe(documentToSelect);
+  });
 });

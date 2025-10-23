@@ -141,6 +141,20 @@ const PurePreviewMessage = ({
                 );
               }
 
+              if (type === 'tagged_document') {
+                return (
+                  <div key={key} className="flex flex-row gap-2 items-start">
+                    <div className="size-8" />
+                    <div
+                      data-testid="tagged-document"
+                      className="text-sm text-muted-foreground"
+                    >
+                      Tagged Document: {(part as any).document}
+                    </div>
+                  </div>
+                );
+              }
+
               if (type === 'text') {
                 if (mode === 'view') {
                   return (

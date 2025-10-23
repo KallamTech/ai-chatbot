@@ -18,6 +18,10 @@ export class ChatPage {
     return this.page.getByTestId('multimodal-input');
   }
 
+  public get documentTagging() {
+    return this.page.getByTestId('document-tagging');
+  }
+
   public get scrollContainer() {
     return this.page.locator('.overflow-y-scroll');
   }
@@ -74,6 +78,14 @@ export class ChatPage {
 
   async isElementNotVisible(elementId: string) {
     await expect(this.page.getByTestId(elementId)).not.toBeVisible();
+  }
+
+  async selectDocumentFromTaggingList(documentName: string) {
+    await this.documentTagging.getByText(documentName).click();
+  }
+
+  async getInputValue() {
+    return this.multimodalInput.inputValue();
   }
 
   async addImageAttachment() {
@@ -195,12 +207,23 @@ export class ChatPage {
       ? await lastMessageElement.getByTestId('message-attachments').all()
       : [];
 
+    const taggedDocumentElement = await lastMessageElement
+      .getByTestId('tagged-document')
+      .isVisible()
+      .then(async (visible) =>
+        visible
+          ? await lastMessageElement.getByTestId('tagged-document').innerText()
+          : null,
+      )
+      .catch(() => null);
+
     const page = this.page;
 
     return {
       element: lastMessageElement,
       content,
       attachments,
+      taggedDocument: taggedDocumentElement,
       async edit(newMessage: string) {
         await page.getByTestId('message-edit-button').click();
         await page.getByTestId('message-editor').fill(newMessage);

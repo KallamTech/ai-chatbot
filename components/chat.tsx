@@ -116,15 +116,23 @@ export function Chat({
         const apiRoute = currentAgentId
           ? `/api/agents/${currentAgentId}/chat`
           : '/api/chat';
+        const lastMessage = messages.at(-1);
+        const taggedDocumentPart = lastMessage?.parts.find(
+          (part) => part.type === 'tagged_document',
+        );
+
         return {
           body: {
             id,
-            message: messages.at(-1),
+            message: lastMessage,
             selectedChatModel: selectedModelIdRef.current,
             selectedVisibilityType: visibilityType,
             connectedDataPools: agentIdRef.current
               ? undefined
               : connectedDataPoolsRef.current,
+            taggedDocument: taggedDocumentPart
+              ? (taggedDocumentPart as any).document
+              : undefined,
             ...body,
           },
         };
