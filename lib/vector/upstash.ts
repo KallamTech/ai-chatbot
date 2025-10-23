@@ -5,8 +5,8 @@ import { Redis } from '@upstash/redis';
 
 // Initialize Upstash clients
 const vector = new Index({
-  url: process.env.UPSTASH_VECTOR_REST_URL!,
-  token: process.env.UPSTASH_VECTOR_REST_TOKEN!,
+  url: process.env.UPSTASH_VECTOR_REST_URL ?? '',
+  token: process.env.UPSTASH_VECTOR_REST_TOKEN ?? '',
 });
 
 // Initialize Redis

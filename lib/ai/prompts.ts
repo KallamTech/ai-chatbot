@@ -70,11 +70,7 @@ export const systemPrompt = ({
   // Add RAG search information if datapools are connected
   const ragPrompt =
     connectedDataPools && connectedDataPools.length > 0
-      ? `You have access to two tools for retrieving documents from the user's connected data pools:
-
-1.  **Semantic Search (`ragSearch`):** Use this tool to answer questions or explore topics by finding relevant information within documents. This is best for when the user asks a question and the answer might be in their documents. You can also use this tool to fetch a specific document by its ID.
-
-2.  **Direct Fetch (`directFetch`):** Use this tool when the user asks for a specific document by its title or filename, for example, "summarize Acme-Q3-Report.pdf". This tool directly retrieves the document for high-level tasks like summarization.\n\nAvailable data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
+      ? `You have access to two tools for retrieving documents from the user's connected data pools:\n\n1.  **Semantic Search (ragSearch):** Use this tool to answer questions or explore topics by finding relevant information within documents. This is best for when the user asks a question and the answer might be in their documents. You can also use this tool to fetch a specific document by its ID.\n\n2.  **Direct Fetch (directFetch):** Use this tool when the user asks for a specific document by its title or filename, for example, \`summarize Acme-Q3-Report.pdf\`. This tool directly retrieves the document for high-level tasks like summarization.\n\nAvailable data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
       : '';
 
   return `${regularPrompt}${ragPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;

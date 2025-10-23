@@ -1172,7 +1172,7 @@ export async function searchDataPoolDocumentsByTitle({
   try {
     const searchTitle = title.toLowerCase();
 
-    let whereCondition;
+    let whereCondition: any;
 
     if (exactMatch) {
       // Exact match on title (case-insensitive)

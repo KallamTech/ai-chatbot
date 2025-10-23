@@ -382,7 +382,7 @@ export async function POST(request: Request) {
               }
 
               const dfFetchTool = directFetch();
-              const result = await (dpFetchTool as any).execute({
+              const result = await (dfFetchTool as any).execute({
                 dataPoolId: targetDataPool.id,
                 title,
                 fileName,
@@ -434,7 +434,7 @@ export async function POST(request: Request) {
           activeTools.push('ragSearch');
         }
         // Add SQL-backed datapool fetch tool for high-level doc retrieval
-        if (sqlFetchTool) {
+        if (directFetchTool) {
           tools.directFetch = directFetchTool;
           activeTools.push('directFetch');
         }

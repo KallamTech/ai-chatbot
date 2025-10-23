@@ -404,7 +404,7 @@ export async function processPdfWithMistralOCR(
     if (textContent) {
       textContent = textContent
         .replace(/\0/g, '') // Remove null bytes
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
+        .replace(/[^\x20-\x7E]/g, '') // Remove control characters
         .trim();
     }
 
@@ -428,7 +428,9 @@ export async function processPdfWithMistralOCR(
     let embedding: number[] | undefined;
     if (hasTextContent) {
       console.log('Generating embedding for extracted content...');
-      embedding = await generateDocumentEmbedding(textContent!);
+      if (textContent) {
+        embedding = await generateDocumentEmbedding(textContent);
+      }
 
       if (!embedding) {
         console.warn('Failed to generate embedding for PDF content');

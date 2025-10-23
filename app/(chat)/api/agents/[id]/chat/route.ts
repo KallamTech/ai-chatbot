@@ -600,7 +600,7 @@ function createAgentTools(
 
         // Count total results
         searchResults.forEach((result) => {
-          if (result.results && result.results.results) {
+          if (result.results?.results) {
             combinedResults.totalResults += result.results.results.length;
           }
         });
@@ -648,7 +648,7 @@ function createAgentTools(
         }
 
         const dfFetchTool = directFetch();
-        const result = await (dpFetchTool as any).execute({
+        const result = await (dfFetchTool as any).execute({
           dataPoolId: targetDataPool.id,
           title,
           fileName,
@@ -922,8 +922,7 @@ function createAgentTools(
               });
 
               if (
-                searchResult &&
-                searchResult.results &&
+                searchResult?.results &&
                 searchResult.results.length > 0
               ) {
                 // Check if any result matches the document ID
@@ -1098,7 +1097,7 @@ function createAgentTools(
 
           // Count total results
           searchResults.forEach((result) => {
-            if (result.results && result.results.results) {
+            if (result.results?.results) {
               combinedResults.totalResults += result.results.results.length;
             }
           });
