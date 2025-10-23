@@ -261,7 +261,7 @@ export const ragSearch = () =>
 
           searchResults = await upstashVectorService.searchDocuments(
             dataPoolId,
-            queryEmbedding!,
+            queryEmbedding,
             {
               limit: limit * 2, // Get more results to account for filtering
               filter: filterString,

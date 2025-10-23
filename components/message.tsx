@@ -64,7 +64,7 @@ const PurePreviewMessage = ({
   useDataStream();
   // Callback to send execution results back to agent
   const handleExecutionComplete = (result: any) => {
-    let resultMessage;
+    let resultMessage: string;
     if (result.success) {
       resultMessage = `Python execution completed successfully. Output: ${result.output}${result.result ? `\nReturn value: ${result.result}` : ''}`;
     } else {
@@ -687,14 +687,11 @@ const PurePreviewMessage = ({
                               </div>
                             ) : (
                               <div className="p-3 space-y-2">
-                                <div className="text-sm font-medium text-green-600">
-                                  🔍 Document Search Results
-                                </div>
                                 <div className="space-y-2">
                                   {(part as any).output.results?.map(
                                     (result: any, index: number) => (
                                       <div
-                                        key={index}
+                                        key={result.id || index}
                                         className="p-2 border rounded"
                                       >
                                         <div className="font-medium">
@@ -762,7 +759,7 @@ const PurePreviewMessage = ({
                                     {(part as any).output.documents?.map(
                                       (doc: any, index: number) => (
                                         <div
-                                          key={index}
+                                          key={doc.id || index}
                                           className="p-2 border rounded"
                                         >
                                           <div className="font-medium">
@@ -921,7 +918,7 @@ const PurePreviewMessage = ({
                                       ).output.searchResults?.results?.map(
                                         (result: any, index: number) => (
                                           <div
-                                            key={index}
+                                            key={result.id || index}
                                             className="p-2 border rounded"
                                           >
                                             <div className="text-sm text-gray-600">
@@ -1024,7 +1021,7 @@ const PurePreviewMessage = ({
                                               index: number,
                                             ) => (
                                               <li
-                                                key={index}
+                                                key={warning}
                                                 className="text-yellow-700"
                                               >
                                                 • {warning}
@@ -1038,7 +1035,7 @@ const PurePreviewMessage = ({
                                       {(part as any).output.results.map(
                                         (result: any, index: number) => (
                                           <div
-                                            key={index}
+                                            key={result.id || index}
                                             className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800"
                                           >
                                             <div className="flex items-center justify-between mb-2">
@@ -1130,7 +1127,7 @@ const PurePreviewMessage = ({
                                   {(part as any).output.results?.map(
                                     (result: any, index: number) => (
                                       <div
-                                        key={index}
+                                        key={result.id || index}
                                         className="p-2 border rounded"
                                       >
                                         <div className="font-medium">
@@ -1224,7 +1221,7 @@ const PurePreviewMessage = ({
                                         src={
                                           (part as any).output.imageData.blobUrl
                                         }
-                                        alt="Generated image"
+                                        alt="Generated"
                                         className="max-w-full h-auto rounded-lg border shadow-sm"
                                         style={{ maxHeight: '500px' }}
                                       />

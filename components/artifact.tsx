@@ -577,9 +577,9 @@ function PureArtifact({
             </AnimatePresence>
 
             {/* Resize handle - positioned at the left edge of artifact panel */}
-            <div
-              className={`absolute top-0 left-0 w-2 h-full bg-transparent hover:bg-primary/20 cursor-col-resize z-50 group ${isResizing ? 'bg-primary/30' : ''}`}
-              onMouseDown={handleMouseDown}
+                        <div
+                          role="separator"
+                           className={`absolute top-0 left-0 w-2 h-full bg-transparent hover:bg-primary/20 cursor-col-resize z-50 group ${isResizing ? 'bg-primary/30' : ''}`}              onMouseDown={handleMouseDown}
               title="Drag to resize artifact panel"
             >
               <div
