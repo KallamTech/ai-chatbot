@@ -4,10 +4,10 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { getDataPoolDocumentsFiltered } from '@/lib/db/queries';
 
-export const datapoolFetch = () =>
+export const directFetch = () =>
   tool({
     description:
-      'Fetch documents directly from a data pool using SQL-backed filters on title and metadata.fileName. Useful for high-level tasks like summarizing a specific PDF by its file name or title.',
+      'Directly fetch document content by title or filename. Use this when the user explicitly asks for a specific document, rather than performing a semantic search. This tool is ideal for retrieving a document to perform a high-level task, such as summarizing a PDF.',
     inputSchema: z.object({
       dataPoolId: z.string().describe('ID of the data pool'),
       title: z
@@ -71,7 +71,7 @@ export const datapoolFetch = () =>
           documents: items,
         };
       } catch (error) {
-        console.error('Error in datapoolFetch tool:', error);
+        console.error('Error in directFetch tool:', error);
         return { error: 'Failed to fetch datapool documents' };
       }
     },

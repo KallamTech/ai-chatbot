@@ -30,7 +30,7 @@ import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { generateImage } from '@/lib/ai/tools/generate-image';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
-import { datapoolFetch } from '@/lib/ai/tools/datapool-fetch';
+import { directFetch } from '@/lib/ai/tools/direct-fetch';
 import { getDataPoolsByUserId } from '@/lib/db/queries';
 import { z } from 'zod';
 import { isProductionEnvironment } from '@/lib/constants';
@@ -288,29 +288,17 @@ export async function POST(request: Request) {
                 .optional()
                 .default(0.3)
                 .describe('Minimum similarity threshold (0.3 is more lenient)'),
-              fileName: z
-                .string()
-                .optional()
-                .describe('Filter by document file name (partial match)'),
-              title: z
-                .string()
-                .optional()
-                .describe('Filter by document title (partial match)'),
             }),
             execute: async ({
               query,
               dataPoolId,
               limit = 5,
               threshold = 0.3,
-              title,
-              fileName,
             }: {
               query: string;
               dataPoolId: string;
               limit?: number;
               threshold?: number;
-              title?: string;
-              fileName?: string;
             }) => {
               try {
                 // Verify the datapool is available (connected and belongs to the user)
@@ -333,8 +321,6 @@ export async function POST(request: Request) {
                   query,
                   limit,
                   threshold,
-                  ...(title && { title }),
-                  ...(fileName && { fileName }),
                   ...(selectedChatModel && { modelId: selectedChatModel }),
                 });
 
@@ -356,7 +342,7 @@ export async function POST(request: Request) {
         };
 
         const ragSearchTool = createRagSearchTool();
-        const createDatapoolFetchTool = () => {
+        const createDirectFetchTool = () => {
           if (availableDataPools.length === 0) return null;
 
           return tool({
@@ -395,7 +381,7 @@ export async function POST(request: Request) {
                 };
               }
 
-              const dpFetchTool = datapoolFetch();
+              const dfFetchTool = directFetch();
               const result = await (dpFetchTool as any).execute({
                 dataPoolId: targetDataPool.id,
                 title,
@@ -414,7 +400,7 @@ export async function POST(request: Request) {
             },
           });
         };
-        const sqlFetchTool = createDatapoolFetchTool();
+        const directFetchTool = createDirectFetchTool();
         const tools: any = {
           getWeather,
           createDocument: createDocument({ session, dataStream }),
@@ -449,8 +435,8 @@ export async function POST(request: Request) {
         }
         // Add SQL-backed datapool fetch tool for high-level doc retrieval
         if (sqlFetchTool) {
-          tools.datapoolFetch = sqlFetchTool;
-          activeTools.push('datapoolFetch');
+          tools.directFetch = directFetchTool;
+          activeTools.push('directFetch');
         }
 
         const result = streamText({

@@ -27,7 +27,7 @@ import {
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '@/app/(chat)/actions';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
-import { datapoolFetch } from '@/lib/ai/tools/datapool-fetch';
+import { directFetch } from '@/lib/ai/tools/direct-fetch';
 import { webSearch, newsSearch } from '@/lib/ai/tools/websearch';
 import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -611,7 +611,7 @@ function createAgentTools(
     });
 
     // Add direct SQL-backed fetch tool for high-level retrieval by title/filename
-    tools.datapoolFetch = tool({
+    tools.directFetch = tool({
       description:
         'Fetch documents directly from connected data pools using SQL filters on title and metadata.fileName. Ideal for tasks like summarizing a specific PDF by name.',
       inputSchema: z.object({
@@ -647,7 +647,7 @@ function createAgentTools(
           };
         }
 
-        const dpFetchTool = datapoolFetch();
+        const dfFetchTool = directFetch();
         const result = await (dpFetchTool as any).execute({
           dataPoolId: targetDataPool.id,
           title,

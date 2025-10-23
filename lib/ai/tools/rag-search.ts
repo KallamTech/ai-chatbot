@@ -117,10 +117,11 @@ function truncateContent(
 export const ragSearch = () =>
   tool({
     description:
-      'Search through documents in a data pool using semantic similarity, keyword matching, or hybrid search (combines both approaches)',
+      'Search for information within documents using semantic similarity. This tool is best for answering questions or exploring topics by finding relevant document chunks, not for retrieving entire documents. For fetching specific documents by title or filename, use the `directFetch` tool.',
     inputSchema: z.object({
       dataPoolId: z.string().describe('ID of the data pool to search'),
-      query: z.string().describe('Search query'),
+      query: z.string().optional().describe('Search query for semantic search'),
+      documentId: z.string().optional().describe('Fetch a specific document by ID'),
       limit: z
         .number()
         .optional()
@@ -179,6 +180,7 @@ export const ragSearch = () =>
     execute: async ({
       dataPoolId,
       query,
+      documentId,
       limit,
       threshold,
       fileName,
@@ -186,17 +188,19 @@ export const ragSearch = () =>
       maxContextTokens,
       modelId,
       truncateStrategy,
-      searchType = 'hybrid', // Default fallback for direct calls
-      keywordWeight = 0.3, // Default fallback for direct calls
-      semanticWeight = 0.7, // Default fallback for direct calls
     }) => {
+      if (!query && !documentId) {
+        return {
+          error: 'Either `query` or `documentId` must be provided.',
+        };
+      }
+
       try {
         console.log('RAG Search: Starting search for data pool:', dataPoolId);
         console.log('RAG Search: Query:', query);
         console.log('RAG Search: Parameters:', {
           maxContextTokens,
           modelId,
-          searchType,
           limit,
           threshold,
         });
@@ -224,50 +228,32 @@ export const ragSearch = () =>
           };
         }
 
-        // Generate embedding for the query (needed for semantic and hybrid search)
-        let queryEmbedding: number[] | undefined;
-        if (searchType === 'semantic' || searchType === 'hybrid') {
-          queryEmbedding = await generateEmbedding(query);
+        let searchResults: any[] = [];
+
+        if (documentId) {
+          // Fetch a single document by ID
+          const doc = await upstashVectorService.getDocuments(dataPoolId, [documentId]);
+          searchResults = doc.map((d) => ({
+            id: d.id,
+            score: 1,
+            metadata: d.metadata,
+            content: d.data,
+          }));
+        } else if (query) {
+          // Generate embedding for the query
+          const queryEmbedding = await generateEmbedding(query);
           if (!queryEmbedding) {
             return {
               error: 'Failed to generate embedding for query',
             };
           }
-        }
 
-        // Build SQL-like filter string for Upstash vector search
-        const filterString = buildFilterString({
-          title,
-          fileName,
-        });
-
-        let searchResults: any[] = [];
-
-        // Perform search based on search type
-        if (searchType === 'keyword') {
-          console.log('RAG Search: Using keyword search...');
-          // Import the SQL search function dynamically
-          const { searchDataPoolDocuments } = await import('@/lib/db/queries');
-          const keywordResults = await searchDataPoolDocuments({
-            dataPoolId,
-            query,
-            limit: limit * 2,
+          // Build SQL-like filter string for Upstash vector search
+          const filterString = buildFilterString({
             title,
+            fileName,
           });
 
-          // Convert to SearchResult format
-          searchResults = keywordResults.map((doc) => ({
-            id: doc.id,
-            score: doc.relevanceScore / 10, // Normalize to 0-1 range
-            metadata: (doc.metadata as Record<string, any>) || {},
-            content: doc.content,
-          }));
-
-          console.log(
-            'RAG Search: Found documents from keyword search:',
-            searchResults.length,
-          );
-        } else if (searchType === 'semantic') {
           console.log('RAG Search: Using semantic search...');
           if (filterString) {
             console.log('RAG Search: Using filter:', filterString);
@@ -287,39 +273,6 @@ export const ragSearch = () =>
 
           console.log(
             'RAG Search: Found documents from semantic search:',
-            searchResults.length,
-          );
-        } else if (searchType === 'hybrid') {
-          console.log('RAG Search: Using hybrid search...');
-          if (filterString) {
-            console.log('RAG Search: Using filter:', filterString);
-          }
-
-          const hybridResults = await upstashVectorService.hybridSearch(
-            dataPoolId,
-            query,
-            queryEmbedding!,
-            {
-              limit: limit,
-              filter: filterString,
-              keywordWeight,
-              semanticWeight,
-              combineResults: true,
-              includeMetadata: true,
-              includeData: true,
-            },
-          );
-
-          // Convert HybridSearchResult to SearchResult format
-          searchResults = hybridResults.map((result) => ({
-            id: result.id,
-            score: result.score,
-            metadata: result.metadata,
-            content: result.content,
-          }));
-
-          console.log(
-            'RAG Search: Found documents from hybrid search:',
             searchResults.length,
           );
         }
