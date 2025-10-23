@@ -18,6 +18,7 @@ import {
   getMessagesByChatId,
   saveChat,
   saveMessages,
+  getDataPoolsByUserId,
 } from '@/lib/db/queries';
 import { convertToUIMessages, generateUUID } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
@@ -31,7 +32,6 @@ import { deepResearch } from '@/lib/ai/tools/deepresearch';
 import { generateImage } from '@/lib/ai/tools/generate-image';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { directFetch } from '@/lib/ai/tools/direct-fetch';
-import { getDataPoolsByUserId } from '@/lib/db/queries';
 import { z } from 'zod';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';

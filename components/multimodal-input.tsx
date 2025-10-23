@@ -185,6 +185,7 @@ function PureMultimodalInput({
     setLocalStorageInput,
     width,
     chatId,
+    taggedDocument,
   ]);
 
   const uploadFile = async (file: File) => {
@@ -357,7 +358,7 @@ function PureMultimodalInput({
           placeholder="Send a message..."
           value={input}
           onChange={handleInput}
-          className="w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0 text-base py-4 px-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 dark:[&::-webkit-scrollbar-thumb]:hover:bg-gray-500"
+          className="w-full resize-none rounded-none border-none shadow-none outline-none ring-0 text-base p-4 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 dark:[&::-webkit-scrollbar-thumb]:hover:bg-gray-500"
           autoFocus
           minHeight={24}
           maxHeight={300}

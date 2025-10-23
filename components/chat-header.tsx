@@ -43,9 +43,9 @@ function PureChatHeader({
       {/* Agent Indicator */}
       {agentId && (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <div className="w-5 h-5 bg-blue-500 rounded-sm flex items-center justify-center">
+          <div className="size-5 bg-blue-500 rounded-sm flex items-center justify-center">
             <svg
-              className="w-3 h-3 text-white"
+              className="size-3 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

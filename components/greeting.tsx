@@ -44,7 +44,7 @@ export const Greeting = ({ session }: GreetingProps) => {
         >
           <Link
             href="/register"
-            className="text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 rounded-lg px-6 py-3 inline-block shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 cursor-pointer"
+            className="text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 rounded-lg px-6 py-3 inline-block shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer"
           >
             Sign up for free to unlock unlimited messages & data pools
           </Link>
@@ -61,9 +61,9 @@ export const Greeting = ({ session }: GreetingProps) => {
         {/* AI Models & Capabilities */}
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-md p-3 border border-blue-200/50 dark:border-blue-800/50">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-5 h-5 bg-blue-500 rounded-sm flex items-center justify-center">
+            <div className="size-5 bg-blue-500 rounded-sm flex items-center justify-center">
               <svg
-                className="w-3 h-3 text-white"
+                className="size-3 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -124,9 +124,9 @@ export const Greeting = ({ session }: GreetingProps) => {
         {/* Smart Agents */}
         <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-md p-3 border border-purple-200/50 dark:border-purple-800/50">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-5 h-5 bg-purple-500 rounded-sm flex items-center justify-center">
+            <div className="size-5 bg-purple-500 rounded-sm flex items-center justify-center">
               <svg
-                className="w-3 h-3 text-white"
+                className="size-3 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -166,9 +166,9 @@ export const Greeting = ({ session }: GreetingProps) => {
         {/* Data Pools */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-md p-3 border border-green-200/50 dark:border-green-800/50">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-5 h-5 bg-green-500 rounded-sm flex items-center justify-center">
+            <div className="size-5 bg-green-500 rounded-sm flex items-center justify-center">
               <svg
-                className="w-3 h-3 text-white"
+                className="size-3 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -208,9 +208,9 @@ export const Greeting = ({ session }: GreetingProps) => {
         {/* Artifacts & Tools */}
         <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-md p-3 border border-orange-200/50 dark:border-orange-800/50">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-5 h-5 bg-orange-500 rounded-sm flex items-center justify-center">
+            <div className="size-5 bg-orange-500 rounded-sm flex items-center justify-center">
               <svg
-                className="w-3 h-3 text-white"
+                className="size-3 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

@@ -194,7 +194,7 @@ export function Chat({
         return prev;
       });
     },
-    [connectedDataPools],
+    [],
   );
 
   // Handler for disconnecting datapools
@@ -206,7 +206,7 @@ export function Chat({
         return newConnected;
       });
     },
-    [connectedDataPools],
+    [],
   );
 
   const searchParams = useSearchParams();

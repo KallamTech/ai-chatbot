@@ -171,7 +171,7 @@ export function ModelSelector({
         <div className="p-3 border-b">
           {/* Search Input */}
           <div className="relative">
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               <SearchIcon size={16} />
             </div>
             <Input
