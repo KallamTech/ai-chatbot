@@ -358,12 +358,12 @@ function PureMultimodalInput({
               <>
                 {onConnectDataPool && (
                   <RagSearchButton
-                      key={`rag-search-${(connectedDataPools || []).join('-')}`}
-                      status={status}
-                      onConnectDataPool={onConnectDataPool}
-                      onDisconnectDataPool={onDisconnectDataPool || (() => {})}
-                      connectedDataPools={connectedDataPools || []}
-                    />
+                    key={`rag-search-${(connectedDataPools || []).join('-')}`}
+                    status={status}
+                    onConnectDataPool={onConnectDataPool}
+                    onDisconnectDataPool={onDisconnectDataPool || (() => {})}
+                    connectedDataPools={connectedDataPools || []}
+                  />
                 )}
                 {connectedDataPools && connectedDataPools.length > 0 && (
                   <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">

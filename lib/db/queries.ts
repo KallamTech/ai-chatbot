@@ -945,6 +945,85 @@ export async function deleteDataPoolDocument({
   }
 }
 
+export async function getDataPoolDocumentsByParentId({
+  parentDocumentId,
+  dataPoolId,
+}: {
+  parentDocumentId: string;
+  dataPoolId: string;
+}): Promise<DataPoolDocument[]> {
+  try {
+    return await db
+      .select()
+      .from(dataPoolDocument)
+      .where(
+        and(
+          eq(dataPoolDocument.dataPoolId, dataPoolId),
+          sql`${dataPoolDocument.metadata}::jsonb ->> 'parentDocumentId' = ${parentDocumentId}`,
+        ),
+      )
+      .orderBy(
+        sql`CAST(${dataPoolDocument.metadata}::jsonb ->> 'chunkIndex' AS INTEGER)`,
+      );
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get data pool documents by parent ID',
+    );
+  }
+}
+
+export async function deleteDataPoolDocumentWithChunks({
+  id,
+  dataPoolId,
+}: {
+  id: string;
+  dataPoolId: string;
+}): Promise<{ deletedDocuments: number; deletedChunks: number }> {
+  try {
+    // First, get all chunk documents for this parent document
+    const chunks = await getDataPoolDocumentsByParentId({
+      parentDocumentId: id,
+      dataPoolId,
+    });
+
+    // Delete all chunks
+    let deletedChunks = 0;
+    if (chunks.length > 0) {
+      const chunkIds = chunks.map((chunk) => chunk.id);
+      const deletedChunkResults = await db
+        .delete(dataPoolDocument)
+        .where(
+          and(
+            inArray(dataPoolDocument.id, chunkIds),
+            eq(dataPoolDocument.dataPoolId, dataPoolId),
+          ),
+        );
+      deletedChunks = chunks.length;
+    }
+
+    // Delete the main document
+    await db
+      .delete(dataPoolDocument)
+      .where(
+        and(
+          eq(dataPoolDocument.id, id),
+          eq(dataPoolDocument.dataPoolId, dataPoolId),
+        ),
+      );
+
+    return {
+      deletedDocuments: 1,
+      deletedChunks,
+    };
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete data pool document with chunks',
+    );
+  }
+}
+
 // Workflow node queries
 export async function createWorkflowNode({
   agentId,
@@ -1281,13 +1360,13 @@ export async function getDataPoolDocumentsFiltered({
     if (query && query.trim().length > 0) {
       const searchQuery = query.trim();
       whereConditions.push(
-        sql`(${dataPoolDocument.title} ILIKE ${`%${searchQuery}%`} OR ${dataPoolDocument.metadata}->>'fileName' ILIKE ${`%${searchQuery}%`})`
+        sql`(${dataPoolDocument.title} ILIKE ${`%${searchQuery}%`} OR ${dataPoolDocument.metadata}->>'fileName' ILIKE ${`%${searchQuery}%`})`,
       );
     }
 
     // Exclude documents with metadata.type = "extracted_image"
     whereConditions.push(
-      sql`(${dataPoolDocument.metadata} IS NULL OR ${dataPoolDocument.metadata}->>'type' IS NULL OR ${dataPoolDocument.metadata}->>'type' != 'extracted_image')`
+      sql`(${dataPoolDocument.metadata} IS NULL OR ${dataPoolDocument.metadata}->>'type' IS NULL OR ${dataPoolDocument.metadata}->>'type' != 'extracted_image')`,
     );
 
     const results = await db

@@ -765,7 +765,7 @@ const PurePreviewMessage = ({
                                           <div key={doc.id} className="py-1">
                                             {index + 1}. {doc.title}
                                           </div>
-                                        )
+                                        ),
                                       )}
                                     </div>
                                   </div>
@@ -1024,9 +1024,15 @@ const PurePreviewMessage = ({
                                       {(part as any).output.results.map(
                                         (result: any, index: number) => (
                                           <div key={result.id} className="py-1">
-                                            {index + 1}. {result.title || `Document ${result.id}`}
+                                            {index + 1}.{' '}
+                                            {result.title ||
+                                              `Document ${result.id}`}
                                             <span className="text-xs text-gray-500 ml-2">
-                                              ({(result.similarity * 100).toFixed(1)}% match)
+                                              (
+                                              {(
+                                                result.similarity * 100
+                                              ).toFixed(1)}
+                                              % match)
                                             </span>
                                           </div>
                                         ),
@@ -1170,7 +1176,7 @@ const PurePreviewMessage = ({
                                         src={
                                           (part as any).output.imageData.blobUrl
                                         }
-                                          alt="Generated"
+                                        alt="Generated"
                                         className="max-w-full h-auto rounded-lg border shadow-sm"
                                         style={{ maxHeight: '500px' }}
                                       />

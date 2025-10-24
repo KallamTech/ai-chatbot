@@ -19,9 +19,7 @@ export const findDocumentByTitle = (dataPools: any[]) =>
         .boolean()
         .optional()
         .default(false)
-        .describe(
-          'Whether to require an exact match or allow partial matches',
-        ),
+        .describe('Whether to require an exact match or allow partial matches'),
       dataPoolId: z
         .string()
         .optional()

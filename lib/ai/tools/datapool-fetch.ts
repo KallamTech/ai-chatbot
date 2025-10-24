@@ -2,7 +2,7 @@ import 'server-only';
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { getDataPoolDocumentsFiltered, getDataPoolByName } from '@/lib/db/queries';
+import { getDataPoolDocumentsFiltered } from '@/lib/db/queries';
 
 export const datapoolFetch = (session?: any, availableDataPools?: any[]) =>
   tool({
@@ -13,7 +13,9 @@ export const datapoolFetch = (session?: any, availableDataPools?: any[]) =>
       query: z
         .string()
         .min(1)
-        .describe('Search text - you must provide keywords or terms to search for in document titles and filenames. Cannot be empty.'),
+        .describe(
+          'Search text - you must provide keywords or terms to search for in document titles and filenames. Cannot be empty.',
+        ),
       limit: z
         .number()
         .optional()
@@ -53,10 +55,11 @@ export const datapoolFetch = (session?: any, availableDataPools?: any[]) =>
         if (!targetDataPool) {
           return {
             error: `Data pool '${dataPoolName}' not found or not connected to this chat`,
-            availableDataPools: availableDataPools?.map((dp) => ({
-              id: dp.id,
-              name: dp.name,
-            })) || [],
+            availableDataPools:
+              availableDataPools?.map((dp) => ({
+                id: dp.id,
+                name: dp.name,
+              })) || [],
           };
         }
 

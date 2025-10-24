@@ -16,28 +16,25 @@ export const ragSearchById = () =>
       limit: z
         .number()
         .optional()
-        .default(3)
-        .describe('Maximum number of results to return (max 5)'),
+        .default(10)
+        .describe('Maximum number of results to return (max 10)'),
       threshold: z
         .number()
         .optional()
         .default(0.3)
         .describe('Minimum similarity threshold'),
-      title: z
-        .string()
-        .optional()
-        .describe('Filter by document title'),
+      title: z.string().optional().describe('Filter by document title'),
     }),
     execute: async ({
       dataPoolId,
       query,
-      limit = 3,
+      limit = 10,
       threshold = 0.3,
       title,
     }) => {
       try {
         // Limit results to prevent large prompts
-        const maxLimit = Math.min(limit, 5);
+        const maxLimit = Math.min(limit, 10);
 
         // Check if index exists
         const indexExists = await upstashVectorService.indexExists(dataPoolId);
@@ -58,14 +55,15 @@ export const ragSearchById = () =>
         const filter = title ? `title = '${title}'` : undefined;
 
         // Get total document count for the datapool
-        const totalDocuments = await upstashVectorService.getDocumentCount(dataPoolId);
+        const totalDocuments =
+          await upstashVectorService.getDocumentCount(dataPoolId);
 
         // Search documents with higher limit to get more candidates for filtering
         const searchResults = await upstashVectorService.searchDocuments(
           dataPoolId,
           queryEmbedding,
           {
-            limit: maxLimit * 3, // Get more candidates to filter by score
+            limit: maxLimit * 2, // Get more candidates to filter by score
             filter,
             includeMetadata: true,
             includeData: true,
@@ -73,7 +71,9 @@ export const ragSearchById = () =>
         );
 
         // Filter by threshold and limit results - prioritize quality over quantity
-        const filteredResults = searchResults.filter((result) => result.score >= threshold);
+        const filteredResults = searchResults.filter(
+          (result) => result.score >= threshold,
+        );
         const results = filteredResults
           .sort((a, b) => b.score - a.score)
           .slice(0, maxLimit) // Only take the top scoring results
@@ -109,22 +109,19 @@ export const ragSearch = (session?: any, availableDataPools?: any[]) =>
       limit: z
         .number()
         .optional()
-        .default(3)
-        .describe('Maximum number of results to return (max 5)'),
+        .default(10)
+        .describe('Maximum number of results to return (max 10)'),
       threshold: z
         .number()
         .optional()
         .default(0.3)
         .describe('Minimum similarity threshold'),
-      title: z
-        .string()
-        .optional()
-        .describe('Filter by document title'),
+      title: z.string().optional().describe('Filter by document title'),
     }),
     execute: async ({
       dataPoolName,
       query,
-      limit = 3,
+      limit = 10,
       threshold = 0.3,
       title,
     }) => {
@@ -136,17 +133,18 @@ export const ragSearch = (session?: any, availableDataPools?: any[]) =>
         if (!targetDataPool) {
           return {
             error: `Data pool '${dataPoolName}' not found or not connected to this chat`,
-            availableDataPools: availableDataPools?.map((dp) => ({
-              id: dp.id,
-              name: dp.name,
-            })) || [],
+            availableDataPools:
+              availableDataPools?.map((dp) => ({
+                id: dp.id,
+                name: dp.name,
+              })) || [],
           };
         }
 
         const dataPoolId = targetDataPool.id;
 
         // Limit results to prevent large prompts
-        const maxLimit = Math.min(limit, 5);
+        const maxLimit = Math.min(limit, 10);
 
         // Check if index exists
         const indexExists = await upstashVectorService.indexExists(dataPoolId);
@@ -167,14 +165,15 @@ export const ragSearch = (session?: any, availableDataPools?: any[]) =>
         const filter = title ? `title = '${title}'` : undefined;
 
         // Get total document count for the datapool
-        const totalDocuments = await upstashVectorService.getDocumentCount(dataPoolId);
+        const totalDocuments =
+          await upstashVectorService.getDocumentCount(dataPoolId);
 
         // Search documents with higher limit to get more candidates for filtering
         const searchResults = await upstashVectorService.searchDocuments(
           dataPoolId,
           queryEmbedding,
           {
-            limit: maxLimit * 3, // Get more candidates to filter by score
+            limit: maxLimit * 2, // Get more candidates to filter by score
             filter,
             includeMetadata: true,
             includeData: true,
@@ -182,7 +181,9 @@ export const ragSearch = (session?: any, availableDataPools?: any[]) =>
         );
 
         // Filter by threshold and limit results - prioritize quality over quantity
-        const filteredResults = searchResults.filter((result) => result.score >= threshold);
+        const filteredResults = searchResults.filter(
+          (result) => result.score >= threshold,
+        );
         const results = filteredResults
           .sort((a, b) => b.score - a.score)
           .slice(0, maxLimit) // Only take the top scoring results

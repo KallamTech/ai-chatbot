@@ -261,8 +261,14 @@ export async function POST(request: Request) {
             : [];
 
         // Use the imported tools directly
-        const ragSearchTool = availableDataPools.length > 0 ? ragSearch(session, availableDataPools) : null;
-        const datapoolFetchTool = availableDataPools.length > 0 ? datapoolFetch(session, availableDataPools) : null;
+        const ragSearchTool =
+          availableDataPools.length > 0
+            ? ragSearch(session, availableDataPools)
+            : null;
+        const datapoolFetchTool =
+          availableDataPools.length > 0
+            ? datapoolFetch(session, availableDataPools)
+            : null;
         const tools: any = {
           getWeather,
           createDocument: createDocument({ session, dataStream }),

@@ -67,7 +67,7 @@ export const searchImages = (dataPools: any[]) =>
         }
 
         // Search across all data pools for images
-        const ragSearchTool = ragSearchById();  // Use the ID-based version since this tool works internally
+        const ragSearchTool = ragSearchById(); // Use the ID-based version since this tool works internally
         const searchPromises = dataPools.map(async (dataPool) => {
           try {
             const result = await (ragSearchTool as any).execute({

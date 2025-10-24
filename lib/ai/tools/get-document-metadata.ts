@@ -9,9 +9,7 @@ export const getDocumentMetadata = () =>
     description:
       'Get detailed metadata and information about a specific document',
     inputSchema: z.object({
-      documentId: z
-        .string()
-        .describe('ID of the document to get metadata for'),
+      documentId: z.string().describe('ID of the document to get metadata for'),
     }),
     execute: async ({ documentId }) => {
       console.log('Getting metadata for document:', documentId);

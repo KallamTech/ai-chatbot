@@ -14,9 +14,7 @@ export const searchSpecificDocument = (dataPools: any[]) =>
         .describe('ID of the specific document to search within'),
       query: z
         .string()
-        .describe(
-          'Search query to find specific content within the document',
-        ),
+        .describe('Search query to find specific content within the document'),
     }),
     execute: async ({ documentId, query }) => {
       console.log(
@@ -43,10 +41,7 @@ export const searchSpecificDocument = (dataPools: any[]) =>
               threshold: 0.1, // Very low threshold to find exact document
             });
 
-            if (
-              searchResult?.results &&
-              searchResult.results.length > 0
-            ) {
+            if (searchResult?.results && searchResult.results.length > 0) {
               // Check if any result matches the document ID
               const matchingResult = searchResult.results.find(
                 (result: any) =>
