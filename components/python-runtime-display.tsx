@@ -209,6 +209,7 @@ export function PythonRuntimeDisplay({
               {/* Close button */}
               <div className="flex justify-end">
                 <button
+                  type="button"
                   onClick={() => setIsVisible(false)}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >

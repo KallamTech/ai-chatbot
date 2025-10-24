@@ -145,7 +145,7 @@ export function analyzeDocumentContent(
   const footnoteCount = (content.match(/\[\^\d+\]|\[\d+\]/g) || []).length;
 
   // OCR metadata extraction
-  let ocrMetadata;
+  let ocrMetadata: DocumentAnalysisResult['ocrMetadata'];
   if (ocrResponse) {
     ocrMetadata = extractOCRMetadata(ocrResponse);
   }

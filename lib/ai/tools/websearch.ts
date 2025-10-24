@@ -50,10 +50,25 @@ export const webSearch = () =>
 
         console.log('WebSearch: Search completed successfully');
 
+        // Extract sources from result.steps[0].content where type is source
+        let sources: string[] = [];
+        if ((result as any).steps?.[0]?.content) {
+          const stepContent = (result as any).steps[0].content;
+          if (Array.isArray(stepContent)) {
+            sources = stepContent
+              .filter((item: any) => item.type === 'source')
+              .map((item: any) => item.url)
+              .filter(Boolean);
+          } else if (stepContent.type === 'source') {
+            sources = [stepContent.url].filter(Boolean);
+          }
+        }
+
         return {
           query,
           type,
           results: result.text,
+          sources,
           timestamp: new Date().toISOString(),
           source: 'perplexity-sonar',
         };
@@ -105,10 +120,25 @@ export const newsSearch = () =>
 
         console.log('NewsSearch: News search completed successfully');
 
+        // Extract sources from result.steps[0].content where type is sources
+        let sources: string[] = [];
+        if ((result as any).steps?.[0]?.content) {
+          const stepContent = (result as any).steps[0].content;
+          if (Array.isArray(stepContent)) {
+            sources = stepContent
+              .filter((item: any) => item.type === 'source')
+              .map((item: any) => item.url)
+              .filter(Boolean);
+          } else if (stepContent.type === 'source') {
+            sources = [stepContent.url].filter(Boolean);
+          }
+        }
+
         return {
           query,
           timeframe,
           results: result.text,
+          sources,
           timestamp: new Date().toISOString(),
           source: 'perplexity-sonar',
           type: 'news',

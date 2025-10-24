@@ -157,7 +157,7 @@ type ragSearchTool = {
   toolCallId: string;
   state: 'input-available' | 'output-available';
   input: {
-    dataPoolId: string;
+    dataPoolName: string;
     query: string;
     limit?: number;
     threshold?: number;

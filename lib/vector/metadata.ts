@@ -5,11 +5,42 @@ import { upstashVectorService } from './upstash';
 /**
  * Utility functions for handling metadata consistency between SQL and Upstash
  */
-export class VectorMetadataManager {
+const normalizeMetadata = (
+  metadata: Record<string, any>,
+): Record<string, any> => {
+  const normalized: Record<string, any> = {};
+
+  // Copy all metadata fields
+  for (const [key, value] of Object.entries(metadata)) {
+    // Handle different data types for Upstash compatibility
+    if (value === null || value === undefined) {
+      continue; // Skip null/undefined values
+    }
+
+    if (Array.isArray(value)) {
+      // Ensure arrays are properly formatted
+      normalized[key] = value.filter(
+        (item) => item !== null && item !== undefined,
+      );
+    } else if (typeof value === 'object') {
+      // Handle nested objects
+      normalized[key] = normalizeMetadata(value);
+    } else if (typeof value === 'string' && value.length > 1000) {
+      // Truncate very long strings to avoid Upstash limits
+      normalized[key] = `${value.substring(0, 1000)}...`;
+    } else {
+      normalized[key] = value;
+    }
+  }
+
+  return normalized;
+};
+
+export const vectorMetadataManager = {
   /**
    * Ensure metadata consistency between SQL and Upstash
    */
-  static async syncDocumentMetadata(
+  async syncDocumentMetadata(
     dataPoolId: string,
     documentId: string,
     metadata: Record<string, any>,
@@ -28,12 +59,12 @@ export class VectorMetadataManager {
       );
       // Don't throw error as this is supplementary data
     }
-  }
+  },
 
   /**
    * Get metadata from Redis cache
    */
-  static async getDocumentMetadata(
+  async getDocumentMetadata(
     dataPoolId: string,
     documentId: string,
   ): Promise<Record<string, any> | null> {
@@ -46,12 +77,12 @@ export class VectorMetadataManager {
       );
       return null;
     }
-  }
+  },
 
   /**
    * Delete metadata from Redis cache
    */
-  static async deleteDocumentMetadata(
+  async deleteDocumentMetadata(
     dataPoolId: string,
     documentId: string,
   ): Promise<void> {
@@ -64,44 +95,17 @@ export class VectorMetadataManager {
       );
       // Don't throw error as this is supplementary data
     }
-  }
+  },
 
   /**
    * Validate and normalize metadata for Upstash storage
    */
-  static normalizeMetadata(metadata: Record<string, any>): Record<string, any> {
-    const normalized: Record<string, any> = {};
-
-    // Copy all metadata fields
-    for (const [key, value] of Object.entries(metadata)) {
-      // Handle different data types for Upstash compatibility
-      if (value === null || value === undefined) {
-        continue; // Skip null/undefined values
-      }
-
-      if (Array.isArray(value)) {
-        // Ensure arrays are properly formatted
-        normalized[key] = value.filter(
-          (item) => item !== null && item !== undefined,
-        );
-      } else if (typeof value === 'object') {
-        // Handle nested objects
-        normalized[key] = VectorMetadataManager.normalizeMetadata(value);
-      } else if (typeof value === 'string' && value.length > 1000) {
-        // Truncate very long strings to avoid Upstash limits
-        normalized[key] = `${value.substring(0, 1000)}...`;
-      } else {
-        normalized[key] = value;
-      }
-    }
-
-    return normalized;
-  }
+  normalizeMetadata,
 
   /**
    * Extract searchable tags from metadata
    */
-  static extractSearchTags(metadata: Record<string, any>): string[] {
+  extractSearchTags(metadata: Record<string, any>): string[] {
     const tags: string[] = [];
 
     // Add basic document information
@@ -182,12 +186,12 @@ export class VectorMetadataManager {
 
     // Remove duplicates and filter out empty strings
     return [...new Set(tags.filter((tag) => tag && tag.trim().length > 0))];
-  }
+  },
 
   /**
    * Create filter object for Upstash vector search
    */
-  static createSearchFilter(filters: {
+  createSearchFilter(filters: {
     documentType?: string;
     fileName?: string;
     tags?: string[];
@@ -232,12 +236,12 @@ export class VectorMetadataManager {
     }
 
     return filter;
-  }
+  },
 
   /**
    * Get document statistics for a datapool
    */
-  static async getDatapoolStats(dataPoolId: string): Promise<{
+  async getDatapoolStats(dataPoolId: string): Promise<{
     totalDocuments: number;
     documentsWithVectors: number;
     totalWords: number;
@@ -310,7 +314,5 @@ export class VectorMetadataManager {
         lastUpdated: null,
       };
     }
-  }
-}
-
-export const vectorMetadataManager = new VectorMetadataManager();
+  },
+};

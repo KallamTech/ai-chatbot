@@ -70,7 +70,12 @@ export const systemPrompt = ({
   // Add RAG search information if datapools are connected
   const ragPrompt =
     connectedDataPools && connectedDataPools.length > 0
-      ? `\n\nYou have access to document tools across the user's connected data pools: (1) ragSearch for semantic similarity search, and (2) datapoolFetch for directly fetching documents from a specific data pool using SQL-backed filters on title or fileName.\n\nWhen users ask questions that might be answered by their documents, proactively use ragSearch first to find relevant information before responding. For requests about a specific known file or title (e.g., "summarize Acme-Q3-Report.pdf"), use datapoolFetch to retrieve the exact document(s) and optionally include content. Available data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
+      ? `\n\nYou have access to two document tools: \`ragSearch\` and \`datapoolFetch\`.
+
+1. \`ragSearch\`: Use this for semantic search when the user is asking a question about their documents.
+2. \`datapoolFetch\`: Use this to search and retrieve documents by providing a search query with keywords or terms to find documents by title or filename. You MUST provide a non-empty search query.
+
+Available data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
       : '';
 
   return `${regularPrompt}${ragPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;

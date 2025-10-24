@@ -1,7 +1,8 @@
 import { auth } from '@/app/(auth)/auth';
 import {
   createDataPoolDocument,
-  deleteDataPoolDocument,
+  deleteDataPoolDocumentWithChunks,
+  getDataPoolDocumentsByParentId,
   getDataPoolById,
 } from '@/lib/db/queries';
 import { generateDocumentEmbedding } from '@/lib/utils';
@@ -19,6 +20,12 @@ import {
   getSupportedFileExtensions,
   isPdfProcessingAvailable,
 } from '@/lib/utils/pdf-config';
+import {
+  chunkText,
+  chunkPdfByPages,
+  getChunkSummary,
+  type TextChunk,
+} from '@/lib/utils/text-chunker';
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -228,9 +235,11 @@ export async function POST(
       }
 
       // Remove null bytes and other problematic characters for PostgreSQL
-      content = content
-        .replace(/\0/g, '')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+      content = content.replace(/\0/g, '').replace(
+        // eslint-disable-next-line no-control-regex
+        /[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g,
+        '',
+      );
     }
 
     if (!content.trim()) {
@@ -238,20 +247,6 @@ export async function POST(
         { error: 'File contains only invalid characters' },
         { status: 400 },
       );
-    }
-
-    // Generate embedding for text files (PDFs already have embeddings generated)
-    if (!isPdfFile(file)) {
-      try {
-        embedding = await generateDocumentEmbedding(content);
-        console.log(
-          'Generated embedding for text file:',
-          embedding ? 'success' : 'failed',
-        );
-      } catch (error) {
-        console.error('Error generating embedding:', error);
-        embedding = undefined;
-      }
     }
 
     // Perform comprehensive document analysis
@@ -270,6 +265,28 @@ export async function POST(
 
     // Generate a unique document ID
     const documentId = crypto.randomUUID();
+
+    // Chunk the document content into page-sized pieces
+    let textChunks: TextChunk[];
+    if (isPdfFile(file) && pdfResult.pages && Array.isArray(pdfResult.pages)) {
+      // Use PDF page structure if available
+      const pdfPages = pdfResult.pages.map((page: any, index: number) => ({
+        text: page.text || page.markdown || '',
+        pageNumber: index + 1,
+      }));
+      textChunks = chunkPdfByPages(pdfPages, documentId, {
+        maxCharsPerChunk: 2000, // ~1 page
+      });
+    } else {
+      // Chunk text content for non-PDF files or PDFs without page structure
+      textChunks = chunkText(content, documentId, {
+        maxCharsPerChunk: 2000, // ~1 page
+      });
+    }
+
+    console.log(
+      `Split document into ${textChunks.length} chunks for embedding`,
+    );
 
     // Prepare metadata for the document
     const documentMetadata = {
@@ -378,22 +395,138 @@ export async function POST(
       ],
     };
 
-    // Store the document in Upstash vector database
-    if (embedding) {
-      await upstashVectorService.upsertDocument(dataPool.id, {
-        id: documentId,
-        content: content,
-        embedding: embedding,
-        metadata: documentMetadata,
-      });
+    // Generate embeddings and store each chunk separately
+    const chunkDocuments = [];
+    const failedChunks = [];
+
+    for (let i = 0; i < textChunks.length; i++) {
+      const chunk = textChunks[i];
+
+      try {
+        // Generate embedding for this chunk
+        const chunkEmbedding = await generateDocumentEmbedding(chunk.content);
+
+        if (chunkEmbedding) {
+          // Prepare metadata for this chunk
+          const chunkMetadata = {
+            ...documentMetadata,
+
+            // Chunk-specific metadata
+            isChunk: true,
+            chunkIndex: chunk.chunkIndex,
+            totalChunks: chunk.totalChunks,
+            parentDocumentId: documentId,
+            chunkId: chunk.id,
+
+            // Chunk content info
+            chunkStartPosition: chunk.metadata.startPosition,
+            chunkEndPosition: chunk.metadata.endPosition,
+            chunkEstimatedPage: chunk.metadata.estimatedPageNumber,
+            chunkWordCount: chunk.metadata.wordCount,
+            chunkCharacterCount: chunk.metadata.characterCount,
+            chunkSummary: getChunkSummary(chunk),
+
+            // Update title to include chunk info
+            title: `${title} - Part ${chunk.chunkIndex + 1}/${chunk.totalChunks} (Page ~${chunk.metadata.estimatedPageNumber})`,
+
+            // Update search tags to include chunk-specific tags
+            searchTags: [
+              ...documentMetadata.searchTags,
+              'document-chunk',
+              `chunk-${chunk.chunkIndex}`,
+              `page-${chunk.metadata.estimatedPageNumber}`,
+              `part-${chunk.chunkIndex + 1}-of-${chunk.totalChunks}`,
+              `words-${chunk.metadata.wordCount}`,
+            ],
+          };
+
+          // Store chunk in Upstash vector database
+          await upstashVectorService.upsertDocument(dataPool.id, {
+            id: chunk.id,
+            content: chunk.content,
+            embedding: chunkEmbedding,
+            metadata: chunkMetadata,
+          });
+
+          // Also store chunk in SQL database
+          const chunkDocument = await createDataPoolDocument({
+            dataPoolId: dataPool.id,
+            title: chunkMetadata.title,
+            content: chunk.content,
+            metadata: chunkMetadata,
+          });
+
+          chunkDocuments.push(chunkDocument);
+          console.log(
+            `Successfully stored chunk ${i + 1}/${textChunks.length}: ${chunk.id}`,
+          );
+        } else {
+          failedChunks.push({
+            chunkIndex: i,
+            reason: 'Failed to generate embedding',
+          });
+          console.error(
+            `Failed to generate embedding for chunk ${i + 1}/${textChunks.length}`,
+          );
+        }
+      } catch (error) {
+        failedChunks.push({
+          chunkIndex: i,
+          reason: error instanceof Error ? error.message : 'Unknown error',
+        });
+        console.error(
+          `Error processing chunk ${i + 1}/${textChunks.length}:`,
+          error,
+        );
+      }
     }
 
-    // Also store in SQL database for metadata and non-vector operations
+    // Create a main document record to represent the original document
+    const mainDocumentMetadata = {
+      ...documentMetadata,
+
+      // Main document specific metadata
+      isMainDocument: true,
+      hasChunks: true,
+      totalChunks: textChunks.length,
+      successfulChunks: chunkDocuments.length,
+      failedChunks: failedChunks.length,
+      chunkingStrategy:
+        isPdfFile(file) && pdfResult.pages ? 'pdf-pages' : 'text-chunking',
+
+      // Chunking summary
+      chunkingSummary: {
+        totalChunks: textChunks.length,
+        successful: chunkDocuments.length,
+        failed: failedChunks.length,
+        avgWordsPerChunk: Math.round(
+          textChunks.reduce((sum, chunk) => sum + chunk.metadata.wordCount, 0) /
+            textChunks.length,
+        ),
+        avgCharsPerChunk: Math.round(
+          textChunks.reduce(
+            (sum, chunk) => sum + chunk.metadata.characterCount,
+            0,
+          ) / textChunks.length,
+        ),
+      },
+
+      // Update search tags
+      searchTags: [
+        ...documentMetadata.searchTags,
+        'main-document',
+        'has-chunks',
+        `${textChunks.length}-chunks`,
+        `chunked-${isPdfFile(file) ? 'pdf' : 'text'}`,
+      ],
+    };
+
+    // Store main document in SQL database (not in vector DB since we have chunks)
     const document = await createDataPoolDocument({
       dataPoolId: dataPool.id,
       title,
-      content,
-      metadata: documentMetadata,
+      content: content.slice(0, 1000) + (content.length > 1000 ? '...' : ''), // Store preview only
+      metadata: mainDocumentMetadata,
     });
 
     // Create separate documents for each extracted image so they can be individually searched
@@ -470,11 +603,27 @@ export async function POST(
         title: document.title,
         metadata: document.metadata,
       },
+      chunking: {
+        strategy:
+          isPdfFile(file) && pdfResult.pages ? 'pdf-pages' : 'text-chunking',
+        totalChunks: textChunks.length,
+        successfulChunks: chunkDocuments.length,
+        failedChunks: failedChunks.length,
+        chunkDocuments: chunkDocuments.map((doc) => ({
+          id: doc.id,
+          title: doc.title,
+        })),
+        ...(failedChunks.length > 0 && {
+          failures: failedChunks,
+        }),
+      },
       ...(isPdfFile(file) && {
         ocrProcessing: {
           provider: 'mistral',
           extractedImagesCount: extractedImages?.length || 0,
-          hasEmbedding: !!embedding,
+          hasPageStructure: !!(
+            pdfResult.pages && Array.isArray(pdfResult.pages)
+          ),
           imageDocumentsCreated: imageDocuments.length,
         },
       }),
@@ -522,22 +671,64 @@ export async function DELETE(
       return new ChatSDKError('not_found:database').toResponse();
     }
 
-    // Delete from SQL database
-    await deleteDataPoolDocument({
+    // Check if this document has chunks
+    const chunks = await getDataPoolDocumentsByParentId({
+      parentDocumentId: documentId,
+      dataPoolId,
+    });
+
+    // Delete from SQL database (including chunks)
+    const deletionResult = await deleteDataPoolDocumentWithChunks({
       id: documentId,
       dataPoolId,
     });
 
-    // Also delete from Upstash vector database
+    // Delete from Upstash vector database
+    const vectorDeletionResults = {
+      mainDocument: false,
+      chunks: 0,
+      failures: [] as string[],
+    };
+
+    // Delete main document from vector database
     try {
       await upstashVectorService.deleteDocument(dataPoolId, documentId);
+      vectorDeletionResults.mainDocument = true;
     } catch (error) {
-      console.error('Failed to delete document from Upstash:', error);
-      // Don't fail the request if Upstash deletion fails
+      console.error('Failed to delete main document from Upstash:', error);
+      vectorDeletionResults.failures.push(`main:${documentId}`);
+    }
+
+    // Delete all chunk documents from vector database
+    for (const chunk of chunks) {
+      try {
+        // The chunk ID in vector database is stored in metadata.chunkId
+        const chunkId = (chunk.metadata as any)?.chunkId || chunk.id;
+        await upstashVectorService.deleteDocument(dataPoolId, chunkId);
+        vectorDeletionResults.chunks++;
+      } catch (error) {
+        console.error(
+          `Failed to delete chunk ${chunk.id} from Upstash:`,
+          error,
+        );
+        vectorDeletionResults.failures.push(`chunk:${chunk.id}`);
+      }
     }
 
     return NextResponse.json({
       success: true,
+      deletion: {
+        documentsDeleted: deletionResult.deletedDocuments,
+        chunksDeleted: deletionResult.deletedChunks,
+        vectorDeletion: {
+          mainDocumentDeleted: vectorDeletionResults.mainDocument,
+          chunksDeleted: vectorDeletionResults.chunks,
+          totalFailures: vectorDeletionResults.failures.length,
+          ...(vectorDeletionResults.failures.length > 0 && {
+            failures: vectorDeletionResults.failures,
+          }),
+        },
+      },
     });
   } catch (error) {
     if (error instanceof ChatSDKError) {
