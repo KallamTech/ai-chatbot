@@ -276,17 +276,11 @@ export async function POST(
       }));
       textChunks = chunkPdfByPages(pdfPages, documentId, {
         maxCharsPerChunk: 2000, // ~1 page
-        minCharsPerChunk: 500,
-        overlapChars: 200,
       });
     } else {
       // Chunk text content for non-PDF files or PDFs without page structure
       textChunks = chunkText(content, documentId, {
         maxCharsPerChunk: 2000, // ~1 page
-        minCharsPerChunk: 500,
-        overlapChars: 200,
-        respectParagraphs: true,
-        respectSentences: true,
       });
     }
 
