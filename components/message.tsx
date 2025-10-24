@@ -986,7 +986,7 @@ const PurePreviewMessage = ({
                                 </div>
                                 <div className="text-sm">
                                   <strong>Data Pool:</strong>{' '}
-                                  {(part as any).input?.dataPoolId || 'N/A'}
+                                  {(part as any).input?.dataPoolName || 'N/A'}
                                 </div>
                                 <div className="text-sm">
                                   <strong>Search Type:</strong>{' '}

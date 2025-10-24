@@ -2,14 +2,14 @@ import 'server-only';
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { getDataPoolDocumentsFiltered } from '@/lib/db/queries';
+import { getDataPoolDocumentsFiltered, getDataPoolByName } from '@/lib/db/queries';
 
-export const datapoolFetch = () =>
+export const datapoolFetch = (session?: any, availableDataPools?: any[]) =>
   tool({
     description:
       'Search and retrieve documents from a data pool using a text query. This tool requires a search query string to find matching documents by title or filename. Use this when you need to find specific documents within a data pool.',
     inputSchema: z.object({
-      dataPoolId: z.string().describe('ID of the data pool to search in'),
+      dataPoolName: z.string().describe('Name of the data pool to search in'),
       query: z
         .string()
         .min(1)
@@ -31,7 +31,7 @@ export const datapoolFetch = () =>
         .describe('Whether to include full content in the response'),
     }),
     execute: async ({
-      dataPoolId,
+      dataPoolName,
       query,
       limit = 20,
       offset = 0,
@@ -39,12 +39,28 @@ export const datapoolFetch = () =>
     }) => {
       try {
         // Validate required parameters
-        if (!dataPoolId) {
-          return { error: 'dataPoolId is required' };
+        if (!dataPoolName) {
+          return { error: 'dataPoolName is required' };
         }
         if (!query || query.trim().length === 0) {
           return { error: 'query is required and cannot be empty' };
         }
+
+        // Verify the datapool is available (connected and belongs to the user)
+        const targetDataPool = availableDataPools?.find(
+          (dp) => dp.name === dataPoolName,
+        );
+        if (!targetDataPool) {
+          return {
+            error: `Data pool '${dataPoolName}' not found or not connected to this chat`,
+            availableDataPools: availableDataPools?.map((dp) => ({
+              id: dp.id,
+              name: dp.name,
+            })) || [],
+          };
+        }
+
+        const dataPoolId = targetDataPool.id;
 
         const trimmedQuery = query.trim();
         const docs = await getDataPoolDocumentsFiltered({
@@ -64,6 +80,7 @@ export const datapoolFetch = () =>
 
         return {
           count: items.length,
+          dataPoolName,
           dataPoolId,
           filters: {
             query: trimmedQuery,

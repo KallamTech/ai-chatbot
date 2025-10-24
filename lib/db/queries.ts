@@ -712,6 +712,28 @@ export async function getDataPoolById({
   }
 }
 
+export async function getDataPoolByName({
+  name,
+  userId,
+}: {
+  name: string;
+  userId: string;
+}): Promise<DataPool | null> {
+  try {
+    const [result] = await db
+      .select()
+      .from(dataPool)
+      .where(and(eq(dataPool.name, name), eq(dataPool.userId, userId)));
+
+    return result || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get data pool by name',
+    );
+  }
+}
+
 export async function getDataPoolByAgentId({
   agentId,
 }: {
