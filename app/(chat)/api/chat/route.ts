@@ -307,6 +307,30 @@ export async function POST(request: Request) {
           activeTools.push('datapoolFetch');
         }
 
+        const systemPromptText = systemPrompt({
+          selectedChatModel,
+          requestHints,
+          connectedDataPools: availableDataPools.map((dp) => ({
+            id: dp.id,
+            name: dp.name,
+          })),
+        });
+        const MAX_CONTEXT_LENGTH = 1000000;
+        const contextLength =
+          messagesFromDb.reduce(
+            (acc, msg) => acc + JSON.stringify(msg).length,
+            0,
+          ) +
+          JSON.stringify(message).length +
+          systemPromptText.length;
+        const contextPercentage = Math.round(
+          (contextLength / MAX_CONTEXT_LENGTH) * 100,
+        );
+
+        dataStream.update({
+          contextPercentage,
+        });
+
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({

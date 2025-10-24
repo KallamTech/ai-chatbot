@@ -58,6 +58,7 @@ export function Chat({
   const [selectedModelId, setSelectedModelId] =
     useState<string>(initialChatModel);
   const [connectedDataPools, setConnectedDataPools] = useState<string[]>([]);
+  const [contextPercentage, setContextPercentage] = useState<number>(0);
 
   // Determine the effective agentId from multiple sources
   // Priority: prop from route > database
@@ -131,6 +132,13 @@ export function Chat({
       },
     }),
     onData: (dataPart) => {
+      if (
+        typeof dataPart === 'object' &&
+        dataPart.contextPercentage !== undefined
+      ) {
+        setContextPercentage(dataPart.contextPercentage);
+        return;
+      }
       setDataStream((ds) => (ds ? [...ds, dataPart] : []));
     },
     onFinish: () => {
@@ -302,6 +310,7 @@ export function Chat({
               }
               connectedDataPools={effectiveAgentId ? [] : connectedDataPools}
               agentId={effectiveAgentId}
+              contextPercentage={contextPercentage}
             />
           )}
         </div>

@@ -53,6 +53,7 @@ function PureMultimodalInput({
   onDisconnectDataPool,
   connectedDataPools,
   agentId,
+  contextPercentage,
 }: {
   chatId: string;
   input: string;
@@ -71,6 +72,7 @@ function PureMultimodalInput({
   onDisconnectDataPool?: (dataPoolId: string) => void;
   connectedDataPools?: string[];
   agentId?: string;
+  contextPercentage: number;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -340,6 +342,7 @@ function PureMultimodalInput({
         <PromptInputToolbar className="px-4 py-2 !border-t-0 !border-top-0 shadow-none dark:!border-transparent dark:border-0">
           <PromptInputTools className="gap-2">
             <AttachmentsButton fileInputRef={fileInputRef} status={status} />
+            <ContextTracker percentage={contextPercentage} />
             {agentId ? (
               // Agent chat: Show agent-managed datapools info
               <div
@@ -419,10 +422,47 @@ export const MultimodalInput = memo(
     if (!equal(prevProps.connectedDataPools, nextProps.connectedDataPools))
       return false;
     if (prevProps.agentId !== nextProps.agentId) return false;
+    if (prevProps.contextPercentage !== nextProps.contextPercentage)
+      return false;
 
     return true;
   },
 );
+
+function ContextTracker({ percentage }: { percentage: number }) {
+  const radius = 20;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="flex items-center justify-center">
+      <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 50 50">
+        <circle
+          className="text-gray-300"
+          strokeWidth="5"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="25"
+          cy="25"
+        />
+        <circle
+          className="text-primary"
+          strokeWidth="5"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="25"
+          cy="25"
+        />
+      </svg>
+      <span className="absolute text-xs">{`${percentage}%`}</span>
+    </div>
+  );
+}
 
 function PureAttachmentsButton({
   fileInputRef,
