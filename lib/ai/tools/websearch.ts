@@ -50,17 +50,17 @@ export const webSearch = () =>
 
         console.log('WebSearch: Search completed successfully');
 
-        // Extract sources from result.steps[0].content where type is sources
+        // Extract sources from result.steps[0].content where type is source
         let sources: string[] = [];
         if ((result as any).steps?.[0]?.content) {
           const stepContent = (result as any).steps[0].content;
           if (Array.isArray(stepContent)) {
             sources = stepContent
-              .filter((item: any) => item.type === 'sources')
-              .map((item: any) => item.source)
+              .filter((item: any) => item.type === 'source')
+              .map((item: any) => item.url)
               .filter(Boolean);
-          } else if (stepContent.type === 'sources') {
-            sources = [stepContent.source].filter(Boolean);
+          } else if (stepContent.type === 'source') {
+            sources = [stepContent.url].filter(Boolean);
           }
         }
 
@@ -126,11 +126,11 @@ export const newsSearch = () =>
           const stepContent = (result as any).steps[0].content;
           if (Array.isArray(stepContent)) {
             sources = stepContent
-              .filter((item: any) => item.type === 'sources')
-              .map((item: any) => item.source)
+              .filter((item: any) => item.type === 'source')
+              .map((item: any) => item.url)
               .filter(Boolean);
-          } else if (stepContent.type === 'sources') {
-            sources = [stepContent.source].filter(Boolean);
+          } else if (stepContent.type === 'source') {
+            sources = [stepContent.url].filter(Boolean);
           }
         }
 
