@@ -759,26 +759,15 @@ const PurePreviewMessage = ({
                                       Found {(part as any).output.count}{' '}
                                       document(s)
                                     </div>
-                                    {(part as any).output.documents?.map(
-                                      (doc: any) => (
-                                        <div
-                                          key={doc.id}
-                                          className="p-2 border rounded"
-                                        >
-                                          <div className="font-medium">
-                                            {doc.title}
+                                    <div className="text-sm">
+                                      {(part as any).output.documents?.map(
+                                        (doc: any, index: number) => (
+                                          <div key={doc.id} className="py-1">
+                                            {index + 1}. {doc.title}
                                           </div>
-                                          <div className="text-sm text-gray-600">
-                                            ID: {doc.id}
-                                          </div>
-                                          {doc.metadata?.fileName && (
-                                            <div className="text-sm text-gray-500">
-                                              File: {doc.metadata.fileName}
-                                            </div>
-                                          )}
-                                        </div>
-                                      ),
-                                    )}
+                                        )
+                                      )}
+                                    </div>
                                   </div>
                                 ) : (
                                   <div className="text-sm text-gray-600">
@@ -1031,54 +1020,14 @@ const PurePreviewMessage = ({
                                         </ul>
                                       </div>
                                     )}
-                                    <div className="space-y-2">
+                                    <div className="text-sm text-gray-600">
                                       {(part as any).output.results.map(
-                                        (result: any) => (
-                                          <div
-                                            key={result.id}
-                                            className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-800"
-                                          >
-                                            <div className="flex items-center justify-between mb-2">
-                                              <div className="font-medium text-sm">
-                                                {result.title ||
-                                                  `Document ${result.id}`}
-                                              </div>
-                                              <div className="text-xs text-gray-500">
-                                                Similarity:{' '}
-                                                {(
-                                                  result.similarity * 100
-                                                ).toFixed(1)}
-                                                %
-                                              </div>
-                                            </div>
-                                            {result.truncated && (
-                                              <div className="text-xs text-orange-600 mb-2">
-                                                ⚠️ Content truncated (original:{' '}
-                                                {result.originalLength} chars)
-                                              </div>
-                                            )}
-                                            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                              {result.content}
-                                            </div>
-                                            {result.metadata &&
-                                              Object.keys(result.metadata)
-                                                .length > 0 && (
-                                                <div className="mt-2 text-xs text-gray-500">
-                                                  <strong>Metadata:</strong>{' '}
-                                                  {Object.entries(
-                                                    result.metadata,
-                                                  )
-                                                    .filter(
-                                                      ([key]) =>
-                                                        key !== 'title',
-                                                    )
-                                                    .map(
-                                                      ([key, value]) =>
-                                                        `${key}: ${value}`,
-                                                    )
-                                                    .join(', ')}
-                                                </div>
-                                              )}
+                                        (result: any, index: number) => (
+                                          <div key={result.id} className="py-1">
+                                            {index + 1}. {result.title || `Document ${result.id}`}
+                                            <span className="text-xs text-gray-500 ml-2">
+                                              ({(result.similarity * 100).toFixed(1)}% match)
+                                            </span>
                                           </div>
                                         ),
                                       )}
