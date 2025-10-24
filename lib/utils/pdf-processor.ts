@@ -404,7 +404,11 @@ export async function processPdfWithMistralOCR(
     if (textContent) {
       textContent = textContent
         .replace(/\0/g, '') // Remove null bytes
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
+        // eslint-disable-next-line no-control-regex
+        .replace(
+          /[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g,
+          '',
+        ) // Remove control characters
         .trim();
     }
 
@@ -426,9 +430,9 @@ export async function processPdfWithMistralOCR(
 
     // Generate embedding for the extracted text using Cohere (only if we have text)
     let embedding: number[] | undefined;
-    if (hasTextContent) {
+    if (hasTextContent && textContent) {
       console.log('Generating embedding for extracted content...');
-      embedding = await generateDocumentEmbedding(textContent!);
+      embedding = await generateDocumentEmbedding(textContent);
 
       if (!embedding) {
         console.warn('Failed to generate embedding for PDF content');

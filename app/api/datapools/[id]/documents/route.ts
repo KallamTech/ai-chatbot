@@ -230,7 +230,11 @@ export async function POST(
       // Remove null bytes and other problematic characters for PostgreSQL
       content = content
         .replace(/\0/g, '')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        .replace(
+          // eslint-disable-next-line no-control-regex
+          /[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/g,
+          '',
+        );
     }
 
     if (!content.trim()) {

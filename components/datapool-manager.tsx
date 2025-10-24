@@ -714,9 +714,9 @@ export function DataPoolManager({
                   </span>
                 </div>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {Array.from(selectedFiles).map((file, index) => (
+                  {Array.from(selectedFiles).map((file) => (
                     <div
-                      key={index}
+                      key={file.name}
                       className="flex items-center gap-2 text-sm bg-background p-2 rounded border"
                     >
                       <FileTextIcon size={14} />

@@ -7,7 +7,7 @@ import { getDataPoolDocumentsFiltered } from '@/lib/db/queries';
 export const datapoolFetch = () =>
   tool({
     description:
-      'Fetch documents directly from a data pool using SQL-backed filters on title and metadata.fileName. Useful for high-level tasks like summarizing a specific PDF by its file name or title.',
+      'Fetch documents from a data pool using exact filters on title or file name. Use this when the user asks to get a specific document.',
     inputSchema: z.object({
       dataPoolId: z.string().describe('ID of the data pool'),
       title: z

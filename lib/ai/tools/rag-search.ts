@@ -117,7 +117,7 @@ function truncateContent(
 export const ragSearch = () =>
   tool({
     description:
-      'Search through documents in a data pool using semantic similarity, keyword matching, or hybrid search (combines both approaches)',
+      'Search for documents in a data pool using semantic similarity, keyword matching, or hybrid search. Use this when the user is asking a question about their documents.',
     inputSchema: z.object({
       dataPoolId: z.string().describe('ID of the data pool to search'),
       query: z.string().describe('Search query'),
@@ -273,9 +273,14 @@ export const ragSearch = () =>
             console.log('RAG Search: Using filter:', filterString);
           }
 
+          if (!queryEmbedding) {
+            return {
+              error: 'Failed to generate embedding for query',
+            };
+          }
           searchResults = await upstashVectorService.searchDocuments(
             dataPoolId,
-            queryEmbedding!,
+            queryEmbedding,
             {
               limit: limit * 2, // Get more results to account for filtering
               filter: filterString,
@@ -295,10 +300,15 @@ export const ragSearch = () =>
             console.log('RAG Search: Using filter:', filterString);
           }
 
+          if (!queryEmbedding) {
+            return {
+              error: 'Failed to generate embedding for query',
+            };
+          }
           const hybridResults = await upstashVectorService.hybridSearch(
             dataPoolId,
             query,
-            queryEmbedding!,
+            queryEmbedding,
             {
               limit: limit,
               filter: filterString,
