@@ -105,14 +105,28 @@ export const deepResearch = () =>
 
         console.log('DeepResearch: Deep research completed successfully');
 
+        // Extract sources from result.steps[0].content where type is sources
+        let sources: string[] = [];
+        if ((result as any).steps?.[0]?.content) {
+          const stepContent = (result as any).steps[0].content;
+          if (Array.isArray(stepContent)) {
+            sources = stepContent
+              .filter((item: any) => item.type === 'sources')
+              .map((item: any) => item.source)
+              .filter(Boolean);
+          } else if (stepContent.type === 'sources') {
+            sources = [stepContent.source].filter(Boolean);
+          }
+        }
+
         return {
           query,
           researchType,
           depth,
           focus: focus || null,
           results: result.text,
+          sources,
           timestamp: new Date().toISOString(),
-          source: 'perplexity-sonar-deep-research',
           methodology: {
             searchStrategy: 'academic-focused',
             depthLevel: depth,

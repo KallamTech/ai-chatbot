@@ -7,17 +7,13 @@ import { getDataPoolDocumentsFiltered } from '@/lib/db/queries';
 export const datapoolFetch = () =>
   tool({
     description:
-      'Fetch documents from a data pool using exact filters on title or file name. Use this when the user asks to get a specific document.',
+      'Search and retrieve documents from a data pool using a text query. This tool requires a search query string to find matching documents by title or filename. Use this when you need to find specific documents within a data pool.',
     inputSchema: z.object({
-      dataPoolId: z.string().describe('ID of the data pool'),
-      title: z
+      dataPoolId: z.string().describe('ID of the data pool to search in'),
+      query: z
         .string()
-        .optional()
-        .describe('Partial match filter for document title'),
-      fileName: z
-        .string()
-        .optional()
-        .describe('Partial match filter for metadata.fileName'),
+        .min(1)
+        .describe('Search text - you must provide keywords or terms to search for in document titles and filenames. Cannot be empty.'),
       limit: z
         .number()
         .optional()
@@ -36,17 +32,24 @@ export const datapoolFetch = () =>
     }),
     execute: async ({
       dataPoolId,
-      title,
-      fileName,
+      query,
       limit = 20,
       offset = 0,
       includeContent = true,
     }) => {
       try {
+        // Validate required parameters
+        if (!dataPoolId) {
+          return { error: 'dataPoolId is required' };
+        }
+        if (!query || query.trim().length === 0) {
+          return { error: 'query is required and cannot be empty' };
+        }
+
+        const trimmedQuery = query.trim();
         const docs = await getDataPoolDocumentsFiltered({
           dataPoolId,
-          title,
-          fileName,
+          query: trimmedQuery,
           limit,
           offset,
         });
@@ -63,8 +66,7 @@ export const datapoolFetch = () =>
           count: items.length,
           dataPoolId,
           filters: {
-            ...(title && { title }),
-            ...(fileName && { fileName }),
+            query: trimmedQuery,
             limit,
             offset,
           },

@@ -1237,17 +1237,16 @@ export async function getDataPoolDocumentTitles({
 
 /**
  * Fetch datapool documents with SQL filtering on title and metadata.fileName
+ * When both title and fileName are provided with the same value, it searches with OR logic
  */
 export async function getDataPoolDocumentsFiltered({
   dataPoolId,
-  title,
-  fileName,
+  query,
   limit = 50,
   offset = 0,
 }: {
   dataPoolId: string;
-  title?: string;
-  fileName?: string;
+  query?: string;
   limit?: number;
   offset?: number;
 }): Promise<Array<DataPoolDocument>> {
@@ -1256,16 +1255,18 @@ export async function getDataPoolDocumentsFiltered({
       eq(dataPoolDocument.dataPoolId, dataPoolId),
     ];
 
-    if (title && title.trim().length > 0) {
-      whereConditions.push(ilike(dataPoolDocument.title, `%${title}%`));
-    }
-
-    if (fileName && fileName.trim().length > 0) {
-      // Match JSON metadata containing a fileName with partial match
+    // Generic search using query parameter - searches both title and fileName with OR logic
+    if (query && query.trim().length > 0) {
+      const searchQuery = query.trim();
       whereConditions.push(
-        sql`(${dataPoolDocument.metadata}->>'fileName' ILIKE ${`%${fileName}%`})`,
+        sql`(${dataPoolDocument.title} ILIKE ${`%${searchQuery}%`} OR ${dataPoolDocument.metadata}->>'fileName' ILIKE ${`%${searchQuery}%`})`
       );
     }
+
+    // Exclude documents with metadata.type = "extracted_image"
+    whereConditions.push(
+      sql`(${dataPoolDocument.metadata} IS NULL OR ${dataPoolDocument.metadata}->>'type' IS NULL OR ${dataPoolDocument.metadata}->>'type' != 'extracted_image')`
+    );
 
     const results = await db
       .select()

@@ -73,7 +73,7 @@ export const systemPrompt = ({
       ? `\n\nYou have access to two document tools: \`ragSearch\` and \`datapoolFetch\`.
 
 1. \`ragSearch\`: Use this for semantic search when the user is asking a question about their documents.
-2. \`datapoolFetch\`: Use this to fetch a specific document when the user refers to it by title or file name.
+2. \`datapoolFetch\`: Use this to search and retrieve documents by providing a search query with keywords or terms to find documents by title or filename. You MUST provide a non-empty search query.
 
 Available data pools: ${connectedDataPools.map((dp) => dp.name).join(', ')}.`
       : '';

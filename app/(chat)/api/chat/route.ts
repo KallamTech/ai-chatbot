@@ -5,7 +5,6 @@ import {
   smoothStream,
   stepCountIs,
   streamText,
-  tool,
 } from 'ai';
 import { auth, type UserType } from '@/app/(auth)/auth';
 import { type RequestHints, systemPrompt } from '@/lib/ai/prompts';
@@ -32,7 +31,6 @@ import { generateImage } from '@/lib/ai/tools/generate-image';
 import { ragSearch } from '@/lib/ai/tools/rag-search';
 import { datapoolFetch } from '@/lib/ai/tools/datapool-fetch';
 import { getDataPoolsByUserId } from '@/lib/db/queries';
-import { z } from 'zod';
 import { isProductionEnvironment } from '@/lib/constants';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import {
@@ -262,159 +260,9 @@ export async function POST(request: Request) {
             ? userDataPools.filter((dp) => connectedDataPools.includes(dp.id))
             : [];
 
-        // Create RAG search tool that can search across connected datapools
-        const createRagSearchTool = () => {
-          if (availableDataPools.length === 0) {
-            return null; // No datapools available
-          }
-
-          return tool({
-            description:
-              'Search through documents in your connected data pools using semantic similarity',
-            inputSchema: z.object({
-              query: z.string().describe('Search query'),
-              dataPoolId: z
-                .string()
-                .describe(
-                  `ID of the data pool to search. Available data pools: ${availableDataPools.map((dp) => `${dp.id} (${dp.name})`).join(', ')}`,
-                ),
-              limit: z
-                .number()
-                .optional()
-                .default(5)
-                .describe('Maximum number of results to return'),
-              threshold: z
-                .number()
-                .optional()
-                .default(0.3)
-                .describe('Minimum similarity threshold (0.3 is more lenient)'),
-              fileName: z
-                .string()
-                .optional()
-                .describe('Filter by document file name (partial match)'),
-              title: z
-                .string()
-                .optional()
-                .describe('Filter by document title (partial match)'),
-            }),
-            execute: async ({
-              query,
-              dataPoolId,
-              limit = 5,
-              threshold = 0.3,
-              title,
-              fileName,
-            }: {
-              query: string;
-              dataPoolId: string;
-              limit?: number;
-              threshold?: number;
-              title?: string;
-              fileName?: string;
-            }) => {
-              try {
-                // Verify the datapool is available (connected and belongs to the user)
-                const targetDataPool = availableDataPools.find(
-                  (dp) => dp.id === dataPoolId,
-                );
-                if (!targetDataPool) {
-                  return {
-                    error: `Data pool with ID ${dataPoolId} not found or not connected to this chat`,
-                    availableDataPools: availableDataPools.map((dp) => ({
-                      id: dp.id,
-                      name: dp.name,
-                    })),
-                  };
-                }
-
-                const ragSearchTool = ragSearch();
-                const result = await (ragSearchTool as any).execute({
-                  dataPoolId: targetDataPool.id,
-                  query,
-                  limit,
-                  threshold,
-                  ...(title && { title }),
-                  ...(fileName && { fileName }),
-                  ...(selectedChatModel && { modelId: selectedChatModel }),
-                });
-
-                return {
-                  ...result,
-                  searchedDataPool: {
-                    id: targetDataPool.id,
-                    name: targetDataPool.name,
-                  },
-                };
-              } catch (error) {
-                console.error('Error in RAG search:', error);
-                return {
-                  error: 'Failed to search documents',
-                };
-              }
-            },
-          });
-        };
-
-        const ragSearchTool = createRagSearchTool();
-        const createDatapoolFetchTool = () => {
-          if (availableDataPools.length === 0) return null;
-
-          return tool({
-            description:
-              'Fetch documents directly from connected data pools with SQL filters (title, metadata.fileName).',
-            inputSchema: z.object({
-              dataPoolId: z
-                .string()
-                .describe(
-                  `ID of the data pool. Available: ${availableDataPools.map((dp) => `${dp.id} (${dp.name})`).join(', ')}`,
-                ),
-              title: z.string().optional(),
-              fileName: z.string().optional(),
-              limit: z.number().optional().default(20),
-              offset: z.number().optional().default(0),
-              includeContent: z.boolean().optional().default(true),
-            }),
-            execute: async ({
-              dataPoolId,
-              title,
-              fileName,
-              limit = 20,
-              offset = 0,
-              includeContent = true,
-            }) => {
-              const targetDataPool = availableDataPools.find(
-                (dp) => dp.id === dataPoolId,
-              );
-              if (!targetDataPool) {
-                return {
-                  error: `Data pool with ID ${dataPoolId} not found or not connected to this chat`,
-                  availableDataPools: availableDataPools.map((dp) => ({
-                    id: dp.id,
-                    name: dp.name,
-                  })),
-                };
-              }
-
-              const dpFetchTool = datapoolFetch();
-              const result = await (dpFetchTool as any).execute({
-                dataPoolId: targetDataPool.id,
-                title,
-                fileName,
-                limit,
-                offset,
-                includeContent,
-              });
-              return {
-                ...result,
-                searchedDataPool: {
-                  id: targetDataPool.id,
-                  name: targetDataPool.name,
-                },
-              };
-            },
-          });
-        };
-        const sqlFetchTool = createDatapoolFetchTool();
+        // Use the imported tools directly
+        const ragSearchTool = availableDataPools.length > 0 ? ragSearch() : null;
+        const datapoolFetchTool = availableDataPools.length > 0 ? datapoolFetch() : null;
         const tools: any = {
           getWeather,
           createDocument: createDocument({ session, dataStream }),
@@ -447,9 +295,9 @@ export async function POST(request: Request) {
           tools.ragSearch = ragSearchTool;
           activeTools.push('ragSearch');
         }
-        // Add SQL-backed datapool fetch tool for high-level doc retrieval
-        if (sqlFetchTool) {
-          tools.datapoolFetch = sqlFetchTool;
+        // Add datapool fetch tool for document retrieval
+        if (datapoolFetchTool) {
+          tools.datapoolFetch = datapoolFetchTool;
           activeTools.push('datapoolFetch');
         }
 
