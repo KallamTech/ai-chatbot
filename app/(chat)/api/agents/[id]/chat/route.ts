@@ -323,14 +323,20 @@ export async function POST(
       return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
     }
   } catch (error) {
+    console.error('Unexpected error in agent chat:', error);
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }
-    console.error('Unexpected error in agent chat:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Fallback for any unexpected errors
+    return new Response(
+      JSON.stringify({
+        error: 'An unexpected error occurred. Please try again.',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 }
 

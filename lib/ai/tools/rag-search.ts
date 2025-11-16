@@ -37,7 +37,27 @@ export const ragSearchById = () =>
         const maxLimit = Math.min(limit, 10);
 
         // Check if index exists
-        const indexExists = await upstashVectorService.indexExists(dataPoolId);
+        let indexExists = false;
+        try {
+          indexExists = await upstashVectorService.indexExists(dataPoolId);
+        } catch (error: any) {
+          console.error('Error checking index existence:', error);
+          // Check if it's a network error
+          if (
+            error.code === 'ENOTFOUND' ||
+            error.code === 'ECONNREFUSED' ||
+            error.errno
+          ) {
+            return {
+              results: [],
+              error:
+                'Vector database is currently unavailable. Please try again later.',
+              networkError: true,
+            };
+          }
+          throw error;
+        }
+
         if (!indexExists) {
           return {
             results: [],
@@ -46,29 +66,70 @@ export const ragSearchById = () =>
         }
 
         // Generate embedding for query
-        const queryEmbedding = await generateEmbedding(query);
+        let queryEmbedding: number[] | null | undefined;
+        try {
+          queryEmbedding = await generateEmbedding(query);
+        } catch (error: any) {
+          console.error('Error generating embedding:', error);
+          return {
+            results: [],
+            error: 'Failed to generate search embedding. Please try again.',
+          };
+        }
+
         if (!queryEmbedding) {
-          return { error: 'Failed to generate embedding for query' };
+          return {
+            results: [],
+            error: 'Failed to generate embedding for query',
+          };
         }
 
         // Simple filter for title
         const filter = title ? `title = '${title}'` : undefined;
 
         // Get total document count for the datapool
-        const totalDocuments =
-          await upstashVectorService.getDocumentCount(dataPoolId);
+        let totalDocuments = 0;
+        try {
+          totalDocuments =
+            await upstashVectorService.getDocumentCount(dataPoolId);
+        } catch (error: any) {
+          console.error('Error getting document count:', error);
+          // Continue without document count
+        }
 
         // Search documents with higher limit to get more candidates for filtering
-        const searchResults = await upstashVectorService.searchDocuments(
-          dataPoolId,
-          queryEmbedding,
-          {
-            limit: maxLimit * 2, // Get more candidates to filter by score
-            filter,
-            includeMetadata: true,
-            includeData: true,
-          },
-        );
+        let searchResults = [];
+        try {
+          searchResults = await upstashVectorService.searchDocuments(
+            dataPoolId,
+            queryEmbedding,
+            {
+              limit: maxLimit * 2, // Get more candidates to filter by score
+              filter,
+              includeMetadata: true,
+              includeData: true,
+            },
+          );
+        } catch (error: any) {
+          console.error('Error searching documents:', error);
+          // Check if it's a network error
+          if (
+            error.code === 'ENOTFOUND' ||
+            error.code === 'ECONNREFUSED' ||
+            error.errno
+          ) {
+            return {
+              results: [],
+              error:
+                'Vector database is currently unavailable. Please try again later.',
+              networkError: true,
+            };
+          }
+          return {
+            results: [],
+            error: 'Failed to search documents. Please try again.',
+          };
+        }
 
         // Filter by threshold and limit results - prioritize quality over quantity
         const filteredResults = searchResults.filter(
@@ -91,9 +152,25 @@ export const ragSearchById = () =>
           filteredCount: filteredResults.length,
           totalDocuments,
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error in RAG search:', error);
-        return { error: 'Failed to search documents' };
+        // Check if it's a network error
+        if (
+          error.code === 'ENOTFOUND' ||
+          error.code === 'ECONNREFUSED' ||
+          error.errno
+        ) {
+          return {
+            results: [],
+            error:
+              'Vector database is currently unavailable. Please try again later.',
+            networkError: true,
+          };
+        }
+        return {
+          results: [],
+          error: 'Failed to search documents. Please try again.',
+        };
       }
     },
   });
@@ -147,7 +224,27 @@ export const ragSearch = (session?: any, availableDataPools?: any[]) =>
         const maxLimit = Math.min(limit, 10);
 
         // Check if index exists
-        const indexExists = await upstashVectorService.indexExists(dataPoolId);
+        let indexExists = false;
+        try {
+          indexExists = await upstashVectorService.indexExists(dataPoolId);
+        } catch (error: any) {
+          console.error('Error checking index existence:', error);
+          // Check if it's a network error
+          if (
+            error.code === 'ENOTFOUND' ||
+            error.code === 'ECONNREFUSED' ||
+            error.errno
+          ) {
+            return {
+              results: [],
+              error:
+                'Vector database is currently unavailable. Please try again later.',
+              networkError: true,
+            };
+          }
+          throw error;
+        }
+
         if (!indexExists) {
           return {
             results: [],
@@ -156,29 +253,70 @@ export const ragSearch = (session?: any, availableDataPools?: any[]) =>
         }
 
         // Generate embedding for query
-        const queryEmbedding = await generateEmbedding(query);
+        let queryEmbedding: number[] | null | undefined;
+        try {
+          queryEmbedding = await generateEmbedding(query);
+        } catch (error: any) {
+          console.error('Error generating embedding:', error);
+          return {
+            results: [],
+            error: 'Failed to generate search embedding. Please try again.',
+          };
+        }
+
         if (!queryEmbedding) {
-          return { error: 'Failed to generate embedding for query' };
+          return {
+            results: [],
+            error: 'Failed to generate embedding for query',
+          };
         }
 
         // Simple filter for title
         const filter = title ? `title = '${title}'` : undefined;
 
         // Get total document count for the datapool
-        const totalDocuments =
-          await upstashVectorService.getDocumentCount(dataPoolId);
+        let totalDocuments = 0;
+        try {
+          totalDocuments =
+            await upstashVectorService.getDocumentCount(dataPoolId);
+        } catch (error: any) {
+          console.error('Error getting document count:', error);
+          // Continue without document count
+        }
 
         // Search documents with higher limit to get more candidates for filtering
-        const searchResults = await upstashVectorService.searchDocuments(
-          dataPoolId,
-          queryEmbedding,
-          {
-            limit: maxLimit * 2, // Get more candidates to filter by score
-            filter,
-            includeMetadata: true,
-            includeData: true,
-          },
-        );
+        let searchResults = [];
+        try {
+          searchResults = await upstashVectorService.searchDocuments(
+            dataPoolId,
+            queryEmbedding,
+            {
+              limit: maxLimit * 2, // Get more candidates to filter by score
+              filter,
+              includeMetadata: true,
+              includeData: true,
+            },
+          );
+        } catch (error: any) {
+          console.error('Error searching documents:', error);
+          // Check if it's a network error
+          if (
+            error.code === 'ENOTFOUND' ||
+            error.code === 'ECONNREFUSED' ||
+            error.errno
+          ) {
+            return {
+              results: [],
+              error:
+                'Vector database is currently unavailable. Please try again later.',
+              networkError: true,
+            };
+          }
+          return {
+            results: [],
+            error: 'Failed to search documents. Please try again.',
+          };
+        }
 
         // Filter by threshold and limit results - prioritize quality over quantity
         const filteredResults = searchResults.filter(
@@ -201,9 +339,25 @@ export const ragSearch = (session?: any, availableDataPools?: any[]) =>
           filteredCount: filteredResults.length,
           totalDocuments,
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error in RAG search:', error);
-        return { error: 'Failed to search documents' };
+        // Check if it's a network error
+        if (
+          error.code === 'ENOTFOUND' ||
+          error.code === 'ECONNREFUSED' ||
+          error.errno
+        ) {
+          return {
+            results: [],
+            error:
+              'Vector database is currently unavailable. Please try again later.',
+            networkError: true,
+          };
+        }
+        return {
+          results: [],
+          error: 'Failed to search documents. Please try again.',
+        };
       }
     },
   });
