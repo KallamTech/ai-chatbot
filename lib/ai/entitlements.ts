@@ -25,7 +25,7 @@ export const entitlementsByUserType: Record<UserType, Entitlements> = {
       ModelId.GPT_4_1,
       ModelId.GPT_4_1_MINI,
       ModelId.GPT_5_CODEX,
-      ModelId.GPT_5,
+      ModelId.GPT_5_2,
       ModelId.GEMINI_2_5_FLASH_LITE,
       ModelId.GEMINI_2_5_FLASH,
       ModelId.GEMINI_3_PRO_REASONING,

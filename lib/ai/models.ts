@@ -25,10 +25,11 @@ export const chatModels: Array<ChatModel> = [
     provider: 'OpenAI',
   },
   {
-    id: ModelId.GPT_5,
+    id: ModelId.GPT_5_2,
     name: 'GPT-5.2',
     description: 'OpenAI most advanced language model',
     provider: 'OpenAI',
+    hasReasoning: true,
   },
   {
     id: ModelId.O4_MINI,
@@ -95,15 +96,16 @@ export const chatModels: Array<ChatModel> = [
     provider: 'Anthropic',
   },
   {
+    id: ModelId.CLAUDE_SONNET_4_5,
+    name: 'Claude Sonnet 4.5',
+    description: 'Claude Sonnet 4.5 with advanced reasoning capabilities',
+    provider: 'Anthropic',
+    hasReasoning: true,
+  },
+  {
     id: ModelId.CLAUDE_OPUS_4_5,
     name: 'Claude Opus 4.5',
     description: 'Anthropic most advanced model for general tasks',
-    provider: 'Anthropic',
-  },
-  {
-    id: ModelId.CLAUDE_SONNET_4_5,
-    name: 'Claude Sonnet 4.5  Reasoning',
-    description: 'Claude Sonnet 4.5 with advanced reasoning capabilities',
     provider: 'Anthropic',
     hasReasoning: true,
   },
@@ -158,6 +160,7 @@ export const chatModels: Array<ChatModel> = [
     description:
       'Moonshot AI advanced language model with enhanced capabilities',
     provider: 'Moonshot AI',
+    hasReasoning: true,
   },
   {
     id: ModelId.PIXTRAL_LARGE,
@@ -168,7 +171,7 @@ export const chatModels: Array<ChatModel> = [
   },
   {
     id: ModelId.MISTRAL_LARGE,
-    name: 'Mistral Large',
+    name: 'Mistral Large 3',
     description: 'Mistral advanced large language model',
     provider: 'Mistral',
   },

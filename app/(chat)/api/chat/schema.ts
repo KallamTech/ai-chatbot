@@ -61,7 +61,7 @@ export const postRequestBodySchemaAuthenticated = z.object({
   selectedChatModel: z.enum([
     ModelId.GPT_4_1,
     ModelId.GPT_4_1_MINI,
-    ModelId.GPT_5,
+    ModelId.GPT_5_2,
     ModelId.O4_MINI,
     ModelId.GPT_5_CODEX,
     ModelId.GEMINI_2_5_FLASH_LITE,

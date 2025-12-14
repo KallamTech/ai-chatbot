@@ -21,7 +21,7 @@ if (isTestEnvironment) {
 export enum ModelId {
   GPT_4_1 = 'openai/gpt-4.1',
   GPT_4_1_MINI = 'openai/gpt-4.1-mini',
-  GPT_5 = 'openai/gpt-5.2',
+  GPT_5_2 = 'openai/gpt-5.2',
   O4_MINI = 'openai/o4-mini',
   GPT_5_CODEX = 'openai/gpt-5-codex',
   GEMINI_2_5_FLASH_LITE = 'google/gemini-2.5-flash-lite',
@@ -64,7 +64,7 @@ export const myProvider =
         languageModels: {
           [ModelId.GPT_4_1]: testModels.chatModel,
           [ModelId.GPT_4_1_MINI]: testModels.chatModel,
-          [ModelId.GPT_5]: testModels.chatModel,
+          [ModelId.GPT_5_2]: testModels.reasoningModel,
           [ModelId.O4_MINI]: testModels.chatModel,
           [ModelId.GPT_5_CODEX]: testModels.reasoningModel,
           [ModelId.GEMINI_2_5_FLASH_LITE]: testModels.chatModel,
@@ -111,7 +111,22 @@ export const myProvider =
         languageModels: {
           [ModelId.GPT_4_1]: gateway.languageModel(ModelId.GPT_4_1),
           [ModelId.GPT_4_1_MINI]: gateway.languageModel(ModelId.GPT_4_1_MINI),
-          [ModelId.GPT_5]: gateway.languageModel(ModelId.GPT_5),
+          [ModelId.GPT_5_2]: wrapLanguageModel({
+            model: gateway.languageModel(ModelId.GPT_5_2),
+            middleware: [
+              defaultSettingsMiddleware({
+                settings: {
+                  providerOptions: {
+                    azure: {
+                      reasoningEffort: 'high',
+                      reasoningSummary: 'detailed',
+                    },
+                  },
+                },
+              }),
+              extractReasoningMiddleware({ tagName: 'think' }),
+            ],
+          }),
           [ModelId.O4_MINI]: gateway.languageModel(ModelId.O4_MINI),
           [ModelId.GEMINI_2_5_FLASH_LITE]: gateway.languageModel(
             ModelId.GEMINI_2_5_FLASH_LITE,
