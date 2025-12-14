@@ -9,7 +9,7 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     let draftContent = '';
 
     const result = await generateText({
-      model: myProvider.languageModel(ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW),
+      model: myProvider.languageModel(ModelId.GEMINI_3_PRO_IMAGE),
       system: createDocumentPrompt(title, 'image'),
       providerOptions: {
         google: { responseModalities: ['TEXT', 'IMAGE'] },
@@ -40,7 +40,7 @@ export const imageDocumentHandler = createDocumentHandler<'image'>({
     let draftContent = '';
 
     const result = await generateText({
-      model: myProvider.languageModel(ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW),
+      model: myProvider.languageModel(ModelId.GEMINI_3_PRO_IMAGE),
       providerOptions: {
         google: { responseModalities: ['TEXT', 'IMAGE'] },
       },

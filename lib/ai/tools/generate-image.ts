@@ -59,9 +59,7 @@ export const generateImage = ({ dataStream }: GenerateImageProps) =>
         });
 
         const result = await generateText({
-          model: myProvider.languageModel(
-            ModelId.GEMINI_2_5_FLASH_IMAGE_PREVIEW,
-          ),
+          model: myProvider.languageModel(ModelId.GEMINI_3_PRO_IMAGE),
           providerOptions: {
             google: {
               responseModalities: ['TEXT', 'IMAGE'],
